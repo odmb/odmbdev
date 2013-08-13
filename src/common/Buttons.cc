@@ -15,8 +15,6 @@
 #include "emu/utils/String.h"
 #include "cgicc/HTMLClasses.h"
 
-//#include "eth_libmm.cc"
-//#include "eth_buflib.cc"
 #include "eth_lib.cc"
 
 #include <stdio.h>
@@ -1710,9 +1708,8 @@ namespace emu {
       strftime(year, 10, "%g", timeinfo ); strftime(month, 10, "%m", timeinfo ); strftime(day, 10, "%d", timeinfo ); 
       strftime(hour, 10, "%H", timeinfo ); strftime(minute, 10, "%M", timeinfo ); strftime(second, 10, "%S", timeinfo ); 
       std::ostringstream outnamestream;
-//RJ
-//    outnamestream << "/local/data/odmb_ucsb/raw/odmb_" << tag <<"_" <<year<<month<<day<<"_"
-      outnamestream << "/afs/cern.ch/user/r/rewang/odmbdev/raw/odmb_" << tag <<"_" <<year<<month<<day<<"_"
+
+      outnamestream << "/local/data/odmb_ucsb/raw/odmb_" << tag <<"_" <<year<<month<<day<<"_"
 		    <<hour<<minute<<second<<".raw";
       std::string outname =outnamestream.str();
       FILE *outfile;
@@ -1725,7 +1722,6 @@ namespace emu {
       unsigned short odmbewords[] = {0xE001, 0xE002, 0xE003, 0xE004};
       EthBuf myeth;
       eth_open("schar3",myeth);
-      //old //eth_open("schar3");
       usleep(1);
       eth_register_mac();
 
@@ -1759,7 +1755,6 @@ namespace emu {
 
 	EthStr j_ethstr=eth_readmm(myeth);
         n = j_ethstr.n_evt;
-	//n = eth_readmm();
       }
 
       if(outfile) fclose(outfile);
@@ -1988,18 +1983,10 @@ namespace emu {
 	    logfile << "END_DAQ"<< "                "  << "    "<< timestamp << "\t" <<" Stopping DAQ"<<endl;
 	    continue; // Next line, please.
 	  } else if(buffer=="RESET_ETH"){
-	    /* RJ */
 	    EthBuf myeth;
 	    eth_open("schar3",myeth);
 	    eth_reset(myeth);
 	    eth_reset_close(myeth);
-	    /* THIS Works, test with 20 times with RESET_ETH */
-
-	    //old
-	    //eth_open("schar3");
-	    //eth_reset();
-	    //eth_reset_close();
-
 	    out<<"RESET_ETH"<<endl;
 	    logfile<<"RESET_ETH"<<endl;
 	    continue; // Next line, please.
