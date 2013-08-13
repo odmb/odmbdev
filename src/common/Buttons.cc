@@ -15,7 +15,9 @@
 #include "emu/utils/String.h"
 #include "cgicc/HTMLClasses.h"
 
-#include "eth_libmm.c"
+//#include "eth_libmm.cc"
+//#include "eth_buflib.cc"
+#include "eth_lib.cc"
 
 #include <stdio.h>
 #include <cstdio>
@@ -1708,7 +1710,9 @@ namespace emu {
       strftime(year, 10, "%g", timeinfo ); strftime(month, 10, "%m", timeinfo ); strftime(day, 10, "%d", timeinfo ); 
       strftime(hour, 10, "%H", timeinfo ); strftime(minute, 10, "%M", timeinfo ); strftime(second, 10, "%S", timeinfo ); 
       std::ostringstream outnamestream;
-      outnamestream << "/local/data/odmb_ucsb/raw/odmb_" << tag <<"_" <<year<<month<<day<<"_"
+//RJ
+//    outnamestream << "/local/data/odmb_ucsb/raw/odmb_" << tag <<"_" <<year<<month<<day<<"_"
+      outnamestream << "/afs/cern.ch/user/r/rewang/odmbdev/raw/odmb_" << tag <<"_" <<year<<month<<day<<"_"
 		    <<hour<<minute<<second<<".raw";
       std::string outname =outnamestream.str();
       FILE *outfile;
@@ -1719,28 +1723,55 @@ namespace emu {
       unsigned short ddutrailer[] = {0x8000, 0x8000, 0xFFFF, 0x8000, 0x0001, 0x0005, 
 				     0xC2DB, 0x8040, 0xC2C0, 0x4918, 0x000E, 0xA000};
       unsigned short odmbewords[] = {0xE001, 0xE002, 0xE003, 0xE004};
-      eth_open("schar3");
+      EthBuf myeth;
+      eth_open("schar3",myeth);
+      //old //eth_open("schar3");
       usleep(1);
       eth_register_mac();
-      int n = eth_readmm(), nevents = 0;
-      while(n>14){// && nevents < 10){
+
+      EthStr ethstr=eth_readmm(myeth);
+      int n = ethstr.n_evt; int nevents = 0;
+      vector<char> rbuf = ethstr.rbuf;
+
+      while(n!=0){// && nevents < 10){
 	fwrite(dduheader, sizeof(dduheader[0]), 12, outfile);
 	//if((rbuf[n-7]|0x0F) == -1 && (rbuf[n-9]|0x0F) == -1 && (rbuf[n-11]|0x0F) == -1 && (rbuf[n-13]|0x0F) == -1)
 	//  cout <<" matches"<<endl;
 	//	printf("%02x%02x %02x%02x %02x%02x", rbuf[n-7], rbuf[n-8], rbuf[n-9], rbuf[n-10], rbuf[n-11], rbuf[n-12]);
+
+    	printf(" Event %d has %d words\n",nevents+1,n/2);
+       	for(int j=0; j<n; j = j+2){
+        	printf(" %02x%02x",rbuf[j+1]&0xff,rbuf[j]&0xff);
+        	if(j%16 == 14){   //print words in 24 columns, in three sets of 8 
+          	  printf("   ");} 
+        	if(j%48 == 46){   //if header for odmb go to next event  
+          	  printf("\n");}
+        		  	  //if((rbuf[j]&0xF000)==0xF001) printf("X");
+      	}
+      	printf("\n\n");
+
 	for(int j=0; j<n-6; j++){
 	  fwrite(&rbuf[j], sizeof(rbuf[j]), 1, outfile);
 	}
 	fwrite(odmbewords, sizeof(odmbewords[0]), 4, outfile);
 	fwrite(ddutrailer, sizeof(ddutrailer[0]), 12, outfile);
 	nevents++;
-	n = eth_readmm();
+
+	EthStr j_ethstr=eth_readmm(myeth);
+        n = j_ethstr.n_evt;
+	//n = eth_readmm();
       }
+
       if(outfile) fclose(outfile);
-      eth_close();
+      eth_close(myeth);
+
       cout<<"Written "<<outname<<endl;
       return nevents;
+
     }
+
+
+
     /**************************************************************************
      * ExecuteVMEDSL
      *
@@ -1957,9 +1988,18 @@ namespace emu {
 	    logfile << "END_DAQ"<< "                "  << "    "<< timestamp << "\t" <<" Stopping DAQ"<<endl;
 	    continue; // Next line, please.
 	  } else if(buffer=="RESET_ETH"){
-	    eth_open("schar3");
-	    eth_reset();
-	    eth_reset_close();
+	    /* RJ */
+	    EthBuf myeth;
+	    eth_open("schar3",myeth);
+	    eth_reset(myeth);
+	    eth_reset_close(myeth);
+	    /* THIS Works, test with 20 times with RESET_ETH */
+
+	    //old
+	    //eth_open("schar3");
+	    //eth_reset();
+	    //eth_reset_close();
+
 	    out<<"RESET_ETH"<<endl;
 	    logfile<<"RESET_ETH"<<endl;
 	    continue; // Next line, please.
@@ -1970,6 +2010,11 @@ namespace emu {
 	    out << "WRITE_ETH               "<<tag << " - Written "<<nevents<<" events"<<endl;
 	    logfile << "WRITE_ETH               "<<timestamp<<"\t"<<tag << " - Written "<<nevents<<" events"<<endl;
 	    continue; // Next line, please.
+
+	  } else if(buffer=="SET_SLOT"){
+	    int old_slot = slot; 
+	    iss >> dec >> slot;
+            out << "SET_SLOT                - set from "<< old_slot << " to "<<slot<<endl;
 	  } else if(buffer=="SET_PIPE"){
 	    TypeCommand = 13;
 	    iss >> pipeDepth;
@@ -2033,7 +2078,8 @@ namespace emu {
 	    bool readHex = true;
 	    if((addr >= 0x321C && addr <= 0x337C) || (addr >= 0x33FC && addr <= 0x3FFF) ||
 	       (addr >= 0x4400 && addr <= 0x4418) 
-	       || (addr&0xF0FF) == 0x500C || addr == 0x8004 ||  (addr == 0x5000 && VMEresult < 0x1000)) readHex = false;
+	       || addr == 0x500C || addr == 0x510C || addr == 0x520C || addr == 0x530C || addr == 0x540C 
+	       || addr == 0x8004 ||  (addr == 0x5000 && VMEresult < 0x1000)) readHex = false;
 	    switch (irdwr) {
 	    case 2:
 	      out << "R  " << FixLength(addr) << "        "  << FixLength(VMEresult, nDigits, readHex)  << "    "<<comments<<endl;
