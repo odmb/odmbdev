@@ -108,26 +108,32 @@ namespace emu { namespace odmbdev {
        ***********************************************************************/
 
 
-      addCommonActionByTypename<HardReset>(crate);
-      // addCommonActionByTypename<L1Reset>(crate);
-      addCommonActionByTypename<BC0>(crate);
-      addCommonActionByTypename<ReadBackUserCodes>(crate);
-      // addCommonActionByTypename<CommonUtilities_restoreCFEBIdle>(crate);
-      addCommonActionByTypename<CommonUtilities_setupDDU>(crate);
-      addCommonActionByTypename<CommonUtilities_setupDDU_passThrough>(crate);
-      //addCommonActionByTypename<ButtonTests>(crate,this);
+      //addCommonActionByTypename<HardReset>(crate);
+      //// addCommonActionByTypename<L1Reset>(crate);
+      //addCommonActionByTypename<BC0>(crate);
+      //addCommonActionByTypename<ReadBackUserCodes>(crate);
+      //// addCommonActionByTypename<CommonUtilities_restoreCFEBIdle>(crate);
+      //addCommonActionByTypename<CommonUtilities_setupDDU>(crate);
+      //addCommonActionByTypename<CommonUtilities_setupDDU_passThrough>(crate);
+      ////addCommonActionByTypename<ButtonTests>(crate,this);
 
       /************************************************************************
        * The Buttons, which are listed in the below order on the web page.
        *
        ***********************************************************************/
 
+      addActionByTypename<ChangeSlotNumber>(crate, this);
       cout<<"Adding button"<<endl;
       addActionByTypename<ExecuteVMEDSL>(crate,this);
       cout << "Adding test reset button" << endl;
       addActionByTypename<ResetRegisters>(crate);
       cout << "Adding reprogram DCFEB button" << endl;
       addActionByTypename<ReprogramDCFEB>(crate);
+      addActionByTypename<HardReset>(crate);
+      addActionByTypename<BC0>(crate);
+      addActionByTypename<ReadBackUserCodes>(crate);
+      addActionByTypename<CommonUtilities_setupDDU>(crate);
+      addActionByTypename<CommonUtilities_setupDDU_passThrough>(crate);
 
       
       // putButtonsInGroup( "Routine Tests" );

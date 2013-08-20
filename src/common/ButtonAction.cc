@@ -8,7 +8,7 @@ namespace emu { namespace odmbdev {
     }
 
     void ButtonAction::display(xgi::Output * out){
-      addButton(out, this->buttonLabel);
+      addButton(out, this->buttonLabel, "width: 250px; ");
     }
   }
 }

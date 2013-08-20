@@ -31,7 +31,8 @@ Sources = \
 	Buttons.cc \
 	version.cc \
         ButtonAction.cc \
-        ThreeTextBoxAction.cc \
+        FourTextBoxAction.cc \
+        OneTextBoxAction.cc \
 	Spy.cc
 TestSources =
 TestIncludeDirs =

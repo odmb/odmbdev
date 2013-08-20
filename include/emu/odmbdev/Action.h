@@ -142,6 +142,16 @@ namespace odmbdev {
 					      const std::string& textboxname3,
 					      const std::string& textbox_default_value3);
 
+      static void addButtonWithFourTextBoxes(xgi::Output *out,
+					      const std::string& button_name,
+					      const std::string& textboxname1,
+					      const std::string& textbox_default_value1,
+					      const std::string& textboxname2,
+					      const std::string& textbox_default_value2,
+					      const std::string& textboxname3,
+					      const std::string& textbox_default_value3,
+					      const std::string& textboxname4,
+					      const std::string& textbox_default_value4);
 
 
     };

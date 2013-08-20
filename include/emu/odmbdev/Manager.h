@@ -77,9 +77,11 @@ namespace odmbdev {
       void startDAQ( const std::string& runtype );
       void stopDAQ();
       bool waitForDAQToExecute( const std::string command, const uint64_t seconds );
+      static int getSlotNumber() {return slot_number;}
+      static void setSlotNumber(int slot) {slot_number = slot;}            
 
     protected:
-
+      static int slot_number;
       std::ostringstream webOutputLog_;
       std::string OutputLogTitle_;
       // see the comment above addAction for why we use a vector of boost::shared_ptr

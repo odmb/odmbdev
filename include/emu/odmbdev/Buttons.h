@@ -13,7 +13,8 @@
 #include "emu/odmbdev/LogAction.h"
 #include "emu/odmbdev/ActionValue.h"
 #include "emu/odmbdev/ButtonAction.h"
-#include "emu/odmbdev/ThreeTextBoxAction.h"
+#include "emu/odmbdev/FourTextBoxAction.h"
+#include "emu/odmbdev/OneTextBoxAction.h"
 
 /******************************************************************************
  * The Buttons
@@ -50,7 +51,7 @@ namespace emu { namespace odmbdev {
     class HardReset : public Action {
     public:
       HardReset(emu::pc::Crate * crate) : Action(crate) {}
-      void display(xgi::Output * out) { addButton(out, "Hard Reset", "width: 100%; "); }
+      void display(xgi::Output * out) { addButton(out, "Hard Reset", "width: 250px "); }
       void respond(xgi::Input * in, std::ostringstream & out);
     };
     
@@ -64,7 +65,7 @@ namespace emu { namespace odmbdev {
     class BC0 : public Action {
     public:
       BC0(emu::pc::Crate * crate) : Action(crate) {}
-      void display(xgi::Output * out) { addButton(out, "BC0", "width: 100%; "); }
+      void display(xgi::Output * out) { addButton(out, "BC0", "width: 250px; "); }
       void respond(xgi::Input * in, std::ostringstream & out);
     };
 
@@ -319,11 +320,22 @@ namespace emu { namespace odmbdev {
     };     
 
     /**************************************************************************
+     * Change Slot Number
+     *
+     * A domain-specific-lanaguage for issuing vme commands.
+     *************************************************************************/
+    class ChangeSlotNumber : public OneTextBoxAction {
+    public:
+      ChangeSlotNumber(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
+    };
+
+    /**************************************************************************
      * ExecuteVMEDSL
      *
      * A domain-specific-lanaguage for issuing vme commands.
      *************************************************************************/
-    class ExecuteVMEDSL : public ThreeTextBoxAction {
+    class ExecuteVMEDSL : public FourTextBoxAction {
     public:
       ExecuteVMEDSL(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out);

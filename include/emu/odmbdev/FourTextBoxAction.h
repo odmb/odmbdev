@@ -1,5 +1,5 @@
-#ifndef __emu_odmbdev_ThreeTextBoxAction_h__
-#define __emu_odmbdev_ThreeTextBoxAction_h__
+#ifndef __emu_odmbdev_FourTextBoxAction_h__
+#define __emu_odmbdev_FourTextBoxAction_h__
 
 #include "emu/odmbdev/Action.h"
 #include "emu/odmbdev/utils.h"
@@ -8,9 +8,9 @@ using namespace std;
 using namespace emu::pc;
 
 namespace emu { namespace odmbdev {
-    class ThreeTextBoxAction : public Action {
+    class FourTextBoxAction : public Action {
     public:
-      ThreeTextBoxAction(Crate * crate, emu::odmbdev::Manager * manager, string buttonLabel);
+      FourTextBoxAction(Crate * crate, emu::odmbdev::Manager * manager, string buttonLabel);
 
       void display(xgi::Output * out);
       void respond(xgi::Input * in, ostringstream & out);
@@ -19,6 +19,7 @@ namespace emu { namespace odmbdev {
       string textBoxContent1;
       string textBoxContent2;
       string textBoxContent3;
+      string textBoxContent4;
     };
   }
 }

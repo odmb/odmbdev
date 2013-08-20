@@ -76,16 +76,19 @@ namespace emu { namespace odmbdev {
 				      const string& button_style,
 				      const string& textbox_style)
     {
-      *out << cgicc::input()
-	.set("type","submit")
-	.set("style", button_style)
-	.set("value",button_name)
-	   << endl
-	   << cgicc::input()
+      *out << 
+        "Default slot number: " <<
+	   cgicc::input()
 	.set("type","text")
 	.set("value",textbox_default_value)
 	.set("style", textbox_style)
-	.set("name",textbox_name);
+	.set("name",textbox_name) 
+          << endl
+          << cgicc::input()
+	.set("type","submit")
+	.set("style", button_style)
+	.set("value",button_name)
+	   << endl;
     }
 
     void Action::addButtonWithTwoTextBoxes(xgi::Output *out,
@@ -146,6 +149,41 @@ namespace emu { namespace odmbdev {
     //         << cgicc::div();
   }
   
+  void Action::addButtonWithFourTextBoxes(xgi::Output *out,
+                                           const string& button_name,
+                                           const string& textboxname1,
+                                           const string& textbox_default_value1,
+                                           const string& textboxname2,
+                                           const string& textbox_default_value2,
+                                           const string& textboxname3,
+                                           const string& textbox_default_value3,
+                                           const string& textboxname4,
+                                           const string& textbox_default_value4)
+    {
+    *out << cgicc::input().set("type","submit")
+      .set("value",button_name)
+         << endl  
+	 << cgicc::input().set("type","text").set("style",std::string("width: 40px; "))
+      .set("value",textbox_default_value1)
+      .set("name",textboxname1) << " times. " << " " << "  Board: "
+         << cgicc::input().set("type","text").set("style",std::string("width: 100px; margin-top: 1em; "))
+      .set("value",textbox_default_value3)
+      .set("name",textboxname3)
+         << endl << cgicc::br() << endl
+	 << cgicc::br() << " File: "
+         << cgicc::input().set("type","text").set("style",std::string("width: 468px; margin-top: 1em; "))
+      .set("value",textbox_default_value2)
+      .set("name",textboxname2)
+         << cgicc::textarea().set("style",
+                                  std::string("width: 515px; ")
+                                  + "margin-top: 1em; "
+                                  + "height: 500px; ")
+      .set("name", textboxname4)
+         << textbox_default_value4
+         << cgicc::textarea()
+	 << endl;
+    //         << cgicc::div();
+  }
 
   }
 }
