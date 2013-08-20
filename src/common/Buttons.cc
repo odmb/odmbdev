@@ -25,8 +25,6 @@
 #include <ctype.h>
 #include <sys/stat.h>
 
-#define DEFAULT_SLOT 3
-
 extern char *wbuf;
 extern char rbuf[];
 extern int nrbuf;
@@ -2218,6 +2216,39 @@ namespace emu {
       
     } // End ExecuteVMEDSL::respond
     
+    /**************************************************************************
+     * Conditions
+     *
+     * A small class to print the conditions
+     **************************************************************************/
+    Conditions::Conditions(Crate * crate) 
+      : ButtonAction(crate,"Print Conditions") 
+    { /* The choices here are really a blank constructor vs duplicating the ExecuteVMEDSL constructor.
+	 I've tried the former -- TD
+      */
+    }
+    
+    void Conditions::respond(xgi::Input * in, ostringstream & out) { // TD
+      out << "********** CONDITIONS **********" << endl;
+      bool debug = false;
+      int slot = Manager::getSlotNumber();
+      unsigned int shiftedSlot = slot << 19;
+      char rcv[2];
+      //unsigned int read_addr = 0x007000;
+      unsigned int read_addr_vec[9] = {0x007000, 0x007100, 0x007110, 0x007120, 0x007130, 0x007140, 0x007150, 0x007160, 0x007170};
+      string description[9] = {"Temperature", "Temperature", "Voltage", "Temperature", "Voltage", "Voltage", "Temperature", "Voltage", "Voltage"};
+      for (int i = 0; i < 9; i++){
+        int read_addr = (read_addr_vec[i] & 0x07ffff) | shiftedSlot;
+        unsigned short int data;
+        crate_->vmeController()->vme_controller(2,read_addr,&data,rcv);
+        unsigned short int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+        crate_->vmeController()->vme_controller(2,read_addr,&data,rcv);
+        VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+
+        out << "R  " << FixLength(read_addr & 0xffff) << "        " << "Result: " << FixLength(VMEresult)  << "   " << description[i] << ": " << endl;      
+      }
+      
+    }
 
     /**************************************************************************
      * ResetRegisters
@@ -2235,7 +2266,7 @@ namespace emu {
       // ButtonAction::respond(in, out);
       out << "********** VME REGISTER RESET **********" << endl;
       bool debug = false;
-      int slot = DEFAULT_SLOT;
+      int slot = Manager::getSlotNumber();
       unsigned int shiftedSlot = slot << 19;
       char rcv[2];
       // These are the appropriate R/W addresses for register reset
@@ -2289,7 +2320,7 @@ namespace emu {
     
     void ReprogramDCFEB::respond(xgi::Input * in, ostringstream & out) { // TD
       out << "********** VME REGISTER RESET **********" << endl;
-      int slot = DEFAULT_SLOT;
+      int slot = Manager::getSlotNumber();
       unsigned int shiftedSlot = slot << 19;
       char rcv[2];
       // These are the appropriate R/W addresses for register reset

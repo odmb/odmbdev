@@ -363,6 +363,16 @@ namespace emu { namespace odmbdev {
       void respond(xgi::Input * in, ostringstream & out);
     };      
 
+    /**************************************************************************
+     * Conditions
+     *
+     * A small class to print the conditions
+     **************************************************************************/
+    class Conditions : public ButtonAction {
+    public:
+      Conditions(Crate * crate);
+      void respond(xgi::Input * in, ostringstream & out);
+    };      
 
     /**************************************************************************
      * Log Buttons

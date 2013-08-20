@@ -129,10 +129,11 @@ namespace emu { namespace odmbdev {
       addActionByTypename<ResetRegisters>(crate);
       cout << "Adding reprogram DCFEB button" << endl;
       addActionByTypename<ReprogramDCFEB>(crate);
+      //addActionByTypename<Conditions>(crate);
       addActionByTypename<HardReset>(crate);
-      addActionByTypename<BC0>(crate);
-      addActionByTypename<ReadBackUserCodes>(crate);
-      addActionByTypename<CommonUtilities_setupDDU>(crate);
+      //addActionByTypename<BC0>(crate);
+      //addActionByTypename<ReadBackUserCodes>(crate);
+      //addActionByTypename<CommonUtilities_setupDDU>(crate);
       addActionByTypename<CommonUtilities_setupDDU_passThrough>(crate);
 
       
