@@ -364,13 +364,13 @@ namespace emu { namespace odmbdev {
     };      
 
     /**************************************************************************
-     * Conditions
+     * SYSMON
      *
-     * A small class to print the conditions
+     * A small class to print the Systme monitoring informaiton
      **************************************************************************/
-    class Conditions : public ButtonAction {
+    class SYSMON : public ButtonAction {
     public:
-      Conditions(Crate * crate);
+      SYSMON(Crate * crate);
       void respond(xgi::Input * in, ostringstream & out);
     };      
 

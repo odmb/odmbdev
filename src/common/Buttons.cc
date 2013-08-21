@@ -24,6 +24,7 @@
 #include <time.h>
 #include <ctype.h>
 #include <sys/stat.h>
+#include <math.h>
 
 extern char *wbuf;
 extern char rbuf[];
@@ -2217,26 +2218,30 @@ namespace emu {
     } // End ExecuteVMEDSL::respond
     
     /**************************************************************************
-     * Conditions
+     * SYSMON
      *
-     * A small class to print the conditions
+     * A small class to print the SYSMON
      **************************************************************************/
-    Conditions::Conditions(Crate * crate) 
-      : ButtonAction(crate,"Print Conditions") 
+    SYSMON::SYSMON(Crate * crate) 
+      : ButtonAction(crate,"Check ODMB Volt & Temp") 
     { /* The choices here are really a blank constructor vs duplicating the ExecuteVMEDSL constructor.
 	 I've tried the former -- TD
       */
     }
     
-    void Conditions::respond(xgi::Input * in, ostringstream & out) { // TD
-      out << "********** CONDITIONS **********" << endl;
+    void SYSMON::respond(xgi::Input * in, ostringstream & out) { // TD
+      out << "********** System Monitoring **********" << endl;
       bool debug = false;
       int slot = Manager::getSlotNumber();
       unsigned int shiftedSlot = slot << 19;
       char rcv[2];
       //unsigned int read_addr = 0x007000;
       unsigned int read_addr_vec[9] = {0x007000, 0x007100, 0x007110, 0x007120, 0x007130, 0x007140, 0x007150, 0x007160, 0x007170};
-      string description[9] = {"Temperature", "Temperature", "Voltage", "Temperature", "Voltage", "Voltage", "Temperature", "Voltage", "Voltage"};
+      string description[9] = {"FPGA Temperature (deg C)", "LV_P3V3 (V)", "P5V (V)", "THERM2 (deg C)", "P3V3_PP (V)", "P2V5 (V)", "THERM1 (deg C)", "P1V0 (V)", "P5V_LVMB (V)"};
+      int precision[9] = {3, 3, 3, 3, 3, 3, 3, 2, 3};
+      float voltmax[9] = {1.0, 3.3, 5.0, 1.0, 3.3, 2.5, 1.0, 1.0, 5.0};
+      unsigned short int result[9];
+      float result2[9];
       for (int i = 0; i < 9; i++){
         int read_addr = (read_addr_vec[i] & 0x07ffff) | shiftedSlot;
         unsigned short int data;
@@ -2244,8 +2249,12 @@ namespace emu {
         unsigned short int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
         crate_->vmeController()->vme_controller(2,read_addr,&data,rcv);
         VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+        result[i] = VMEresult;
+        if (i == 0) result2[i] = 503.975*result[i]/4096.0 - 273.15; 
+        else if (i == 1 || i == 2 || i == 4 || i == 5 || i == 7 || i == 8) result2[i] = result[i]*2.0*voltmax[i]/4096.0;
+        else if (i == 3 || i == 6) result2[i] = 7.865766417e-10*pow(result[i],3) - 7.327237418e-6*pow(result[i],2) + 3.38189673e-2*result[i] - 9.678340882;
 
-        out << "R  " << FixLength(read_addr & 0xffff) << "        " << "Result: " << FixLength(VMEresult)  << "   " << description[i] << ": " << endl;      
+        out << "R  " << FixLength(read_addr & 0xffff) << "        " << description[i] << ": " << setprecision(precision[i]) << result2[i] << endl;      
       }
       
     }

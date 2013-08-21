@@ -165,7 +165,7 @@ namespace emu { namespace odmbdev {
          << endl  
 	 << cgicc::input().set("type","text").set("style",std::string("width: 40px; "))
       .set("value",textbox_default_value1)
-      .set("name",textboxname1) << " times. " << " " << "  Board: "
+      .set("name",textboxname1) << " times. " << " " << "  Log Subdir: "
          << cgicc::input().set("type","text").set("style",std::string("width: 100px; margin-top: 1em; "))
       .set("value",textbox_default_value3)
       .set("name",textboxname3)
