@@ -1778,6 +1778,62 @@ namespace emu {
        //cout << "Updating the slot number box" << endl; 
     }
 
+    int parse(string str_temp){
+      int str = 0;
+      //If it ends in h:
+      if (str_temp.size() > 2 && str_temp.substr(str_temp.size()-2,2) == "_h"){ 
+        stringstream hex_string;
+        hex_string << hex << str_temp.substr(0,str_temp.size()-2).c_str();
+        hex_string >> str; 
+        cout << str << endl;
+      }
+
+      //If it ends in d: 
+      else if (str_temp.size() > 2 && str_temp.substr(str_temp.size()-2,2) == "_d"){ 
+        stringstream dec_string; 
+        dec_string << dec << str_temp.substr(0,str_temp.size()-2).c_str();
+        dec_string >> str;
+        cout << str << endl;
+      }
+ 
+      //If it ends in nothing at all
+      else { 
+        stringstream hex_string;
+        hex_string << hex <<  str_temp.c_str();
+        hex_string >> str;
+        cout << str << endl;
+      }
+      return str;
+    }
+
+    int parse_default_d(string str_temp){
+      int str = 0;
+      //If it ends in h:
+      if (str_temp.size() > 2 && str_temp.substr(str_temp.size()-2,2) == "_h"){ 
+        stringstream hex_string;
+        hex_string << hex << str_temp.substr(0,str_temp.size()-2).c_str();
+        hex_string >> str; 
+        cout << str << endl;
+      }
+
+      //If it ends in d: 
+      else if (str_temp.size() > 2 && str_temp.substr(str_temp.size()-2,2) == "_d"){ 
+        stringstream dec_string; 
+        dec_string << dec << str_temp.substr(0,str_temp.size()-2).c_str();
+        dec_string >> str;
+        cout << str << endl;
+      }
+ 
+      //If it ends in nothing at all
+      else { 
+        stringstream dec_string;
+        dec_string << dec <<  str_temp.c_str();
+        dec_string >> str;
+        cout << str << endl;
+      }
+      return str;
+    }
+
     void ChangeSlotNumber::respond(xgi::Input * in, ostringstream & out) {
       OneTextBoxAction::respond(in, out);
       out << "********** SLOT NUMBER CHANGE **********" << endl;
@@ -1795,7 +1851,7 @@ namespace emu {
       : FourTextBoxAction(crate, manager, "Run VME commands")
     {
       cout << " Initializing the DAQMBs, which are VMEModules" << endl; 
-      for(vector <DAQMB*>::iterator dmb = dmbs_.begin();dmb != dmbs_.end(); ++dmb) 
+      for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb) 
         (*dmb)->start();
       nCommand = 0;
       cout<<"Creating DAQ folder"<<endl;
@@ -1809,17 +1865,13 @@ namespace emu {
       nCommand++;
       out<<"****************   VME command "<<nCommand<<"   ***************"<<endl;
       int slot = Manager::getSlotNumber(); //the slot number to use
-      //// the arguments for vme_controller ////
       char rcv[2];
       unsigned int sleepTimer;
       unsigned int testReps(0);
       unsigned int addr;
       unsigned short int data;
       unsigned int pipeDepth;
-      //      out << "data initialized to " << hex << data << endl;
       int irdwr, TypeCommand=0; 
-      // Taking negative irdwr and TypeCommand to represent commands not passed to VME (for loops, etc.) - AD
-      //// From VMEController.cc:
       // irdwr:   
       // 0 bufread
       // 1 bufwrite 
@@ -1828,9 +1880,6 @@ namespace emu {
       // 4 flush to VME (disabled)
       // 5 loop back (disabled)
       // 6 delay
-
-      //////////////////////////////////////////////////////  
-      // Open a new output logfile today - KF
 
       //------------------------------------------SETUP NAME/LOCATION OF OUTPUT LOG FILE------------------------------------------------
       //Variables needed for output log file
@@ -1874,24 +1923,27 @@ namespace emu {
          mkdir(outputdirectory, S_IRWXU);
       }
 
-
+      //Needed to put time stamps in logs
       char timestamp[80];
       strftime( timestamp, 80, "%T", timeinfo );
 
+      //Needed to write header in logs
       struct stat statbuffer;
       int writeheader = stat( outputfilename, &statbuffer );
            
+      //Open logs and write header
       ofstream logfile;
       logfile.open( outputfilename, ios::app );
       if( writeheader!=0 ) logfile << "# R/W\tCommand\tData\tSlot\tTime\t\tComments" << endl;
 
-      ////////////////////////////////////////////////////// 
-      istringstream countertext(this->textBoxContent1); //read the number of times to repeat commands and possibly a file containing commands  
-      istringstream filetext(this->textBoxContent2); // input a file path to the wimp page, read commands from the file
+      //------------------------------------------READ COMMANDS FROM BOX OR TEXT FILE------------------------------------------------
+      istringstream countertext(this->textBoxContent1); //read the number of times to repeat commands 
+      istringstream filetext(this->textBoxContent2); //input a file path to the wimp page, read commands from the file
       bool textFileMode(false); // Option to input a text file from the second box on WIMP
-      // works with file in current directory or full path - JB-F
       string filePath, fileContents, file_line;
-      if (filetext.str().size()) { // If you specify a file path on the WIMP page, then we feed it into the string "fileContents" - JB-F
+ 
+      //Read file containing commands
+      if (filetext.str().size()) { 
       	textFileMode = true;
       	filePath = filetext.str();
       	ifstream fileFromWIMP(filePath.c_str());
@@ -1902,23 +1954,22 @@ namespace emu {
     	}
     	fileFromWIMP.close();
       }
-      istringstream alltext; // where the input commands will go
-      if (textFileMode) {
-        alltext.str(fileContents); // assigns content of text file to alltext, after you push "Execute VME DSL Program" - JB-F
-      } else {
-      	alltext.str(this->textBoxContent4); // get the text from the box                                                                                                      
-      }
+
+      istringstream alltext; 
+      if (textFileMode) alltext.str(fileContents); 
+      else alltext.str(this->textBoxContent4); // get the text from the box                                                                                                      
+      
+      //Now alltext has the commands no matter whether you used the box or the file mode.
       string line, buffer;
       getline(countertext,line,'\n');
       const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
       std::vector<std::string> allLines(0);
       while (getline(alltext,line,'\n')){
-        if(1){
           allLines.push_back(line);
-        }
       }
       bool writeHex = true;
 
+      //------------------------------------------EXECUTE COMMANDS (REST OF FUNCTION)------------------------------------------------
       for(unsigned int repNum=0; repNum<repeatNumber; ++repNum){
         unsigned int loopLevel(0);
         std::vector<unsigned int> loopCounter(0), loopMax(0), loopStart(0);
@@ -1946,19 +1997,17 @@ namespace emu {
           if(buffer=="0")  {
             out<<"Found EOR, exiting."<<endl;
             break;// EOR instruction
-          } else if(buffer=="1") { // Expect 32 bits for address and 32 bits for data
+          } 
+          else if(buffer=="1") { // Expect 32 bits for address and 32 bits for data
             string addr_str, data_str, tmp_str;
-            //	    out << "data from string: " << hex << data << endl;
 
             while(addr_str.size()<32 && iss.good()){ // read in 32 bits for address
               iss >> tmp_str;
               addr_str += tmp_str;
-              //	      out<<"addr_str:"<<addr_str<<endl;
             }
             while(data_str.size()<32 && iss.good()){ // read in 32 bits for data
               iss >> tmp_str;
               data_str += tmp_str;
-              //	      out<<"data_str:"<<data_str<<endl;
             }
             if(addr_str.size()!=32 || data_str.size()!=32){
               out<<"ERROR: address("<<addr_str<<") or data("<<data_str
@@ -1968,29 +2017,53 @@ namespace emu {
             // 26th and 25th "bits" from right tell read (10) or write (01)
             irdwr = (addr_str.at(addr_str.size()-26)=='1')? 2 : 3; 
             addr = binaryStringToUInt(addr_str);
-            //	    out << "data = " << data << endl;
             data = binaryStringToUInt(data_str);
-            //	    out << "data = " << data << endl;
             TypeCommand = irdwr;
-          } else if(buffer=="2" || buffer=="R") { // Read in hex
-            //	    out << "data = " << hex << data << endl;
-            iss >> hex >> addr >> hex >> data;	
-            //	    out << "data = " << hex << data << endl;
+          } 
+          else if(buffer=="2" || buffer=="R") { // Read in hex
+            string addr_temp;
+            iss >> addr_temp;	
+            addr = parse(addr_temp); 
+            string data_temp;
+            iss >> data_temp;
+            data = parse(data_temp);
             irdwr = 2; TypeCommand = 2;
-          } else if(buffer=="3" || buffer=="W") { // Write in hex
-            iss >> hex >> addr;	
-            if(addr >= 0x4000 && addr <= 0x4018) {iss >> dec >> data; writeHex = false;}
-            else {iss >> hex >> data; writeHex = true;}
+            cout << "Read command.  Addr in hex: " << hex << addr << " data in hex: " << hex << data << endl;
+          } 
+          else if(buffer=="3" || buffer=="W") {
+            string addr_temp;
+            iss >> addr_temp;	
+            addr = parse(addr_temp); 
+            string data_temp;
+            iss >> data_temp;
+            data = parse(data_temp);
             irdwr = 3; TypeCommand = 3;
-          } else if(buffer=="4" || buffer=="RS") { // Read in hex with slot
-            iss >> hex >> addr >> hex >> data >> dec >> slot;	
+            cout << "Write command.  Addr in hex: " << hex << addr << " data in hex: " << hex << data << endl;
+          } 
+          else if(buffer=="4" || buffer=="RS") { // Read in hex with slot
+            string addr_temp, data_temp, slot_temp;
+            iss >> addr_temp >> data_temp >> slot_temp;	
+            addr = parse(addr_temp);
+            data = parse(data_temp);
+            slot = parse(slot_temp);
             irdwr = 2; TypeCommand = 4;
-          } else if(buffer=="5" || buffer=="WS") { // Write in hex with slot
-            iss >> hex >> addr;	
+            cout << "Read command.  Addr in hex: " << hex << addr << " data in hex: " << hex << data << " slot in hex: " << hex << slot << endl;
+          } 
+          else if(buffer=="5" || buffer=="WS") { // Write in hex with slot
+            string addr_temp;
+            iss >> addr_temp;	
+            addr = parse(addr_temp);
+            string data_temp;
+            iss >> data_temp;
+            data = parse(data_temp);
             if(addr >= 0x4000 && addr <= 0x4018) {iss >> dec >> data >> dec >> slot; writeHex = false;}	
-            else {iss >> hex >> data >> dec >> slot; writeHex = true;}
+            string slot_temp;
+            iss >> slot_temp;
+            slot = parse(slot_temp);
             irdwr = 3; TypeCommand = 5;
-          } else if(buffer=="6" || buffer=="BL") {
+            cout << "Write command.  Addr in hex: " << hex << addr << " data in hex: " << hex << data << " slot in hex: " << hex << slot << endl;
+          } 
+          else if(buffer=="6" || buffer=="BL") {
             ++loopLevel;
             loopCounter.push_back(1);
             int thisLoopMax(0);
@@ -1998,7 +2071,8 @@ namespace emu {
             loopMax.push_back(thisLoopMax);
             loopStart.push_back(lineNum);
             irdwr = -1; TypeCommand= -1; //Negative; do not send to VME - AD
-          } else if(buffer=="7" || buffer=="EL") {
+          } 
+          else if(buffer=="7" || buffer=="EL") {
             if(loopCounter.at(loopLevel-1)<loopMax.at(loopLevel-1)){
               lineNum=loopStart.at(loopLevel-1);
               ++loopCounter.at(loopLevel-1);
@@ -2009,20 +2083,25 @@ namespace emu {
               --loopLevel;
             }
             irdwr = -1; TypeCommand = -1; //Negative; do not send to VME - AD
-          } else if(buffer=="8" || buffer=="SLEEP" || buffer=="WAIT") {
+          } 
+          else if(buffer=="8" || buffer=="SLEEP" || buffer=="WAIT") {
             iss >> sleepTimer;
             usleep(sleepTimer);
             continue; // Nothing else to do from this line.
-          } else if(buffer=="RL1A") {
+          } 
+          else if(buffer=="RL1A") {
             TypeCommand = 9;
             iss >> sleepTimer;
-          } else if(buffer=="RL1AM") {
+          } 
+          else if(buffer=="RL1AM") {
             TypeCommand = 10;
             iss >> sleepTimer;
-          } else if(buffer=="COMP_DDU") {
+          } 
+          else if(buffer=="COMP_DDU") {
             TypeCommand = 11;
             iss >> testReps;
-          } else if(buffer=="COMP_PC"){
+          } 
+          else if(buffer=="COMP_PC"){
             TypeCommand = 12;
             iss >> testReps;
           } else if(buffer=="BEGIN_DAQ"){
@@ -2053,9 +2132,11 @@ namespace emu {
 
           } else if(buffer=="SET_SLOT"){
             int old_slot = slot; 
-            iss >> dec >> slot;
+            string slot_temp;
+            iss >> dec >> slot_temp;
+            slot = parse_default_d(slot_temp);
             Manager::setSlotNumber(slot);
-            out << "SET_SLOT                - set from "<< old_slot << " to "<<slot<<endl;
+            out << "SET_SLOT                - set from " << old_slot << "_d to " << slot << "_d" << endl;
           } else if(buffer=="SET_PIPE"){
             TypeCommand = 13;
             iss >> pipeDepth;
@@ -2118,18 +2199,33 @@ namespace emu {
             unsigned int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
             bool readHex = true;
             if((addr >= 0x321C && addr <= 0x337C) || (addr >= 0x33FC && addr <= 0x3FFF) ||
-               (addr >= 0x4400 && addr <= 0x4418) 
+               (addr >= 0x4000 && addr <= 0x4018) 
                || addr == 0x500C || addr == 0x510C || addr == 0x520C || addr == 0x530C || addr == 0x540C 
                || addr == 0x8004 ||  (addr == 0x5000 && VMEresult < 0x1000)) readHex = false;
             switch (irdwr) {
             case 2:
-              out << "R  " << FixLength(addr) << "        "  << FixLength(VMEresult, nDigits, readHex)  << "    "<<comments<<endl;
-              logfile << "R  " << FixLength(addr) << "        "  << FixLength(VMEresult, nDigits, readHex)  << "    "
+              {
+              string label;
+              if (readHex == true) label = "_h";
+              if (readHex == false) label = "_d";
+	      if (addr >= 0x4000 && addr <= 0x4018){
+               out << "R  " << FixLength(addr) <<  "        "  << FixLength(VMEresult, nDigits, false) << "_d" << "    "<<  comments  << endl;
+               logfile << "R  " << FixLength(addr) <<  "        "  << FixLength(VMEresult, nDigits, false) << "_d" << "    "
         	      << timestamp << "\t" << comments<<endl;
+              }
+              else {
+               out << "R  " << FixLength(addr) <<  "        "  << FixLength(VMEresult, nDigits, readHex) << label  << "    "<<comments<<endl;
+               logfile << "R  " << FixLength(addr) <<  "        "  << FixLength(VMEresult, nDigits, readHex) << label << "    "
+        	      << timestamp << "\t" << comments<<endl;
+              }
               break;
+              }
             case 3:
-              out << "W  " << FixLength(addr) << "  " << FixLength(data, nDigits, writeHex) <<  "          "<<comments<<endl;
-              logfile << "W  " << FixLength(addr) << "  " << FixLength(data, nDigits, writeHex) <<  "          "
+              string label;
+              if (writeHex == true) label = "_h";
+              if (writeHex == false) label = "_d";
+              out << "W  " << FixLength(addr) << " " << FixLength(data, nDigits, writeHex) << label <<  "          "<<comments<<endl;
+              logfile << "W  " << FixLength(addr) << "  " << FixLength(data, nDigits, writeHex) <<  label << "          "
         	      << timestamp << "\t" << comments<<endl;
               break;
             }
@@ -2250,7 +2346,8 @@ namespace emu {
         crate_->vmeController()->vme_controller(2,read_addr,&data,rcv);
         VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
         result[i] = VMEresult;
-        if (i == 0) result2[i] = 503.975*result[i]/4096.0 - 273.15; 
+        if (i == 0 && result[i] > 0xfff){ cout << "ERROR: bad readout from system monitoring." << endl; out << "ERROR: bad readout from system monitoring." << endl; break; }
+        if (i == 0){ result2[i] = 503.975*result[i]/4096.0 - 273.15; }
         else if (i == 1 || i == 2 || i == 4 || i == 5 || i == 7 || i == 8) result2[i] = result[i]*2.0*voltmax[i]/4096.0;
         else if (i == 3 || i == 6) result2[i] = 7.865766417e-10*pow(result[i],3) - 7.327237418e-6*pow(result[i],2) + 3.38189673e-2*result[i] - 9.678340882;
 
