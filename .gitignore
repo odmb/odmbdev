@@ -3,11 +3,13 @@ core.*
 *~
 *.root
 *#
+*.raw
 
 # Compiled Object files
 *.slo
 *.lo
 *.o
+*.exe
 
 *.d
 
