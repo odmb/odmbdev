@@ -135,6 +135,7 @@ namespace emu { namespace odmbdev {
       //addActionByTypename<ReadBackUserCodes>(crate);
       //addActionByTypename<CommonUtilities_setupDDU>(crate);
       addActionByTypename<CommonUtilities_setupDDU_passThrough>(crate);
+      addActionByTypename<LVMtest>(crate);
 
       
       // putButtonsInGroup( "Routine Tests" );

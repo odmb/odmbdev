@@ -2327,11 +2327,9 @@ namespace emu {
     
     void SYSMON::respond(xgi::Input * in, ostringstream & out) { // TD
       out << "********** System Monitoring **********" << endl;
-      bool debug = false;
       int slot = Manager::getSlotNumber();
       unsigned int shiftedSlot = slot << 19;
       char rcv[2];
-      //unsigned int read_addr = 0x007000;
       unsigned int read_addr_vec[9] = {0x007000, 0x007100, 0x007110, 0x007120, 0x007130, 0x007140, 0x007150, 0x007160, 0x007170};
       string description[9] = {"FPGA Temperature (deg C)", "LV_P3V3 (V)", "P5V (V)", "THERM2 (deg C)", "P3V3_PP (V)", "P2V5 (V)", "THERM1 (deg C)", "P1V0 (V)", "P5V_LVMB (V)"};
       int precision[9] = {3, 3, 3, 3, 3, 3, 3, 2, 3};
@@ -2352,6 +2350,56 @@ namespace emu {
         else if (i == 3 || i == 6) result2[i] = 7.865766417e-10*pow(result[i],3) - 7.327237418e-6*pow(result[i],2) + 3.38189673e-2*result[i] - 9.678340882;
 
         out << "R  " << FixLength(read_addr & 0xffff) << "        " << description[i] << ": " << setprecision(precision[i]) << result2[i] << endl;      
+      }
+      
+    }
+
+    LVMtest::LVMtest(Crate * crate) 
+      : ButtonAction(crate,"LVM test") 
+    { 
+      //This constructor intentionally left blank.
+    }
+    
+    void LVMtest::respond(xgi::Input * in, ostringstream & out) { // TD
+      out << "********** Low Voltage Monitoring **********" << endl;
+      int slot = Manager::getSlotNumber();
+      unsigned int shiftedSlot = slot << 19;
+      char rcv[2];
+      unsigned short int data;
+      unsigned short int result[15];
+      unsigned short int result2[15];
+      //addresses
+      int addr_sel_adc = (0x008020 & 0x07ffff) | shiftedSlot;
+      int addr_cntl_byte = (0x008000 & 0x07ffff) | shiftedSlot;
+      int addr_read_adc = (0x008004 & 0x07ffff) | shiftedSlot;
+      unsigned short int ADC_number[8] = {0x0, 0x1, 0x2, 0x03, 0x4, 0x5,0x6,0x7};
+      //data
+      for (int i = 0; i < 8; i++){
+        //Write ADC to be read 
+        crate_->vmeController()->vme_controller(3, addr_sel_adc, &ADC_number[i], rcv);
+        //Send control byte to ADC
+        unsigned short int ctrl_byte = 0x89;
+        crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
+        //Read from ADC
+        crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv);
+        //Format result
+        unsigned short int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+        result[i] = VMEresult;
+        float voltage_result_1 = float(result[i])*10.0/float(0xfff);
+        //Send control byte to ADC -- method 2
+        ctrl_byte = 0x81;
+        crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
+        //Read from ADC
+        crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv);
+        //Format result
+        VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+        result2[i] = VMEresult;
+        float voltage_result_2 = float(result2[i])*5.0/float(0xfff);
+        //Error checking
+        if (fabs(voltage_result_2 - voltage_result_1) > .05 && voltage_result_1 < 4.9) out << "ERROR!  TWO METHODS DISAGREE!! " << endl;
+        
+        //output result
+        out << "LVMB test " << i << ": " << std::fixed << setprecision(2) << voltage_result_1 << " V "<< endl;
       }
       
     }

@@ -366,11 +366,22 @@ namespace emu { namespace odmbdev {
     /**************************************************************************
      * SYSMON
      *
-     * A small class to print the Systme monitoring informaiton
+     * A small class to print the System monitoring informaiton
      **************************************************************************/
     class SYSMON : public ButtonAction {
     public:
       SYSMON(Crate * crate);
+      void respond(xgi::Input * in, ostringstream & out);
+    };      
+
+    /**************************************************************************
+     * LVMtest
+     *
+     * A small class to print the results of the low voltage monitoring test
+     **************************************************************************/
+    class LVMtest : public ButtonAction {
+    public:
+      LVMtest(Crate * crate);
       void respond(xgi::Input * in, ostringstream & out);
     };      
 
