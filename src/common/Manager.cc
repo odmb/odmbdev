@@ -234,7 +234,7 @@ namespace emu { namespace odmbdev {
               "  Array.prototype.slice.call(elements, 0).map("
               "    function (e) { "
               "      e.style.display = e.style.display == 'none' ? 'block' "
-              "                                                  : 'none'"
+              "                                                  : 'none'" 
               "    })"
               "}"
            << script()
@@ -249,9 +249,9 @@ namespace emu { namespace odmbdev {
            << cgicc::div().set("style","width: 515px;float: left")
            << endl 
            << endl
-           << h1()
-           << "ODMB Test Routines - UCSB"
-           << h1()
+	//<< h1()
+           << "<h1><FONT COLOR=\"FF0000\"> O</FONT><FONT COLOR=\"0000FF\">DMB</FONT> Test Routines - UCSB </h1>"
+	//<< h1()
            << endl << endl;
 
 

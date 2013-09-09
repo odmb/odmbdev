@@ -46,7 +46,7 @@ int getFormValueInt(const string& form_element, xgi::Input *in)
   {
     XCEPT_RAISE( xcept::Exception, "Form element, " + form_element + ", was not found." );
   }
-  cout<<"\""<<form_element<<"\"->"<<form_value<<endl;
+  //cout<<"\""<<form_element<<"\"->"<<form_value<<endl;
   return form_value;
 }
 
@@ -67,7 +67,7 @@ int getFormValueIntHex(const string& form_element, xgi::Input *in)
   {
     XCEPT_RAISE( xcept::Exception, "Form element, " + form_element + ", was not found." );
   }
-  cout<<"\""<<form_element<<"\"->"<<form_value<<endl;
+  //cout<<"\""<<form_element<<"\"->"<<form_value<<endl;
   return form_value;
 }
 
@@ -85,7 +85,7 @@ float getFormValueFloat(const string& form_element, xgi::Input *in)
   {
     XCEPT_RAISE( xcept::Exception, "Form element, " + form_element + ", was not found." );
   }
-  cout<<"\""<<form_element<<"\"->"<<form_value<<endl;
+  //cout<<"\""<<form_element<<"\"->"<<form_value<<endl;
   return form_value;
 }
 
@@ -103,7 +103,7 @@ string getFormValueString(const string& form_element, xgi::Input *in)
   {
     XCEPT_RAISE( xcept::Exception, "Form element, " + form_element + ", was not found." );
   }
-  cout<<"\""<<form_element<<"\"->"<<form_value<<endl;
+  //cout<<"\""<<form_element<<"\"->"<<form_value<<endl;
   return form_value;
 }
 
