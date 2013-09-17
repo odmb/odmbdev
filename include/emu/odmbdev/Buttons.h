@@ -375,13 +375,24 @@ namespace emu { namespace odmbdev {
     };      
 
     /**************************************************************************
-     * LVMtest
+     * LVMBtest
      *
      * A small class to print the results of the low voltage monitoring test
      **************************************************************************/
-    class LVMtest : public ButtonAction {
+    class LVMBtest : public ButtonAction {
     public:
-      LVMtest(Crate * crate);
+      LVMBtest(Crate * crate);
+      void respond(xgi::Input * in, ostringstream & out);
+    };   
+    
+    /**************************************************************************
+     * JTAGcontrol
+     *
+     * A small class to read DCFEB UserCode and print the results
+	 **************************************************************************/
+    class JTAGcontrol : public ButtonAction {
+    public:
+      JTAGcontrol(Crate * crate);
       void respond(xgi::Input * in, ostringstream & out);
     };      
 

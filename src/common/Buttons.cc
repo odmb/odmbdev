@@ -49,7 +49,7 @@ using namespace emu::pc;
 namespace emu {
   namespace odmbdev {
     
-    int Manager::slot_number = 15;
+    int Manager::slot_number = 7;
 
     void HardReset::respond(xgi::Input * in, ostringstream & out) { cout<<"==>HardReset"<<endl; 
       if(ccb_->GetCCBmode() != CCB::VMEFPGA) ccb_->setCCBMode(CCB::VMEFPGA); // we want the CCB in this mode for out test stand
@@ -2343,13 +2343,13 @@ namespace emu {
       out<<endl;
     }
 
-    LVMtest::LVMtest(Crate * crate) 
-      : ButtonAction(crate,"LVM test") 
+    LVMBtest::LVMBtest(Crate * crate) 
+      : ButtonAction(crate,"LVMB test") 
     { 
       //This constructor intentionally left blank.
     }
     
-    void LVMtest::respond(xgi::Input * in, ostringstream & out) { // TD
+    void LVMBtest::respond(xgi::Input * in, ostringstream & out) { // TD
       out << "********** Low Voltage Monitoring **********" << endl;
       int slot = Manager::getSlotNumber();
       unsigned int shiftedSlot = slot << 19;
@@ -2391,6 +2391,66 @@ namespace emu {
         out << "LVMB test " << i << ": " << std::fixed << setprecision(2) << voltage_result_1 << " V "<< endl;
       }
       
+    }
+    
+    JTAGcontrol::JTAGcontrol(Crate * crate) 
+      : ButtonAction(crate,"JTAG Control") 
+    { 
+      //This constructor intentionally left blank.
+    }
+    
+    void JTAGcontrol::respond(xgi::Input * in, ostringstream & out) { // JB-F
+    	out << "********** Read DCFEB UserCode **********" << endl;
+    	int slot = Manager::getSlotNumber();
+      	unsigned int shiftedSlot = slot << 19;
+      	char rcv[2];
+      	unsigned short int data;
+      	unsigned short int reg_dev_sel = 0x3C2;
+      	unsigned short int reg_dev_val = 0xC;
+      	unsigned short int reg_val_sel = 0x3C3;
+      	unsigned short int VMEresult;
+      	//addresses
+      	int addr_sel_dcfeb = (0x001020 & 0x07ffff) | shiftedSlot;
+      	int addr_read_dcfeb = (0x001024 & 0x07ffff) | shiftedSlot;
+      	int addr_set_int_reg = (0x00191C & 0x07ffff) | shiftedSlot;
+      	int addr_shift_ht = (0x00170C & 0x07ffff) | shiftedSlot;
+      	int addr_shift_dr = (0x001B0C & 0x07ffff) | shiftedSlot;
+      	int addr_read_tdo = (0x001F14 & 0x07ffff) | shiftedSlot;
+      	unsigned short int DCFEB_number[7] = {0x1, 0x2, 0x4, 0x08, 0x10, 0x20,0x40};
+      	for (int d = 0; d < 7; d++){ // Loop over all DCFEBs
+      		// Select DCFEB (one bit per DCFEB)
+      		//out << "DCFEB " << d+1 << ":" << endl;
+        	crate_->vmeController()->vme_controller(3, addr_sel_dcfeb, &DCFEB_number[d], rcv);
+        	// Read selected DCFEB
+        	crate_->vmeController()->vme_controller(2, addr_read_dcfeb, &DCFEB_number[d], rcv);
+        	VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+        	out << "DCFEB " << FixLength(VMEresult) << ":" << endl;
+        	// Set instruction register to *Device select*
+        	crate_->vmeController()->vme_controller(3, addr_set_int_reg, &reg_dev_sel, rcv);
+        	// Set device register to "ADC mask"
+        	crate_->vmeController()->vme_controller(3, addr_shift_ht, &reg_dev_val, rcv);
+        	// Set IR to *Value select*
+        	crate_->vmeController()->vme_controller(3, addr_set_int_reg, &reg_val_sel, rcv);
+        	vector<string> tdi;
+      		vector<string> tdo;
+      		unsigned int nMatches(0), n_misMatches(0);
+        	for (unsigned short int reg_val_shft = 0x111; reg_val_shft<=0xFFF; reg_val_shft++) {
+				// Set DR, shift 12 bits
+				crate_->vmeController()->vme_controller(3, addr_shift_dr, &reg_val_shft, rcv);
+				tdi.push_back(FixLength(reg_val_shft, 3, true));
+				// Read TDO
+				crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);
+				VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+				tdo.push_back(FixLength(VMEresult, 4, true));
+				if (reg_val_shft == 0x111) continue;
+				if (tdo[reg_val_shft-0x111].substr(0,3) == tdi[reg_val_shft-1-0x111]) nMatches++;
+				else n_misMatches++;
+				/*out << "TDI: " << tdi[reg_val_shft-0x111] << endl;
+				out << "TDO: " << tdo[reg_val_shft-0x111] << endl;*/
+	        }
+	        out << "Shifted register C " << 0xFFF-0x111 << " times." << endl;
+	        out << "Found expected tdo " << nMatches << " times." << endl;
+      	} // Loop over all DCFEBs
     }
 
     /**************************************************************************

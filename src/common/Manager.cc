@@ -61,6 +61,8 @@ namespace emu { namespace odmbdev {
       xgi::bind( this, &Manager::commonActionsCallback, "commonActions" );
       xgi::bind( this, &Manager::groupActionsCallback, "groupActions" );
       xgi::bind( this, &Manager::logActionsCallback, "logActions" );
+      //xgi::bind( this, &Manager::groupActionsSDCallback, "groupActionsSD" );
+      xgi::bind( this, &Manager::ProductionTests, "ProductionTests");
     }
 
 
@@ -135,8 +137,11 @@ namespace emu { namespace odmbdev {
       //addActionByTypename<ReadBackUserCodes>(crate);
       //addActionByTypename<CommonUtilities_setupDDU>(crate);
       addActionByTypename<CommonUtilities_setupDDU_passThrough>(crate);
-      addActionByTypename<LVMtest>(crate);
-
+      
+      putButtonsInGroup("Production Tests");
+      addActionByTypename<LVMBtest>(crate);
+      //putButtonsInGroup( "DCFEB Tests" );
+      addActionByTypename<JTAGcontrol>(crate);
       
       // putButtonsInGroup( "Routine Tests" );
       // addActionByTypename<RoutineTest_ShortCosmicsRun>(crate, this);
@@ -254,10 +259,12 @@ namespace emu { namespace odmbdev {
 	//<< h1()
            << endl << endl;
 
+	std::string GoToProductionTests = toolbox::toString("/%s/ProductionTests",getApplicationDescriptor()->getURN().c_str());
+  	*out << cgicc::a("[Production Tests]").set("href",GoToProductionTests) << std::endl;
 
       // most actions will appear here
       for(uint g=0; g<groups_.size(); ++g) {
-
+	if (g>0) continue;
 	t_actionvector av=groupActions_[groups_[g]];
 	for(unsigned int i = 0; i <av.size(); ++i) {
 
@@ -274,9 +281,9 @@ namespace emu { namespace odmbdev {
 	    .set("value",numberToString(i*groups_.size()+g))
 	    .set("name","__action_to_call")
 	       << endl;
-	  
+
 	  av[i]->display(out);
-	  
+
 	  // and here we close the form
 	  *out << cgicc::form()
 	       << p()
@@ -337,9 +344,9 @@ namespace emu { namespace odmbdev {
       // 	  .set("value",numberToString(i))
       // 	  .set("name","__action_to_call")
       //        << endl;
-	
+
       //   commonActions_[i]->display(out);
-	
+
       //   // and here we close the form
       //   *out << cgicc::form()
       //        << p()
@@ -360,9 +367,9 @@ namespace emu { namespace odmbdev {
              << cgicc::input().set("type","hidden")
 	  .set("value",numberToString(i))
 	  .set("name","__action_to_call");
-	
+
 	logActions_[i]->display(out);
-	
+
 	*out << cgicc::form()
 	     << p();
       }
@@ -380,6 +387,106 @@ namespace emu { namespace odmbdev {
 
     }
 
+	// Generate production tests page (JB-F)
+    void Manager::ProductionTests(xgi::Input *in, xgi::Output *out) {
+  	    	         	  
+  	  *out << HTMLDoctype(HTMLDoctype::eStrict)
+           << endl
+           << endl
+           << html().set("lang", "en").set("dir","ltr")
+           << head()
+           << style().set("rel", "stylesheet").set("type", "text/css")
+           << "" // you could add page-wide styles here
+	   << endl
+           << style()
+           << script().set("type", "text/javascript")
+           << "function toggleSidebox() {" << endl <<
+              "  var elements = document.getElementsByClassName('sidebox');" << endl <<
+              "  Array.prototype.slice.call(elements, 0).map("
+              "    function (e) { "
+              "      e.style.display = e.style.display == 'none' ? 'block' "
+              "                                                  : 'none'" 
+              "    })"
+              "}"
+           << script()
+           << head()
+           << endl
+           << body().set("style","padding-bottom: 10em; color: #333; ")
+           << endl
+	   << endl
+           << cgicc::div().set("style","width: 515px;float: left")
+           << endl 
+           << endl
+	//<< h1()
+           << "<h1><FONT COLOR=\"FF0000\"> O</FONT><FONT COLOR=\"0000FF\">DMB</FONT> Production Tests</h1>"
+	//<< h1()
+           << endl << endl;
+          
+        std::string GoToMainPage = toolbox::toString("/%s/",getApplicationDescriptor()->getURN().c_str());
+  	    *out << cgicc::a("[Main Page]").set("href",GoToMainPage) << std::endl;
+
+	for(uint g=1; g<groups_.size(); ++g) { // all groups except for the routine tests on the main page
+	  t_actionvector av=groupActions_[groups_[g]];
+	  
+	  for(unsigned int i = 0; i <av.size(); ++i) {
+
+	  // this multi-line statement sets up a form for the action,
+	  // which will create buttons, etc. The __action_to_call hidden
+	  // form element tells the Manager which action to use when
+	  // this form is submitted.
+	  *out << p()
+	       << cgicc::form()
+	    .set("method","GET")
+	    .set("action", "groupActions")
+	       << cgicc::input()
+	    .set("type","hidden")
+	    .set("value",numberToString(i*groups_.size()+g))
+	    .set("name","__action_to_call")
+	       << endl;
+
+	  av[i]->display(out);
+
+	  // and here we close the form
+	  *out << cgicc::form()
+	       << p()
+	       << endl;
+	  }
+	}
+
+      *out << cgicc::div() << endl << endl;
+
+      *out << cgicc::div().set("style", string("margin-left: 525px;") + "padding-left: 30px;"+ "padding-right: 30px;");
+
+      for(unsigned int i = 0; i < logActions_.size(); ++i) { // display log buttons at the top
+        *out << p()
+	     << cgicc::form().set("method","GET")
+	  .set("action", "logActions")
+	     << "Output log " 
+             << cgicc::input().set("type","hidden")
+	  .set("value",numberToString(i))
+	  .set("name","__action_to_call");
+
+	logActions_[i]->display(out);
+
+	*out << cgicc::form()
+	     << p();
+      }
+
+      *out << textarea().set("style",
+                             string("width: 100%; ")
+                             + "height: 870px; ")
+           // NB, I purposely called .str(), I don't want to remove all the
+           // contents of the log into the web page, I want them to persist
+           << this->webOutputLog_.str()
+           << textarea();
+                 
+      *out << cgicc::div()
+           << body() << html();
+           
+        
+      
+    }
+    
     void Manager::commonActionsCallback(xgi::Input *in, xgi::Output *out)
     {
       int action_to_call = getFormValueInt("__action_to_call", in);
@@ -405,9 +512,25 @@ namespace emu { namespace odmbdev {
 
       webOutputLog_ << action_output.str();
 
-      string anchor = "#"+withoutSpecialChars(groups_[g]);
+      string anchor = "#" + withoutSpecialChars(groups_[g]);
       backToMainPage(in, out, anchor);
     }
+
+    /*void Manager::groupActionsSDCallback(xgi::Input *in, xgi::Output *out)
+    {
+      int action_to_call = getFormValueInt("__action_to_call", in);
+
+      ostringstream action_output;
+
+      int g = action_to_call%groups_.size();
+      int i = action_to_call/groups_.size();
+      groupActions_[groups_[g]].at(i)->respond(in, action_output);
+
+      webOutputLog_ << action_output.str();
+
+      string anchor = withoutSpecialChars(groups_[g])+"#";
+      backToMainPage(in, out, anchor);
+    }*/
 
     void Manager::logActionsCallback(xgi::Input *in, xgi::Output *out)
     {
@@ -493,6 +616,13 @@ namespace emu { namespace odmbdev {
            << endl
            << html()
            << endl;
+      /*if (subDir) {
+      	*out << HTMLDoctype(HTMLDoctype::eStrict)
+           << endl
+           << html().set
+      }
+      std::string GoToProductionTests = toolbox::toString("/%s/ProductionTests",getApplicationDescriptor()->getURN().c_str());
+  	  *out << cgicc::a("[Production Tests]").set("href",GoToProductionTests) << std::endl;*/
     }
 
 
@@ -586,4 +716,3 @@ namespace emu { namespace odmbdev {
     XDAQ_INSTANTIATOR_IMPL(Manager)
   }
 }
-
