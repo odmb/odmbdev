@@ -45,7 +45,7 @@ using namespace emu::pc;
  * sub-classes.
  * 
  *****************************************************************************/
-
+bool myfunction (pair<float, int> i, pair<float, int> j) { return (i.first < j.first); }
 namespace emu {
   namespace odmbdev {
     
@@ -2361,36 +2361,96 @@ namespace emu {
       int addr_sel_adc = (0x008020 & 0x07ffff) | shiftedSlot;
       int addr_cntl_byte = (0x008000 & 0x07ffff) | shiftedSlot;
       int addr_read_adc = (0x008004 & 0x07ffff) | shiftedSlot;
+      int addr_turn_on = (0x008010 & 0x07ffff) | shiftedSlot;
+      int addr_verify_on = (0x008014 & 0x07ffff) | shiftedSlot;
+      vector <pair<float, int> > voltages;
       unsigned short int ADC_number[8] = {0x0, 0x1, 0x2, 0x03, 0x4, 0x5,0x6,0x7};
-      //data
-      for (int i = 0; i < 8; i++){
-        //Write ADC to be read 
-        crate_->vmeController()->vme_controller(3, addr_sel_adc, &ADC_number[i], rcv);
+      int pass = 0;
+      int fail = 0;
+      int nodata = 0;
+      for (int k = 0; k < 10; k++){
+        //1) Test on-off 
         //Send control byte to ADC
-        unsigned short int ctrl_byte = 0x89;
-        crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
+        unsigned short int ctrl_byte = 0x00;
+        crate_->vmeController()->vme_controller(3, addr_turn_on, &ctrl_byte, rcv);
         //Read from ADC
-        crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv);
+        crate_->vmeController()->vme_controller(2, addr_verify_on, &data, rcv);
         //Format result
         unsigned short int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-        result[i] = VMEresult;
-        float voltage_result_1 = float(result[i])*10.0/float(0xfff);
-        //Send control byte to ADC -- method 2
-        ctrl_byte = 0x81;
-        crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
+        if (VMEresult != 0x00) out << "Failed turn off test!" << endl;
+        //Send control byte to ADC
+        ctrl_byte = 0xFF;
+        crate_->vmeController()->vme_controller(3, addr_turn_on, &ctrl_byte, rcv);
         //Read from ADC
-        crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv);
+        crate_->vmeController()->vme_controller(2, addr_verify_on, &data, rcv);
         //Format result
         VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-        result2[i] = VMEresult;
-        float voltage_result_2 = float(result2[i])*5.0/float(0xfff);
-        //Error checking
-        if (fabs(voltage_result_2 - voltage_result_1) > .05 && voltage_result_1 < 4.9) out << "ERROR!  TWO METHODS DISAGREE!! " << endl;
-        
-        //output result
-        out << "LVMB test " << i << ": " << std::fixed << setprecision(2) << voltage_result_1 << " V "<< endl;
+        if (VMEresult == 0xBAAD){ out << "No device connected." << endl; return; }
+        else if (VMEresult != 0xFF){ out << "Failed turn on test!" << endl; return; }
+        //2) Test ADC
+        float expectedV[8] = {3.93, 0, 0, 0, 0, 0, 0, 0};
+        for (int j = 0; j < 1000; j++){
+          for (int i = 0; i < 8; i++){
+            //Write ADC to be read 
+            crate_->vmeController()->vme_controller(3, addr_sel_adc, &ADC_number[i], rcv);
+            //Send control byte to ADC
+            unsigned short int ctrl_byte = 0x89;
+            crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
+            //Read from ADC
+            crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv); //often returns -100
+            //Format result
+            unsigned short int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+            result[i] = VMEresult;
+            float voltage_result_1 = float(result[i])*10.0/float(0xfff);
+            //Send control byte to ADC -- method 2
+            ctrl_byte = 0x81;
+            crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
+            //Read from ADC
+            crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv);
+            //Format result
+            VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+            if (VMEresult == 65535 && i == 0){ 
+              result2[i] = 0;
+              out << "Failed test: LVMB not connected" << endl;
+              break;
+            }
+            else{
+              result2[i] = VMEresult;
+              float voltage_result_2 = float(result2[i])*5.0/float(0xfff);
+              //Error checking
+              if (fabs(voltage_result_2 - voltage_result_1) > .05 && voltage_result_1 < 4.9){ out << "ERROR!  TWO METHODS DISAGREE!! " << endl; cout << "Results are: " << voltage_result_1 << " and " << voltage_result_2 << endl; }
+              float voltage = (voltage_result_1 > 4.9 ? voltage_result_1 : 0.5*(voltage_result_1 + voltage_result_2));
+              if ( fabs(voltage - expectedV[i]) > 0.05 ) fail++;
+              else{
+                bool done = false;
+                pass++;
+                for (int l = 0; l < voltages.size(); l++){
+                  if (fabs(voltages[l].first - voltage) < .00001){
+                    voltages[l].second++;
+                    done = true;
+                    break;
+                  } 
+                }
+                if (done == false){
+                  voltages.push_back(make_pair(voltage, 1));
+                }
+             }
+ 
+              //output result
+              //out << "LVMB test " << i << ": " << std::fixed << setprecision(2) << voltage_result_1 << " V "<< endl;
+            }
+          }//i-loop
+        }//j-loop
+      }//k-loop
+      out << "Fail rate: " << fail << " out of 80,000. " << endl; 
+      out << "Pass rate: " << pass - nodata << " out of 80,000. " << endl; 
+      out << "No data rate: " << nodata << " out of 80,000. " << endl; 
+      std::sort( voltages.begin(), voltages.end(), myfunction );
+      for (int i = 0; i < voltages.size(); i++){
+        cout << voltages[i].first << " " << voltages[i].second << endl;
       }
-      
+      if (fail < 10) out << "LVMB Test Passed!" << endl;
+      else out << "LVMB Test Passed!" << endl;
     }
     
     JTAGcontrol::JTAGcontrol(Crate * crate) 
