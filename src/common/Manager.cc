@@ -140,8 +140,8 @@ namespace emu { namespace odmbdev {
       
       putButtonsInGroup("Production Tests");
       addActionByTypename<LVMBtest>(crate);
-      //putButtonsInGroup( "DCFEB Tests" );
-      addActionByTypename<JTAGcontrol>(crate);
+      addActionByTypename<DCFEBJTAGcontrol>(crate, this);
+      addActionByTypename<HardReset>(crate);
       
       // putButtonsInGroup( "Routine Tests" );
       // addActionByTypename<RoutineTest_ShortCosmicsRun>(crate, this);

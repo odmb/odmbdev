@@ -33,6 +33,7 @@ Sources = \
         ButtonAction.cc \
         FourTextBoxAction.cc \
         OneTextBoxAction.cc \
+        RepeatTextBoxAction.cc \
 	Spy.cc
 TestSources =
 TestIncludeDirs =
