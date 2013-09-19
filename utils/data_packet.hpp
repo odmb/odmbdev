@@ -39,36 +39,36 @@ namespace Packet{
     void Print(const unsigned int &) const;
 
     enum ErrorType{
-      good			=0x0000,
-      no_dcfebs			=0x0001,
-      no_ddu_header		=0x0002,
-      no_ddu_trailer		=0x0004,
-      unused_words		=0x0008,
-      extra_alct_start		=0x0010,
-      missing_alct_start	=0x0020,
-      extra_alct_end		=0x0040,
-      missing_alct_end		=0x0080,
-      extra_otmb_start		=0x0100,
-      missing_otmb_start	=0x0200,
-      extra_otmb_end		=0x0400,
-      missing_otmb_end		=0x0800,
-      no_alct			=0x1000,
-      no_otmb			=0x2000,
-      no_odmb_header		=0x4000,
-      no_odmb_trailer		=0x8000
+      kGood		= 0x0000,
+      kNoDCFEBs		= 0x0001,
+      kNoDDUHeader	= 0x0002,
+      kNoDDUTrailer	= 0x0004,
+      kUnusedWords	= 0x0008,
+      kExtraALCTStart	= 0x0010,
+      kMissingALCTStart	= 0x0020,
+      kExtraALCTEnd	= 0x0040,
+      kMissingALCTEnd	= 0x0080,
+      kExtraOTMBStart	= 0x0100,
+      kMissingOTMBStart	= 0x0200,
+      kExtraOTMBEnd	= 0x0400,
+      kMissingOTMBEnd	= 0x0800,
+      kNoALCT		= 0x1000,
+      kNoOTMB		= 0x2000,
+      kNoODMBHeader	= 0x4000,
+      kNoODMBTrailer	= 0x8000
     };
     ErrorType GetPacketType() const;
 
   private:
-    svu full_packet;
-    mutable svust ddu_header_start, ddu_header_end;
-    mutable svust odmb_header_start, odmb_header_end;
-    mutable svust alct_start, alct_end;
-    mutable svust otmb_start, otmb_end;
-    mutable std::vector<svust> dcfeb_start, dcfeb_end;
-    mutable svust odmb_trailer_start, odmb_trailer_end;
-    mutable svust ddu_trailer_start, ddu_trailer_end;
-    mutable bool parsed;
+    svu full_packet_;
+    mutable svust ddu_header_start_, ddu_header_end_;
+    mutable svust odmb_header_start_, odmb_header_end_;
+    mutable svust alct_start_, alct_end_;
+    mutable svust otmb_start_, otmb_end_;
+    mutable std::vector<svust> dcfeb_start_, dcfeb_end_;
+    mutable svust odmb_trailer_start_, odmb_trailer_end_;
+    mutable svust ddu_trailer_start_, ddu_trailer_end_;
+    mutable bool parsed_;
 
     void Parse() const;
 

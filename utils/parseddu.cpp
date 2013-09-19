@@ -1,4 +1,20 @@
-#include "parseddu.hpp"
+/*
+DDU parsing script
+Parses CSC raw files for either single event or whole file diagnostic report. The diagnostic
+report produces a 16 bit error-code for each event containing, from MSB to LSB, a 1 for the
+errors ((no ODMB trailer, no ODMB header, no OTMB data, no ALCT data), (missing words at end of OTMB data, extra words at end of OTMB data, missing words at start of OTMB data, extra words at start of OTMB data), (missing words at end of ALCT data, extra words at end of ALCT data, missing words at start of ALCT data, extra words at start of ALCT data), (unparsed words, no DDU trailer, no DDU header, no DCFEB data)).
+
+Command line options:
+-f: Sets input file.
+-e: Sets event number to parse and process. Setting this to zero or leaving it unset produces a     diagnostic report for all events in the file.
+-w: Sets the number of words to print per line. Default is 20.
+
+If only one comman line option is given (without a "-"), it is used as a file name and a diagnostic report is produced.
+
+Author: Adam Dishaw (ald77@physics.ucsb.edu)
+Last modified: 2013-09-19
+*/
+
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
@@ -8,6 +24,7 @@
 #include <map>
 #include <stdint.h>
 #include <unistd.h>
+#include "parseddu.hpp"
 #include "data_packet.hpp"
 
 using Packet::DataPacket;
@@ -16,7 +33,7 @@ using Packet::svust;
 using Packet::InRange;
 
 int main(int argc, char *argv[]){
-  unsigned int words_per_line(32);
+  unsigned int words_per_line(20);
   std::string filename("");
   unsigned int entry_to_find(0);
 
@@ -60,7 +77,7 @@ int main(int argc, char *argv[]){
 	GetRestOfPacket(ifs, packet);
 	data_packet.SetData(packet);
 	const DataPacket::ErrorType this_type(data_packet.GetPacketType());
-	if(this_type!=DataPacket::good && this_type!=DataPacket::no_dcfebs){
+	if((this_type & ~DataPacket::kNoDCFEBs)!=0){
 	  std::cout << "Packet " << std::dec << std::setw(8) << std::setfill(' ') << entry+1
 		    << " is of type " << std::hex << std::setw(4) << std::setfill('0')
 		    << this_type << "." << std::endl;
