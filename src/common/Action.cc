@@ -105,14 +105,14 @@ namespace emu { namespace odmbdev {
 	.set("type","submit")
 	.set("style",button_style)
 	.set("value",button_name)
-	   << endl
+	   << endl << "V1 V2: " 
 	   << cgicc::input()
 	.set("type","text")
 	.set("value",textbox_default_value1)
 	.set("style",textbox_style1)
-	.set("name",textbox_name1)
-	   << cgicc::input()
-	.set("type","text")
+	.set("name",textbox_name1) << " tol: "
+	   << cgicc::input() 
+        .set("type","text")
 	.set("value",textbox_default_value2)
 	.set("style",textbox_style2)
 	.set("name",textbox_name2);

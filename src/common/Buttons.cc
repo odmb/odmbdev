@@ -2343,14 +2343,26 @@ namespace emu {
       out<<endl;
     }
 
-    LVMBtest::LVMBtest(Crate * crate) 
-      : ButtonAction(crate,"LVMB test") 
+    LVMBtest::LVMBtest(Crate * crate, emu::odmbdev::Manager* manager) 
+      : TwoTextBoxAction(crate, manager, "LVMB test") 
     { 
       //This constructor intentionally left blank.
     }
     
     void LVMBtest::respond(xgi::Input * in, ostringstream & out) { // TD
+      TwoTextBoxAction::respond(in, out);
       out << "********** Low Voltage Monitoring **********" << endl;
+      string textBoxContent = this->textBoxContent;
+      string textBoxContent2 = this->textBoxContent2;
+      istringstream textBoxContent1(textBoxContent);
+      string volt1_string, volt2_string;
+      textBoxContent1 >> volt1_string;
+      textBoxContent1 >> volt2_string;
+      float volt1 = atof(volt1_string.c_str());
+      float volt2 = atof(volt2_string.c_str());
+      float expectedV[8] = {volt1, volt1, volt1, volt1, volt2, volt2, volt2, volt2};
+      float tol = atof(textBoxContent2.c_str());
+      cout << "1: " << volt1 << " 2: " << volt2 << endl;
       int slot = Manager::getSlotNumber();
       unsigned int shiftedSlot = slot << 19;
       char rcv[2];
@@ -2363,7 +2375,7 @@ namespace emu {
       int addr_read_adc = (0x008004 & 0x07ffff) | shiftedSlot;
       int addr_turn_on = (0x008010 & 0x07ffff) | shiftedSlot;
       int addr_verify_on = (0x008014 & 0x07ffff) | shiftedSlot;
-      vector <pair<float, int> > voltages;
+      vector <pair<float, int> > voltages[8];
       unsigned short int ADC_number[8] = {0x0, 0x1, 0x2, 0x03, 0x4, 0x5,0x6,0x7};
       int pass = 0;
       int fail = 0;
@@ -2373,22 +2385,25 @@ namespace emu {
         //Send control byte to ADC
         unsigned short int ctrl_byte = 0x00;
         crate_->vmeController()->vme_controller(3, addr_turn_on, &ctrl_byte, rcv);
+        usleep(1);
         //Read from ADC
         crate_->vmeController()->vme_controller(2, addr_verify_on, &data, rcv);
+        usleep(1);
         //Format result
         unsigned short int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
         if (VMEresult != 0x00) out << "Failed turn off test!" << endl;
         //Send control byte to ADC
         ctrl_byte = 0xFF;
         crate_->vmeController()->vme_controller(3, addr_turn_on, &ctrl_byte, rcv);
+        usleep(1);
         //Read from ADC
         crate_->vmeController()->vme_controller(2, addr_verify_on, &data, rcv);
+        usleep(1);
         //Format result
         VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
         if (VMEresult == 0xBAAD){ out << "No device connected." << endl; return; }
         else if (VMEresult != 0xFF){ out << "Failed turn on test!" << endl; return; }
         //2) Test ADC
-        float expectedV[8] = {3.93, 0, 0, 0, 0, 0, 0, 0};
         for (int j = 0; j < 1000; j++){
           for (int i = 0; i < 8; i++){
             //Write ADC to be read 
@@ -2396,8 +2411,10 @@ namespace emu {
             //Send control byte to ADC
             unsigned short int ctrl_byte = 0x89;
             crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
+            usleep(1);
             //Read from ADC
             crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv); //often returns -100
+            usleep(1);
             //Format result
             unsigned short int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
             result[i] = VMEresult;
@@ -2405,8 +2422,10 @@ namespace emu {
             //Send control byte to ADC -- method 2
             ctrl_byte = 0x81;
             crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
+            usleep(1);
             //Read from ADC
             crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv);
+            usleep(1);
             //Format result
             VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
             if (VMEresult == 65535 && i == 0){ 
@@ -2420,19 +2439,20 @@ namespace emu {
               //Error checking
               if (fabs(voltage_result_2 - voltage_result_1) > .05 && voltage_result_1 < 4.9){ out << "ERROR!  TWO METHODS DISAGREE!! " << endl; cout << "Results are: " << voltage_result_1 << " and " << voltage_result_2 << endl; }
               float voltage = (voltage_result_1 > 4.9 ? voltage_result_1 : 0.5*(voltage_result_1 + voltage_result_2));
-              if ( fabs(voltage - expectedV[i]) > 0.05 ) fail++;
+              if ( fabs(voltage - expectedV[i]) > tol ) fail++;
               else{
                 bool done = false;
                 pass++;
-                for (int l = 0; l < voltages.size(); l++){
-                  if (fabs(voltages[l].first - voltage) < .00001){
-                    voltages[l].second++;
+                for (int l = 0; l < voltages[i].size(); l++){
+                  if (fabs(voltages[i][l].first - voltage) < .00001){
+                    voltages[i][l].second++;
                     done = true;
                     break;
                   } 
                 }
+                
                 if (done == false){
-                  voltages.push_back(make_pair(voltage, 1));
+                  voltages[i].push_back(make_pair(voltage, 1));
                 }
              }
  
@@ -2445,9 +2465,12 @@ namespace emu {
       out << "Fail rate: " << fail << " out of 80,000. " << endl; 
       out << "Pass rate: " << pass - nodata << " out of 80,000. " << endl; 
       out << "No data rate: " << nodata << " out of 80,000. " << endl; 
-      std::sort( voltages.begin(), voltages.end(), myfunction );
-      for (int i = 0; i < voltages.size(); i++){
-        cout << voltages[i].first << " " << voltages[i].second << endl;
+      for (int i = 0; i < 8; i++){
+        std::sort( voltages[i].begin(), voltages[i].end(), myfunction );
+        cout << "Printing outliers for box " << i << ":" << endl;
+        for (int l = 0; l < voltages[i].size(); l++){
+          if (voltages[i][l].first - expectedV[i] > tol) cout << voltages[i][l].first << " " << voltages[i][l].second << endl;
+        }
       }
       if (fail < 10) out << "LVMB Test Passed!" << endl;
       else out << "LVMB Test Passed!" << endl;

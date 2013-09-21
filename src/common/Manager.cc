@@ -139,7 +139,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<CommonUtilities_setupDDU_passThrough>(crate);
       
       putButtonsInGroup("Production Tests");
-      addActionByTypename<LVMBtest>(crate);
+      addActionByTypename<LVMBtest>(crate, this);
       //putButtonsInGroup( "DCFEB Tests" );
       addActionByTypename<JTAGcontrol>(crate);
       

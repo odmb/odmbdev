@@ -15,6 +15,7 @@
 #include "emu/odmbdev/ButtonAction.h"
 #include "emu/odmbdev/FourTextBoxAction.h"
 #include "emu/odmbdev/OneTextBoxAction.h"
+#include "emu/odmbdev/TwoTextBoxAction.h"
 
 /******************************************************************************
  * The Buttons
@@ -379,9 +380,9 @@ namespace emu { namespace odmbdev {
      *
      * A small class to print the results of the low voltage monitoring test
      **************************************************************************/
-    class LVMBtest : public ButtonAction {
+    class LVMBtest : public TwoTextBoxAction {
     public:
-      LVMBtest(Crate * crate);
+      LVMBtest(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out);
     };   
     
