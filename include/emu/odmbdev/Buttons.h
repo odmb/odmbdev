@@ -16,6 +16,7 @@
 #include "emu/odmbdev/FourTextBoxAction.h"
 #include "emu/odmbdev/OneTextBoxAction.h"
 #include "emu/odmbdev/TwoTextBoxAction.h"
+#include "emu/odmbdev/RepeatTextBoxAction.h"
 
 /******************************************************************************
  * The Buttons
@@ -387,13 +388,13 @@ namespace emu { namespace odmbdev {
     };   
     
     /**************************************************************************
-     * JTAGcontrol
+     * DCFEBJTAGcontrol
      *
      * A small class to read DCFEB UserCode and print the results
 	 **************************************************************************/
-    class JTAGcontrol : public ButtonAction {
+    class DCFEBJTAGcontrol : public RepeatTextBoxAction {
     public:
-      JTAGcontrol(Crate * crate);
+      DCFEBJTAGcontrol(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out);
     };      
 

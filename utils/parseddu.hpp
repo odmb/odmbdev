@@ -4,12 +4,10 @@
 #include <fstream>
 #include "data_packet.hpp"
 
-using Packet::svu;
-
-void UpdateLastFewWords(const uint16_t &, svu &);
-bool FindStartOfPacket(std::ifstream &, svu &);
-void GetRestOfPacket(std::ifstream &, svu &);
-void GetRestOfDDUPacket(std::ifstream &, svu &);
-void GetRestOfPCPacket(std::ifstream &, svu &);
+void UpdateLastFewWords(const uint16_t &, Packet::svu &);
+bool FindStartOfPacket(std::ifstream &, Packet::svu &);
+void GetRestOfPacket(std::ifstream &, Packet::svu &);
+void GetRestOfDDUPacket(std::ifstream &, Packet::svu &);
+void GetRestOfPCPacket(std::ifstream &, Packet::svu &);
 
 #endif
