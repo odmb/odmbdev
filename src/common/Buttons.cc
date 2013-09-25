@@ -49,7 +49,7 @@ bool myfunction (pair<float, int> i, pair<float, int> j) { return (i.first < j.f
 namespace emu {
   namespace odmbdev {
     
-    int Manager::slot_number = 7;
+    int Manager::slot_number = 15;
 
     void HardReset::respond(xgi::Input * in, ostringstream & out) { cout<<"==>HardReset"<<endl; 
       if(ccb_->GetCCBmode() != CCB::VMEFPGA) ccb_->setCCBMode(CCB::VMEFPGA); // we want the CCB in this mode for out test stand
@@ -2443,7 +2443,7 @@ namespace emu {
               else{
                 bool done = false;
                 pass++;
-                for (int l = 0; l < voltages[i].size(); l++){
+                for (unsigned int l = 0; l < voltages[i].size(); l++){
                   if (fabs(voltages[i][l].first - voltage) < .00001){
                     voltages[i][l].second++;
                     done = true;
@@ -2468,7 +2468,7 @@ namespace emu {
       for (int i = 0; i < 8; i++){
         std::sort( voltages[i].begin(), voltages[i].end(), myfunction );
         cout << "Printing outliers for box " << i << ":" << endl;
-        for (int l = 0; l < voltages[i].size(); l++){
+        for (unsigned int l = 0; l < voltages[i].size(); l++){
           if (voltages[i][l].first - expectedV[i] > tol) cout << voltages[i][l].first << " " << voltages[i][l].second << endl;
         }
       }
@@ -2483,13 +2483,18 @@ namespace emu {
     }
     
     void DCFEBJTAGcontrol::respond(xgi::Input * in, ostringstream & out) { // JB-F
+        out << "********** Read DCFEB UserCode **********" << endl;
         RepeatTextBoxAction::respond(in, out);
         istringstream countertext(this->textBoxContent);
         string line;
       	getline(countertext,line,'\n');
       	const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
+      	
+      	vector<unsigned int> v_nUCReads(7,0); // number of times we successfully read UserCode of each DCFEB
+      	vector<unsigned int> v_nShiftReads(7,0); // number of times we successfully read shifted bits on ADC mask
+      	vector<string> v_firmwareVersion(7,""); // store the firmware version
+      	vector<unsigned int> v_nJTAGshifts(7,0); // number of JTAG shifts commands issued
       	for(unsigned int repNum=0; repNum<repeatNumber; ++repNum){ // repeat the test repNum times
-			out << "********** Read DCFEB UserCode **********" << endl;
 			int slot = Manager::getSlotNumber();
 			unsigned int shiftedSlot = slot << 19;
 			char rcv[2];
@@ -2516,7 +2521,6 @@ namespace emu {
 				// Read selected DCFEB
 				crate_->vmeController()->vme_controller(2, addr_read_dcfeb, &DCFEB_number[d], rcv);
 				VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-				out << "DCFEB " << FixLength(VMEresult) << ":";
 				// Set instruction register to *Read UserCode*
 				crate_->vmeController()->vme_controller(3, addr_set_int_reg, &reg_user_code, rcv);
 				// Shift 16 lower bits
@@ -2526,7 +2530,7 @@ namespace emu {
 				// check firmware version
 				VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
 				string s_result = FixLength(VMEresult, 4, true);
-				string firmwareVersion = s_result.substr(1,1)+"."+s_result.substr(2,1);
+				string firmwareVersion = s_result.substr(1,1)+"."+s_result.substr(2,2);
 				// Shift 16 upper bits
 				crate_->vmeController()->vme_controller(3, addr_read_tlr, &data, rcv);
 				// Read second half of UserCode
@@ -2534,12 +2538,10 @@ namespace emu {
 				crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);
 				// check to see if DCFEB is connected
 				VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-				if (FixLength(VMEresult, 4, true)!="DCFE") {
-					out << " not connected." << endl;
-					continue;
-				}
+				if (FixLength(VMEresult, 4, true)!="DCFE") continue;
 				else {
-					out << " firmware version " << firmwareVersion << ".";
+					if (v_firmwareVersion[d].empty()) v_firmwareVersion[d] = firmwareVersion;
+					v_nUCReads[d]++;
 					nConnected++;
 				}
 				// Set instruction register to *Device select*
@@ -2550,27 +2552,40 @@ namespace emu {
 				crate_->vmeController()->vme_controller(3, addr_set_int_reg, &reg_val_sel, rcv);
 				vector<string> tdi;
 				vector<string> tdo;
-				unsigned int nMatches(0), n_misMatches(0);
+				//unsigned int nMatches(0), n_misMatches(0);
 				unsigned short int start(0x111), end(0xFFF);
 				for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
+					if (reg_val_shft>start) v_nJTAGshifts[d]++;
 					// Set DR, shift 12 bits
 					crate_->vmeController()->vme_controller(3, addr_shift_dr, &reg_val_shft, rcv);
+					usleep(10);
 					tdi.push_back(FixLength(reg_val_shft, 3, true));
 					// Read TDO
 					crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);
+					usleep(10);
 					VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
 					tdo.push_back(FixLength(VMEresult, 4, true));
 					if (reg_val_shft == 0x111) continue;
-					if (tdo[reg_val_shft-0x111].substr(0,3) == tdi[reg_val_shft-1-0x111]) nMatches++;
-					else n_misMatches++;
-					/*out << "TDI: " << tdi[reg_val_shft-0x111] << endl;
-					out << "TDO: " << tdo[reg_val_shft-0x111] << endl;*/
+					if (tdo[reg_val_shft-0x111].substr(0,3) == tdi[reg_val_shft-1-0x111]) v_nShiftReads[d]++;
 				}
-				out << "  Shifted register C " << end-start << " times, ";
-				out << "found expected tdo " << nMatches << " times." << endl;
+				//out << "  Shifted register C " << end-start << " times, ";
+				//out << "read expected tdo " << nMatches << " times." << endl;
 			} // Loop over all DCFEBs
 			if (nConnected==0) out << "Error: could not find DCFEBs. Please check connections." << endl;
       	} // repeat the test repNum times
+      	// Now loop over DCFEBs again to display summary
+      	for (int d = 0; d < 7; d++){ 
+      		out << "DCFEB " << d+1 << ": ";
+      		if (v_nUCReads[d]==0) out << "not connected." << endl;
+      		else {
+      			out << "read UserCode " << v_nUCReads[d] << "/" << repeatNumber << " times.";
+      			out << " Firmware version " << v_firmwareVersion[d] << ".";
+      			out << " Successful reads/shifts = " << v_nShiftReads[d] << "/" 
+      				<< v_nJTAGshifts[d] << "." << endl;
+      			//out << "  Shifted register C " << v_nJTAGshifts[d] << " times, ";
+				//out << "read expected tdo " << v_nShiftReads[d] << " times." << endl;
+			}
+      	}
     }
 
     /**************************************************************************
