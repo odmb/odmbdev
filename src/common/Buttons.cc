@@ -2331,11 +2331,10 @@ namespace emu {
         unsigned short int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
         crate_->vmeController()->vme_controller(2,read_addr,&data,rcv);
         VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-        result[i] = VMEresult;
-        if (i == 0 && result[i] > 0xfff){ cout << "ERROR: bad readout from system monitoring." << endl; out << "ERROR: bad readout from system monitoring." << endl; break; }
-        if (i == 2){ result2[i] = 503.975*result[i]/4096.0 - 273.15; }
-        else if (i > 1) result2[i] = result[i]*2.0*voltmax[i]/4096.0;
-        else if (i == 0 || i == 1) result2[i] = 7.865766417e-10*pow(result[i],3) - 7.327237418e-6*pow(result[i],2) + 3.38189673e-2*result[i] - 9.678340882;
+        if (i == 0 && VMEresult > 0xfff){ cout << "ERROR: bad readout from system monitoring." << endl; out << "ERROR: bad readout from system monitoring." << endl; break; }
+        if (i == 2){ result2[i] = 503.975*VMEresult/4096.0 - 273.15; }
+        else if (i > 1) result2[i] = VMEresult*2.0*voltmax[i]/4096.0;
+        else if (i == 0 || i == 1) result2[i] = 7.865766417e-10*pow(VMEresult,3) - 7.327237418e-6*pow(VMEresult,2) + 3.38189673e-2*VMEresult - 9.678340882;
 
         //out << "R  " << FixLength(read_addr & 0xffff) << "        " << description[i] << ": " << setprecision(precision[i]) << result2[i] << endl;      
         out << setprecision(3) << result2[i] << description[i]<< endl;      
@@ -2360,101 +2359,110 @@ namespace emu {
       textBoxContent1 >> volt2_string;
       float volt1 = atof(volt1_string.c_str());
       float volt2 = atof(volt2_string.c_str());
-      float expectedV[8] = {volt1, volt1, volt1, volt1, volt2, volt2, volt2, volt2};
+      if (!(volt1 > 0 && volt1 < 10)) volt1 = 0;
+      if (!(volt2 > 0 && volt2 < 10)) volt2 = 0;
+      float expectedV[8] = {volt1, volt1, 0, volt1, volt2, volt2, volt2, 0};
       float tol = atof(textBoxContent2.c_str());
-      cout << "1: " << volt1 << " 2: " << volt2 << endl;
       int slot = Manager::getSlotNumber();
       unsigned int shiftedSlot = slot << 19;
       char rcv[2];
       unsigned short int data;
-      unsigned short int result[15];
-      unsigned short int result2[15];
       //addresses
+      unsigned short int VMEresult = 0;
       int addr_sel_adc = (0x008020 & 0x07ffff) | shiftedSlot;
       int addr_cntl_byte = (0x008000 & 0x07ffff) | shiftedSlot;
       int addr_read_adc = (0x008004 & 0x07ffff) | shiftedSlot;
       int addr_turn_on = (0x008010 & 0x07ffff) | shiftedSlot;
       int addr_verify_on = (0x008014 & 0x07ffff) | shiftedSlot;
-      vector <pair<float, int> > voltages[8];
-      unsigned short int ADC_number[8] = {0x0, 0x1, 0x2, 0x03, 0x4, 0x5,0x6,0x7};
+      int nReps = 100;
+      int nTests = 2;
+      int fail_turn_off = 0;
+      int fail_turn_on = 0;
+      unsigned short int ctrl_byte_vec[7] = {0x89, 0xB9, 0xD9, 0x99, 0xA9, 0xC9, 0xE9};
+      unsigned short int ctrl_byte_vec2[7] = {0x81, 0xB1, 0xD1, 0x91, 0xA1, 0xC1, 0xE1};
+      vector <pair<float, int> > voltages[7];
+      unsigned short int ADC_number_vec[7] = {0x0, 0x1, 0x2, 0x03, 0x4, 0x5, 0x6};
       int pass = 0;
       int fail = 0;
-      int nodata = 0;
-      for (int k = 0; k < 10; k++){
+      for (int k = 0; k < nTests; k++){
         //1) Test on-off 
         //Send control byte to ADC
         unsigned short int ctrl_byte = 0x00;
         crate_->vmeController()->vme_controller(3, addr_turn_on, &ctrl_byte, rcv);
-        usleep(1);
+        usleep(10);
         //Read from ADC
         crate_->vmeController()->vme_controller(2, addr_verify_on, &data, rcv);
-        usleep(1);
+        usleep(10);
         //Format result
-        unsigned short int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-        if (VMEresult != 0x00) out << "Failed turn off test!" << endl;
+        VMEresult = 100;
+        VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+        if (VMEresult != 0x00){ out << "Failed turn off test!" << endl; fail_turn_off++;}
         //Send control byte to ADC
         ctrl_byte = 0xFF;
         crate_->vmeController()->vme_controller(3, addr_turn_on, &ctrl_byte, rcv);
-        usleep(1);
+        usleep(10);
         //Read from ADC
         crate_->vmeController()->vme_controller(2, addr_verify_on, &data, rcv);
-        usleep(1);
+        usleep(10);
         //Format result
         VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
         if (VMEresult == 0xBAAD){ out << "No device connected." << endl; return; }
-        else if (VMEresult != 0xFF){ out << "Failed turn on test!" << endl; return; }
+        else if (VMEresult != 0xFF){ out << "Failed turn on test!" << endl; fail_turn_on++; }
         //2) Test ADC
-        for (int j = 0; j < 1000; j++){
-          for (int i = 0; i < 8; i++){
+        for (int j = 0; j < nReps; j++){
+          for (int i = 0; i < 7; i++){
+            if (i == 2) continue;
             //Write ADC to be read 
-            crate_->vmeController()->vme_controller(3, addr_sel_adc, &ADC_number[i], rcv);
+            unsigned short int ADC_number = ADC_number_vec[i];
+            crate_->vmeController()->vme_controller(3, addr_sel_adc, &ADC_number, rcv);
             //Send control byte to ADC
-            unsigned short int ctrl_byte = 0x89;
+            ctrl_byte = ctrl_byte_vec[i];
             crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
-            usleep(1);
+            usleep(10);
             //Read from ADC
             crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv); //often returns -100
-            usleep(1);
+            usleep(10);
             //Format result
-            unsigned short int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-            result[i] = VMEresult;
-            float voltage_result_1 = float(result[i])*10.0/float(0xfff);
+            VMEresult = 0;
+            VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+            float voltage_result_1 = float(VMEresult*10.0)/float(0xfff);
             //Send control byte to ADC -- method 2
-            ctrl_byte = 0x81;
+            ctrl_byte = ctrl_byte_vec2[i];
             crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
-            usleep(1);
+            usleep(10);
             //Read from ADC
             crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv);
-            usleep(1);
+            usleep(10);
             //Format result
+            VMEresult = 0;
             VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
             if (VMEresult == 65535 && i == 0){ 
-              result2[i] = 0;
+              VMEresult = 0;
               out << "Failed test: LVMB not connected" << endl;
               break;
             }
             else{
-              result2[i] = VMEresult;
-              float voltage_result_2 = float(result2[i])*5.0/float(0xfff);
+              float voltage_result_2 = float(VMEresult)*5.0/float(0xfff);
               //Error checking
-              if (fabs(voltage_result_2 - voltage_result_1) > .05 && voltage_result_1 < 4.9){ out << "ERROR!  TWO METHODS DISAGREE!! " << endl; cout << "Results are: " << voltage_result_1 << " and " << voltage_result_2 << endl; }
+              if (fabs(voltage_result_2 - voltage_result_1) > .05 && voltage_result_1 < 4.9){ out << "ERROR!  TWO METHODS DISAGREE!! Results are: " << voltage_result_1 << " and " << voltage_result_2 << endl; }
               float voltage = (voltage_result_1 > 4.9 ? voltage_result_1 : 0.5*(voltage_result_1 + voltage_result_2));
-              if ( fabs(voltage - expectedV[i]) > tol ) fail++;
+              bool done = false;
+              if ( fabs(voltage - expectedV[i]) > tol ){ fail++; cout << "fail! " << VMEresult << " " << i << " " << j << " volt " << voltage << " " << voltage_result_1 << " " << voltage_result_2 << " exp  " << expectedV[i] << endl;   }
               else{
-                bool done = false;
                 pass++;
-                for (int l = 0; l < voltages[i].size(); l++){
-                  if (fabs(voltages[i][l].first - voltage) < .00001){
-                    voltages[i][l].second++;
-                    done = true;
-                    break;
-                  } 
-                }
-                
-                if (done == false){
-                  voltages[i].push_back(make_pair(voltage, 1));
-                }
-             }
+              }
+              for (int l = 0; l < voltages[i].size(); l++){
+                if (fabs(voltages[i][l].first - voltage) < .00001){
+                  voltages[i][l].second++;
+                  done = true;
+                  break;
+                } 
+              }
+              
+              if (done == false){
+                voltages[i].push_back(make_pair(voltage, 1));
+              }
+             
  
               //output result
               //out << "LVMB test " << i << ": " << std::fixed << setprecision(2) << voltage_result_1 << " V "<< endl;
@@ -2462,18 +2470,23 @@ namespace emu {
           }//i-loop
         }//j-loop
       }//k-loop
-      out << "Fail rate: " << fail << " out of 80,000. " << endl; 
-      out << "Pass rate: " << pass - nodata << " out of 80,000. " << endl; 
-      out << "No data rate: " << nodata << " out of 80,000. " << endl; 
+      out << "Failed turn on test " << fail_turn_on << " times out of " << nTests << endl;
+      out << "Failed turn off test " << fail_turn_off << " times out of " << nTests << endl;
+      out << "Voltage reading failure rate: " << fail << " out of " << nTests*nReps*6  << ". " << endl; 
+      out << "Voltage reading pass rate: " << pass << " out of " << nTests*nReps*6 << ". " << endl; 
       for (int i = 0; i < 8; i++){
+         if (i == 2 || i == 7) continue;
         std::sort( voltages[i].begin(), voltages[i].end(), myfunction );
-        cout << "Printing outliers for box " << i << ":" << endl;
+        if (voltages[i].size() > 0) cout << "Printing outliers for box " << i << ":" << endl;
+        //cout << "Printing everything for box " << i << ":" << endl;
         for (int l = 0; l < voltages[i].size(); l++){
           if (voltages[i][l].first - expectedV[i] > tol) cout << voltages[i][l].first << " " << voltages[i][l].second << endl;
+          //cout << voltages[i][l].first << " " << voltages[i][l].second << endl;
         }
       }
-      if (fail < 10) out << "LVMB Test Passed!" << endl;
-      else out << "LVMB Test Passed!" << endl;
+      out << " " << endl;
+      if (fail < 10 && fail_turn_on == 0 && fail_turn_off == 0) out << "LVMB Test Passed!" << endl;
+      else out << "LVMB Test Failed!" << endl;
     }
     
     DCFEBJTAGcontrol::DCFEBJTAGcontrol(Crate * crate, emu::odmbdev::Manager* manager) 
