@@ -141,6 +141,40 @@ namespace emu { namespace odmbdev {
 	.set("name",textbox_name2);
     }
 
+    void Action::addButtonWithThreeTextBoxesLVMB(xgi::Output *out,
+					   const string& button_name,
+					   const string& textbox_name1,
+					   const string& textbox_default_value1,
+					   const string& textbox_name2,
+					   const string& textbox_default_value2,
+					   const string& textbox_name3,
+					   const string& textbox_default_value3,
+					   const string& button_style,
+					   const string& textbox_style1,
+					   const string& textbox_style2,
+					   const string& textbox_style3)
+    {
+      *out << cgicc::input()
+	.set("type","submit")
+	.set("style",button_style)
+	.set("value",button_name)
+	   << endl << "V1 V2: " 
+	   << cgicc::input()
+	.set("type","text")
+	.set("value",textbox_default_value1)
+	.set("style",textbox_style1)
+	.set("name",textbox_name1) << " tol: "
+	   << cgicc::input() 
+        .set("type","text")
+	.set("value",textbox_default_value2)
+	.set("style",textbox_style2)
+	.set("name",textbox_name2) << " N: " 
+	   << cgicc::input() 
+        .set("type","text")
+	.set("value",textbox_default_value3)
+	.set("style",textbox_style3)
+	.set("name",textbox_name3);
+    }
   void Action::addButtonWithThreeTextBoxes(xgi::Output *out,
                                            const string& button_name,
                                            const string& textboxname1,

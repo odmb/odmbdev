@@ -148,6 +148,19 @@ namespace odmbdev {
 					      const std::string& textboxname3,
 					      const std::string& textbox_default_value3);
 
+      static void addButtonWithThreeTextBoxesLVMB(xgi::Output *out,
+					      const std::string& button_name,
+					      const std::string& textboxname1,
+					      const std::string& textbox_default_value1,
+					      const std::string& textboxname2,
+					      const std::string& textbox_default_value2,
+					      const std::string& textboxname3,
+					      const std::string& textbox_default_value3,
+					      const std::string& button_style=default_button_style,
+					      const std::string& textbox_style1=default_textbox_style,
+					      const std::string& textbox_style2=default_textbox_style,
+					      const std::string& textbox_style3=default_textbox_style);
+
       static void addButtonWithFourTextBoxes(xgi::Output *out,
 					      const std::string& button_name,
 					      const std::string& textboxname1,

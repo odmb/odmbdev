@@ -33,7 +33,7 @@ Sources = \
         ButtonAction.cc \
         FourTextBoxAction.cc \
         OneTextBoxAction.cc \
-        TwoTextBoxAction.cc \
+        ThreeTextBoxAction.cc \
         RepeatTextBoxAction.cc \
 	Spy.cc
 TestSources =

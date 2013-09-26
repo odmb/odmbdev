@@ -2342,16 +2342,17 @@ namespace emu {
     }
 
     LVMBtest::LVMBtest(Crate * crate, emu::odmbdev::Manager* manager) 
-      : TwoTextBoxAction(crate, manager, "LVMB test") 
+      : ThreeTextBoxAction(crate, manager, "LVMB test") 
     { 
       //This constructor intentionally left blank.
     }
     
     void LVMBtest::respond(xgi::Input * in, ostringstream & out) { // TD
-      TwoTextBoxAction::respond(in, out);
+      ThreeTextBoxAction::respond(in, out);
       out << "********** Low Voltage Monitoring **********" << endl;
       string textBoxContent = this->textBoxContent;
       string textBoxContent2 = this->textBoxContent2;
+      string textBoxContent3 = this->textBoxContent3;
       istringstream textBoxContent1(textBoxContent);
       string volt1_string, volt2_string;
       textBoxContent1 >> volt1_string;
@@ -2373,40 +2374,41 @@ namespace emu {
       int addr_read_adc = (0x008004 & 0x07ffff) | shiftedSlot;
       int addr_turn_on = (0x008010 & 0x07ffff) | shiftedSlot;
       int addr_verify_on = (0x008014 & 0x07ffff) | shiftedSlot;
-      int nReps = 100;
+      int notConnected = 0;
+      int nReps = atoi(textBoxContent3.c_str());
       int nTests = 2;
       int fail_turn_off = 0;
       int fail_turn_on = 0;
-      unsigned short int ctrl_byte_vec[7] = {0x89, 0xB9, 0xD9, 0x99, 0xA9, 0xC9, 0xE9};
-      unsigned short int ctrl_byte_vec2[7] = {0x81, 0xB1, 0xD1, 0x91, 0xA1, 0xC1, 0xE1};
+      unsigned short int ctrl_byte_vec[7] =  {0x89, 0xA9, 0xB9, 0xC9, 0x99, 0xE9, 0xD9};
+      unsigned short int ctrl_byte_vec2[7] = {0x81, 0xA1, 0xB1, 0xC1, 0x91, 0xE1, 0xD9};
       vector <pair<float, int> > voltages[7];
-      unsigned short int ADC_number_vec[7] = {0x0, 0x1, 0x2, 0x03, 0x4, 0x5, 0x6};
+      unsigned short int ADC_number_vec[7] = {0x0, 0x4, 0x1, 0x05, 0x3, 0x7, 0x2};
       int pass = 0;
       int fail = 0;
+      //1) Test on-off 
+      //Send control byte to ADC
+      unsigned short int ctrl_byte = 0x00;
+      crate_->vmeController()->vme_controller(3, addr_turn_on, &ctrl_byte, rcv);
+      usleep(10);
+      //Read from ADC
+      crate_->vmeController()->vme_controller(2, addr_verify_on, &data, rcv);
+      usleep(10);
+      //Format result
+      VMEresult = 100;
+      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+      if (VMEresult != 0x00){ out << "Failed turn off test!" << endl; fail_turn_off++;}
+      //Send control byte to ADC
+      ctrl_byte = 0xFF;
+      crate_->vmeController()->vme_controller(3, addr_turn_on, &ctrl_byte, rcv);
+      usleep(10);
+      //Read from ADC
+      crate_->vmeController()->vme_controller(2, addr_verify_on, &data, rcv);
+      usleep(10);
+      //Format result
+      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+      if (VMEresult == 0xBAAD){ out << "No device connected." << endl; return; }
+      else if (VMEresult != 0xFF){ out << "Failed turn on test!" << endl; fail_turn_on++; return; }
       for (int k = 0; k < nTests; k++){
-        //1) Test on-off 
-        //Send control byte to ADC
-        unsigned short int ctrl_byte = 0x00;
-        crate_->vmeController()->vme_controller(3, addr_turn_on, &ctrl_byte, rcv);
-        usleep(10);
-        //Read from ADC
-        crate_->vmeController()->vme_controller(2, addr_verify_on, &data, rcv);
-        usleep(10);
-        //Format result
-        VMEresult = 100;
-        VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-        if (VMEresult != 0x00){ out << "Failed turn off test!" << endl; fail_turn_off++;}
-        //Send control byte to ADC
-        ctrl_byte = 0xFF;
-        crate_->vmeController()->vme_controller(3, addr_turn_on, &ctrl_byte, rcv);
-        usleep(10);
-        //Read from ADC
-        crate_->vmeController()->vme_controller(2, addr_verify_on, &data, rcv);
-        usleep(10);
-        //Format result
-        VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-        if (VMEresult == 0xBAAD){ out << "No device connected." << endl; return; }
-        else if (VMEresult != 0xFF){ out << "Failed turn on test!" << endl; fail_turn_on++; return; }
         //2) Test ADC
         for (int j = 0; j < nReps; j++){
           for (int i = 0; i < 7; i++){
@@ -2417,9 +2419,9 @@ namespace emu {
             //Send control byte to ADC
             ctrl_byte = ctrl_byte_vec[i];
             crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
-            usleep(10);
+            usleep(30);
             //Read from ADC
-            crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv); //often returns -100
+            crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv); //often returns -100, maybe fixed by introducing sleeps?
             usleep(10);
             //Format result
             VMEresult = 0;
@@ -2437,7 +2439,9 @@ namespace emu {
             VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
             if (VMEresult == 65535 && i == 0){ 
               VMEresult = 0;
-              out << "Failed test: LVMB not connected" << endl;
+              notConnected++;
+              if (notConnected == 1) out << "Failed test: LVMB not connected" << endl;
+              if (notConnected == 3) return; 
               break;
             }
             else{
