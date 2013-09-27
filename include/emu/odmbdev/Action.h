@@ -128,7 +128,13 @@ namespace odmbdev {
 				       const std::string& textbox_default_value,
 				       const std::string& button_style=default_button_style,
 				       const std::string& textbox_style=default_textbox_style);
-
+	  static void addButtonWithParameter(xgi::Output *out,
+				       const std::string& parameter,
+				       const std::string& button_name,
+				       const std::string& textbox_name,
+				       const std::string& textbox_default_value,
+				       const std::string& button_style=default_button_style,
+				       const std::string& textbox_style=default_textbox_style);
       static void addButtonWithTwoTextBoxes(xgi::Output *out,
 					    const std::string& button_name,
 					    const std::string& textbox_name1,

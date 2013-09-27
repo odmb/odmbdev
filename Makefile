@@ -35,6 +35,7 @@ Sources = \
         OneTextBoxAction.cc \
         ThreeTextBoxAction.cc \
         RepeatTextBoxAction.cc \
+        ParameterTextBoxAction.cc \
 	Spy.cc
 TestSources =
 TestIncludeDirs =

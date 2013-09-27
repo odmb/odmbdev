@@ -2496,7 +2496,7 @@ namespace emu {
     }
     
     DCFEBJTAGcontrol::DCFEBJTAGcontrol(Crate * crate, emu::odmbdev::Manager* manager) 
-      : RepeatTextBoxAction(crate, manager, "DCFEB JTAG Control"/*,"1"*/) 
+      : RepeatTextBoxAction(crate, manager, "DCFEB JTAG Control") 
     { 
       // Has a "repeat n times" textbox.
     }
@@ -2605,6 +2605,64 @@ namespace emu {
 				//out << "read expected tdo " << v_nShiftReads[d] << " times." << endl;
 			}
       	}
+    }
+    
+    DCFEBFiber::DCFEBFiber(Crate * crate, Manager* manager) 
+      : ParameterTextBoxAction(crate, manager, "DCFEB Fiber Test", "packets") 
+    { 
+    	// blank constructor
+    }
+    
+    void DCFEBFiber::respond(xgi::Input * in, ostringstream & out) { // JB-F
+    	out << "********** High statistics test **********" << endl;
+    	ParameterTextBoxAction::respond(in, out);
+        istringstream countertext(this->textBoxContent);
+        string line;
+      	getline(countertext,line,'\n');
+      	const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
+      	// repeatNumber is currently the number of packets to send
+    	usleep(10000);
+    	int slot = Manager::getSlotNumber();
+      	unsigned int shiftedSlot = slot << 19;
+      	char rcv[2];
+      	// Adresses
+      	unsigned int addr_odmb_ctrl_reg( (0x003000& 0x07ffff) | shiftedSlot ), addr_dcfeb_ctrl_reg( (0x003010& 0x07ffff) | shiftedSlot );
+      	unsigned int addr_set_kill( (0x00401C& 0x07ffff) | shiftedSlot );
+      	unsigned int addr_read_nrx_pckt( (0x00347C& 0x07ffff) | shiftedSlot ), addr_read_ncrcs( (0x00367C& 0x07ffff) | shiftedSlot );
+      	unsigned int addr_sel_dcfeb_fifo( (0x005010& 0x07ffff) | shiftedSlot ), addr_rst_fifo( (0x005020& 0x07ffff) | shiftedSlot );
+    	// Commands
+    	unsigned short int data;
+    	unsigned short int cmd_dreal_tint(0x200), cmd_kill(0x1BF);
+    	unsigned short int cmd_dcfeb_fifo[7] = {0x1,0x2,0x3,0x4,0x5,0x6,0x7};
+    	unsigned short int cms_l1a_match(0x10), cmd_rst_fifo(0x40);
+    	// Results
+    	unsigned short int VMEresult;
+    	// == ================ Configuration ================ ==
+    	// Set real data and internal triggers
+    	crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&cmd_dreal_tint,rcv);
+    	// Set KILL
+    	crate_->vmeController()->vme_controller(3,addr_set_kill,&cmd_kill,rcv);
+		// Select DCFEB FIFO
+		crate_->vmeController()->vme_controller(3,addr_sel_dcfeb_fifo,&cmd_dcfeb_fifo[6],rcv);
+		// == ============ Send N real packets ============ ==
+		for (unsigned int p = 0; p < repeatNumber; p++) {
+			// Send test L1A(_MATCH) to all DCFEBs
+			crate_->vmeController()->vme_controller(3,addr_dcfeb_ctrl_reg,&cms_l1a_match,rcv);
+			usleep(100);
+			// Reset FIFO 7
+			crate_->vmeController()->vme_controller(3,addr_rst_fifo,&cmd_rst_fifo,rcv);
+		}
+		// == ============ Status summary ============ ==
+		out << "DCFEB 7: " << endl;
+		// Number of received packets [DCFEB 7]
+		crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
+		VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+		out << "Received packets: " << VMEresult << endl;
+		// Number of good CRCs [DCFEB 7]
+		crate_->vmeController()->vme_controller(2,addr_read_ncrcs,&data,rcv);
+		VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+		//out << "Good CRCs: " << VMEresult << endl;
+		out << "Bit matches: " << VMEresult*800*16 << endl;
     }
 
     /**************************************************************************

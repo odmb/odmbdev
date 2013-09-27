@@ -17,6 +17,7 @@
 #include "emu/odmbdev/OneTextBoxAction.h"
 #include "emu/odmbdev/ThreeTextBoxAction.h"
 #include "emu/odmbdev/RepeatTextBoxAction.h"
+#include "emu/odmbdev/ParameterTextBoxAction.h"
 
 /******************************************************************************
  * The Buttons
@@ -396,7 +397,18 @@ namespace emu { namespace odmbdev {
     public:
       DCFEBJTAGcontrol(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out);
-    };      
+    };     
+    
+    /**************************************************************************
+     * DCFEBFiber
+     *
+     * A small class to perform high statistics test of DCFEB fibers (trigger, send/receive packets)
+	 **************************************************************************/
+    class DCFEBFiber : public ParameterTextBoxAction {
+    public:
+      DCFEBFiber(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
+    }; 
 
     /**************************************************************************
      * Log Buttons

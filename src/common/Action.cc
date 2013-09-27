@@ -113,6 +113,30 @@ namespace emu { namespace odmbdev {
 
 	   << endl;
     }
+    
+    void Action::addButtonWithParameter(xgi::Output *out,
+				      const string& parameter, // units of the parameter (e.g., times, packets) -- JB-F
+				      const string& button_name,
+				      const string& textbox_name,
+				      const string& textbox_default_value,
+				      const string& button_style,
+				      const string& textbox_style)
+    {
+      *out << cgicc::input()
+	.set("type","submit")
+	.set("style", button_style)
+	.set("value",button_name)
+	   << " "
+	   << cgicc::input()
+	.set("type","text")
+	.set("value",textbox_default_value)
+	.set("style", textbox_style)
+	.set("name",textbox_name)
+		  << " " << parameter << "."
+          << endl
+
+	   << endl;
+    }
 
     void Action::addButtonWithTwoTextBoxes(xgi::Output *out,
 					   const string& button_name,
