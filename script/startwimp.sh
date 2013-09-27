@@ -54,7 +54,7 @@ print
 
 OPTIONS="\
  -h wimp.physics.ucsb.edu \
- -p 9992 \
+ -p 9991 \
  -c ${BUILD_HOME}/emu/odmbdev/xml/EmuWimpDev.xml \
  -e ${BUILD_HOME}/emu/odmbdev/xml/EmuME11Dev.profile"
 

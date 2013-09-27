@@ -49,7 +49,7 @@ print
 
 OPTIONS="\
  -h emuslice06.cern.ch \
- -p 9998 \
+ -p 9991 \
  -c ${BUILD_HOME}/emu/odmbdev/xml/EMUSlice06Dev.xml \
  -e ${BUILD_HOME}/emu/odmbdev/xml/EmuME11Dev.profile"
 
