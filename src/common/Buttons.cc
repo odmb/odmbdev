@@ -2614,7 +2614,7 @@ namespace emu {
     }
     
     void DCFEBFiber::respond(xgi::Input * in, ostringstream & out) { // JB-F
-    	out << "********** High statistics test **********" << endl;
+    	out << "********** High statistics DCFEB fiber tests **********" << endl;
     	ParameterTextBoxAction::respond(in, out);
         istringstream countertext(this->textBoxContent);
         string line;
@@ -2644,6 +2644,14 @@ namespace emu {
     	crate_->vmeController()->vme_controller(3,addr_set_kill,&cmd_kill,rcv);
 		// Select DCFEB FIFO
 		crate_->vmeController()->vme_controller(3,addr_sel_dcfeb_fifo,&cmd_dcfeb_fifo[6],rcv);
+		// Number of received packets before
+		crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
+		VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+		unsigned int nRxPckt_b(VMEresult);
+		// Number of good CRCs before
+		crate_->vmeController()->vme_controller(2,addr_read_ncrcs,&data,rcv);
+		VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+		unsigned int nGoodCRCs_b(VMEresult);
 		// == ============ Send N real packets ============ ==
 		for (unsigned int p = 0; p < repeatNumber; p++) {
 			// Send test L1A(_MATCH) to all DCFEBs
@@ -2657,12 +2665,17 @@ namespace emu {
 		// Number of received packets [DCFEB 7]
 		crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
 		VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-		out << "Received packets: " << VMEresult << endl;
+		unsigned int nRxPckt_a(VMEresult);
+		unsigned int nRxPckt(nRxPckt_a-nRxPckt_b);
+		out << "Received " << nRxPckt << " out of " << repeatNumber << " packets, ";
 		// Number of good CRCs [DCFEB 7]
 		crate_->vmeController()->vme_controller(2,addr_read_ncrcs,&data,rcv);
 		VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-		//out << "Good CRCs: " << VMEresult << endl;
-		out << "Bit matches: " << VMEresult*800*16 << endl;
+		unsigned int nGoodCRCs_a(VMEresult);
+		unsigned int nGoodCRCs(nGoodCRCs_a-nGoodCRCs_b);
+		out << nGoodCRCs << " good CRCs.";
+		if (nGoodCRCs==nRxPckt&&nRxPckt==repeatNumber) out << " No bit flips." << endl;
+		else out << endl;
     }
 
     /**************************************************************************
