@@ -2679,66 +2679,56 @@ namespace emu {
       else out << endl;
     }
     
-    CCBReg::CCBReg(Crate * crate, Manager* manager) 
-      : RepeatTextBoxAction(crate, manager, "CCB Registers Test") 
-    { 
-      // blank constructor
+    CCBReg::CCBReg(Crate * crate, Manager* manager) :
+      RepeatTextBoxAction(crate, manager, "CCB Registers Test"){ 
     }
     
     void CCBReg::respond(xgi::Input * in, ostringstream & out) { // JB-F
+      srand(time(NULL));
       out << "********** CCB registers tests **********" << endl;
       RepeatTextBoxAction::respond(in, out);
       istringstream countertext(this->textBoxContent);
       string line;
       getline(countertext,line,'\n');
       const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
-      out << "********** ccb_other_reg **********" << endl;
       char rcv[2];
-      // Adresses
-      // Slot numbers
+
       unsigned int ccb_slot(13), odmb_slot(Manager::getSlotNumber());
       unsigned int shiftedSlot_ccb = ccb_slot << 19;
       unsigned int shiftedSlot_odmb = odmb_slot << 19;
       unsigned int addr_odmb_ctrl_reg( (0x003000& 0x07ffff) | shiftedSlot_odmb );
-      unsigned int addr_l1a_cnt( (0x0033FC& 0x07ffff) | shiftedSlot_odmb ), addr_ccb_other( (0x0035CC& 0x07ffff) | shiftedSlot_odmb );
-      unsigned int addr_ccb_cs_dl( (0x000000& 0x07ffff) | shiftedSlot_ccb ), addr_ccb_ctr_reg( (0x000020& 0x07ffff) | shiftedSlot_ccb );
-      unsigned int addr_ccb_cmd( (0x000022& 0x07ffff) | shiftedSlot_ccb ), addr_ccb_ctr_data( (0x000024& 0x07ffff) | shiftedSlot_ccb );
-      vector<unsigned int> addr_pulses;
+      unsigned int addr_ccb_other( (0x0035CC& 0x07ffff) | shiftedSlot_odmb );
+      unsigned int addr_ccb_cs_dl( (0x000000& 0x07ffff) | shiftedSlot_ccb );
+      unsigned int addr_ccb_ctr_reg( (0x000020& 0x07ffff) | shiftedSlot_ccb );
+      vector<unsigned int> addr_pulses(0);
       addr_pulses.push_back((0x000054&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x000050&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x000052&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x000024&0x07ffff)|shiftedSlot_ccb);
-      /*addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
-      addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
-      addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);*/
       addr_pulses.push_back((0x00008e&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x00008c&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x00008a&0x07ffff)|shiftedSlot_ccb);
-      vector<unsigned short> args;
+      vector<unsigned short> args(0);
       args.push_back(0x0);
       args.push_back(0x0);
       args.push_back(0x0);
       args.push_back(0x7);
       args.push_back(0x1);
-      /*args.push_back(0x58);
-      args.push_back(0x54);
-      args.push_back(0x50);*/
       args.push_back(0x0);
       args.push_back(0x0);
       args.push_back(0x0);
-      vector<unsigned int> other_bits;
-      other_bits.push_back(0x000010);
-      other_bits.push_back(0x000020);
-      other_bits.push_back(0x000080);
-      other_bits.push_back(0x0000C6);
-      other_bits.push_back(0x000001);
-      other_bits.push_back(0x000400);
-      other_bits.push_back(0x000200);
-      other_bits.push_back(0x000100);
-      vector<int> turnsOn (other_bits.size(),0);
-      vector<int> turnsOff (other_bits.size(),0);
-      vector<string> signalNames; // for output
+      vector<unsigned int> other_bits(0);
+      other_bits.push_back(0x010);
+      other_bits.push_back(0x020);
+      other_bits.push_back(0x080);
+      other_bits.push_back(0x0C6);
+      other_bits.push_back(0x001);
+      other_bits.push_back(0x410);
+      other_bits.push_back(0x210);
+      other_bits.push_back(0x110);
+      vector<int> success (other_bits.size(),0);
+      vector<string> signalNames(0); // for output
       signalNames.push_back("l1acc");
       signalNames.push_back("bx0");
       signalNames.push_back("l1arst");
@@ -2748,50 +2738,83 @@ namespace emu {
       signalNames.push_back("cal(1)");
       signalNames.push_back("cal(0)");
 
-      // Commands
-      unsigned short int data(0x0);
-      unsigned short int rst(0x300);
-      //printf("ccb slot: %d, odmb slot: %d\n",ccb_slot,odmb_slot);
-      //printf("shifted ccb slot: %06x, shifted odmb slot: %06x\n",shiftedSlot_ccb,shiftedSlot_odmb);
-      //printf("addr_odmb_ctrl_reg: %06x\n",addr_odmb_ctrl_reg); 
-      // Results
+      unsigned short int data(0x300);
       unsigned short int VMEresult, VMEresult_prev;
-      // == ================ Configuration ================ ==
+      int data_success(0), cmd_success(0);
       // Reset counters
-      crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&rst,rcv);
-      //printf("Calling:  vme_controller(%d,%06x,&%04x,{%02x,%02x})  \n", 3, 
-      //	     (addr_odmb_ctrl_reg & 0xffffff), (rst & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff)); 
+      crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&data,rcv);
       usleep(10000);
-      // Must change slot to send commands to CCB	
-      Manager::setSlotNumber(ccb_slot);
+      data=0;
       crate_->vmeController()->vme_controller(3,addr_ccb_cs_dl,&data,rcv);
       data=1;
+      usleep(1);
       crate_->vmeController()->vme_controller(3,addr_ccb_ctr_reg,&data,rcv);
-      for (unsigned int n(0);n<repeatNumber;n++) { // number of times to issue the pulses
-	for (unsigned int p(0);p<addr_pulses.size();p++) {
-	  Manager::setSlotNumber(odmb_slot);
+      usleep(1);
+      crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
+      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+      usleep(1);
+      for (unsigned int n(0);n<repeatNumber;n++) {
+	for (unsigned int p(0);p<addr_pulses.size();++p) {
+	  crate_->vmeController()->vme_controller(3,addr_pulses.at(p),&args.at(p),rcv);
+	  usleep(1);
 	  crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
-	  VMEresult_prev = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	  Manager::setSlotNumber(ccb_slot);
-	  crate_->vmeController()->vme_controller(3,addr_pulses[p],&args.at(p),rcv);
-	  Manager::setSlotNumber(odmb_slot);		
-	  crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
+	  VMEresult_prev = VMEresult;
 	  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	  if ((VMEresult^VMEresult_prev)&other_bits.at(p)) turnsOn[p]++;
-	  VMEresult_prev=VMEresult;
-	  Manager::setSlotNumber(ccb_slot);
-	  crate_->vmeController()->vme_controller(3,addr_pulses[p],&args.at(p),rcv);
-	  Manager::setSlotNumber(odmb_slot);		
-	  crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
-	  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	  if ((VMEresult^VMEresult_prev)&other_bits.at(p)) turnsOff[p]++;
+	  if (((VMEresult^VMEresult_prev)&(0xFF7))==(other_bits.at(p) & 0xffff)){
+	    ++success.at(p);
+	  }
 	}
-      } // number of times to issue the pulses
+
+	unsigned short to_data(0);
+	crate_->vmeController()->vme_controller(3,
+						(0x000024 & 0x07ffff)|shiftedSlot_ccb,
+						&to_data,rcv);
+	usleep(1);
+	crate_->vmeController()->vme_controller(2,
+						(0x35BC & 0x07ffff)|shiftedSlot_odmb,
+						&to_data,rcv);
+	unsigned int data_result_before=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	to_data=0xFF;
+	crate_->vmeController()->vme_controller(3,
+						(0x000024 & 0x07ffff)|shiftedSlot_ccb,
+						&to_data,rcv);
+	usleep(1);
+	crate_->vmeController()->vme_controller(2,
+						(0x35BC & 0x07ffff)|shiftedSlot_odmb,
+						&to_data,rcv);
+	unsigned int data_result_after=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	if(data_result_before==0xFF && data_result_after==0x00) ++data_success;
+
+	to_data=0;
+	crate_->vmeController()->vme_controller(3,
+						(0x000022 & 0x07ffff)|shiftedSlot_ccb,
+						&to_data,rcv);
+	usleep(1);
+	crate_->vmeController()->vme_controller(2,
+						(0x35AC & 0x07ffff)|shiftedSlot_odmb,
+						&to_data,rcv);
+	unsigned int cmd_result_before=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	to_data=0xFC;
+	crate_->vmeController()->vme_controller(3,
+						(0x000022 & 0x07ffff)|shiftedSlot_ccb,
+						&to_data,rcv);
+	usleep(1);
+	crate_->vmeController()->vme_controller(2,
+						(0x35AC & 0x07ffff)|shiftedSlot_odmb,
+						&to_data,rcv);
+	unsigned int cmd_result_after=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	if(cmd_result_before==0xFF && cmd_result_after==0x03) ++cmd_success;
+      }
 
       for (unsigned int p(0);p<addr_pulses.size();p++) {
-	out << "CCB Signal / Fails: " << signalNames[p] << " / "
-	    << 2*repeatNumber-turnsOn[p]-turnsOff[p] << endl;	
+	out << setfill(' ');
+	out << "CCB Signal / Fails: " << setw(32) << signalNames[p] << " / "
+	    << dec << setw(16) << repeatNumber-success[p] << endl;	
       }
+      out << "CCB Signal / Fails: " << setw(32) << "ccb_data" << " / "
+	  << dec << setw(16) << repeatNumber-data_success << endl;
+      out << "CCB Signal / Fails: " << setw(32) << "ccb_cmd" << " / "
+	  << dec << setw(16) << repeatNumber-cmd_success << endl;
     }
 
     /**************************************************************************
