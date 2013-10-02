@@ -2709,18 +2709,24 @@ namespace emu {
       addr_pulses.push_back((0x000052&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x000024&0x07ffff)|shiftedSlot_ccb);
+      /*addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
-      addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
-      addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
+      addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);*/
+      addr_pulses.push_back((0x00008e&0x07ffff)|shiftedSlot_ccb);
+      addr_pulses.push_back((0x00008c&0x07ffff)|shiftedSlot_ccb);
+      addr_pulses.push_back((0x00008a&0x07ffff)|shiftedSlot_ccb);
       vector<unsigned short> args;
       args.push_back(0x0);
       args.push_back(0x0);
       args.push_back(0x0);
       args.push_back(0x7);
       args.push_back(0x1);
-      args.push_back(0x58);
+      /*args.push_back(0x58);
       args.push_back(0x54);
-      args.push_back(0x50);
+      args.push_back(0x50);*/
+      args.push_back(0x0);
+      args.push_back(0x0);
+      args.push_back(0x0);
       vector<unsigned int> other_bits;
       other_bits.push_back(0x000010);
       other_bits.push_back(0x000020);
@@ -2732,6 +2738,15 @@ namespace emu {
       other_bits.push_back(0x000100);
       vector<int> turnsOn (other_bits.size(),0);
       vector<int> turnsOff (other_bits.size(),0);
+      vector<string> signalNames; // for output
+      signalNames.push_back("l1acc");
+      signalNames.push_back("bx0");
+      signalNames.push_back("l1arst");
+      signalNames.push_back("bxrst,evcntres,cmd_s");
+      signalNames.push_back("data_s");
+      signalNames.push_back("cal(2)");
+      signalNames.push_back("cal(1)");
+      signalNames.push_back("cal(0)");
 
       // Commands
       unsigned short int data(0x0);
@@ -2744,8 +2759,8 @@ namespace emu {
       // == ================ Configuration ================ ==
       // Reset counters
       crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&rst,rcv);
-      printf("Calling:  vme_controller(%d,%06x,&%04x,{%02x,%02x})  \n", 3, 
-	     (addr_odmb_ctrl_reg & 0xffffff), (rst & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff)); 
+      //printf("Calling:  vme_controller(%d,%06x,&%04x,{%02x,%02x})  \n", 3, 
+      //	     (addr_odmb_ctrl_reg & 0xffffff), (rst & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff)); 
       usleep(10000);
       // Must change slot to send commands to CCB	
       Manager::setSlotNumber(ccb_slot);
@@ -2774,8 +2789,8 @@ namespace emu {
       } // number of times to issue the pulses
 
       for (unsigned int p(0);p<addr_pulses.size();p++) {
-	out << "Pulse Address/Argument/Fails: " << FixLength(addr_pulses[p],4,true) << "/"
-	    << FixLength(args[p],4,true) << "/" << 2*repeatNumber-turnsOn[p]-turnsOff[p] << endl;	
+	out << "CCB Signal / Fails: " << signalNames[p] << " / "
+	    << 2*repeatNumber-turnsOn[p]-turnsOff[p] << endl;	
       }
     }
 
