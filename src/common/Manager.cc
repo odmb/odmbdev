@@ -143,6 +143,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<LVMBtest>(crate, this);
       addActionByTypename<DCFEBJTAGcontrol>(crate, this);
       addActionByTypename<DCFEBFiber>(crate, this);
+      addActionByTypename<CCBReg>(crate, this);
       addActionByTypename<HardReset>(crate);
       
       // putButtonsInGroup( "Routine Tests" );

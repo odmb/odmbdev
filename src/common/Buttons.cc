@@ -2187,8 +2187,9 @@ namespace emu {
 	    slot_stream << slot;
 	    string slot_s = slot_stream.str(), label = "  ", command;
             bool readHex = true;
-            if((addr >= 0x321C && addr <= 0x337C) || (addr >= 0x33FC && addr <= 0x3FFF) 
-               || addr == 0x500C || addr == 0x510C || addr == 0x520C || addr == 0x530C || addr == 0x540C   || addr == 0x550C || addr == 0x560C 
+            if((addr >= 0x321C && addr <= 0x337C) || (addr >= 0x33FC && addr < 0x35AC)  || 
+	       (addr > 0x35DC && addr <= 0x3FFF) || addr == 0x500C || addr == 0x510C ||
+	       addr == 0x520C || addr == 0x530C || addr == 0x540C   || addr == 0x550C || addr == 0x560C 
                || addr == 0x8004 ||  (addr == 0x5000 && VMEresult < 0x1000)) {
 	      readHex = false;
 	      label = "_d";
@@ -2454,9 +2455,9 @@ namespace emu {
               else{
                 pass++;
               
-              if (done == false){
-                voltages[i].push_back(make_pair(voltage, 1));
-              }
+		if (done == false){
+		  voltages[i].push_back(make_pair(voltage, 1));
+		}
              
                 for (unsigned int l = 0; l < voltages[i].size(); l++){
                   if (fabs(voltages[i][l].first - voltage) < .00001){
@@ -2469,7 +2470,7 @@ namespace emu {
                 if (done == false){
                   voltages[i].push_back(make_pair(voltage, 1));
                 }
-             }
+	      }
  
               //output result
               //out << "LVMB test " << i << ": " << std::fixed << setprecision(2) << voltage_result_1 << " V "<< endl;
@@ -2482,7 +2483,7 @@ namespace emu {
       out << "Voltage reading failure rate: " << fail << " out of " << nTests*nReps*6  << ". " << endl; 
       out << "Voltage reading pass rate: " << pass << " out of " << nTests*nReps*6 << ". " << endl; 
       for (int i = 0; i < 8; i++){
-         if (i == 2 || i == 7) continue;
+	if (i == 2 || i == 7) continue;
         std::sort( voltages[i].begin(), voltages[i].end(), myfunction );
         cout << "Printing outliers for box " << i << ":" << endl;
         for (unsigned int l = 0; l < voltages[i].size(); l++){
@@ -2502,180 +2503,280 @@ namespace emu {
     }
     
     void DCFEBJTAGcontrol::respond(xgi::Input * in, ostringstream & out) { // JB-F
-        out << "********** Read DCFEB UserCode **********" << endl;
-        RepeatTextBoxAction::respond(in, out);
-        istringstream countertext(this->textBoxContent);
-        string line;
-      	getline(countertext,line,'\n');
-      	const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
+      out << "********** Read DCFEB UserCode **********" << endl;
+      RepeatTextBoxAction::respond(in, out);
+      istringstream countertext(this->textBoxContent);
+      string line;
+      getline(countertext,line,'\n');
+      const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
       	
-      	vector<unsigned int> v_nUCReads(7,0); // number of times we successfully read UserCode of each DCFEB
-      	vector<unsigned int> v_nShiftReads(7,0); // number of times we successfully read shifted bits on ADC mask
-      	vector<string> v_firmwareVersion(7,""); // store the firmware version
-      	vector<unsigned int> v_nJTAGshifts(7,0); // number of JTAG shifts commands issued
-      	for(unsigned int repNum=0; repNum<repeatNumber; ++repNum){ // repeat the test repNum times
-			int slot = Manager::getSlotNumber();
-			unsigned int shiftedSlot = slot << 19;
-			char rcv[2];
-			unsigned short int data;
-			unsigned short int reg_user_code = 0x3C8;
-			unsigned short int reg_dev_sel = 0x3C2;
-			unsigned short int reg_dev_val = 0xC;
-			unsigned short int reg_val_sel = 0x3C3;
-			unsigned short int VMEresult;
-			//addresses
-			int addr_sel_dcfeb = (0x001020 & 0x07ffff) | shiftedSlot;
-			int addr_read_dcfeb = (0x001024 & 0x07ffff) | shiftedSlot;
-			int addr_set_int_reg = (0x00191C & 0x07ffff) | shiftedSlot;
-			int addr_read_hdr = (0x001F04 & 0x07ffff) | shiftedSlot;
-			int addr_read_tlr = (0x001F08 & 0x07ffff) | shiftedSlot;
-			int addr_shift_ht = (0x00170C & 0x07ffff) | shiftedSlot;
-			int addr_shift_dr = (0x001B0C & 0x07ffff) | shiftedSlot;
-			int addr_read_tdo = (0x001F14 & 0x07ffff) | shiftedSlot;
-			unsigned short int DCFEB_number[7] = {0x1, 0x2, 0x4, 0x08, 0x10, 0x20,0x40};
-			unsigned int nConnected(0);
-			for (int d = 0; d < 7; d++){ // Loop over all DCFEBs
-				// Select DCFEB (one bit per DCFEB)
-				crate_->vmeController()->vme_controller(3, addr_sel_dcfeb, &DCFEB_number[d], rcv);
-				// Read selected DCFEB
-				crate_->vmeController()->vme_controller(2, addr_read_dcfeb, &DCFEB_number[d], rcv);
-				VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-				// Set instruction register to *Read UserCode*
-				crate_->vmeController()->vme_controller(3, addr_set_int_reg, &reg_user_code, rcv);
-				// Shift 16 lower bits
-				crate_->vmeController()->vme_controller(3, addr_read_hdr, &data, rcv);
-				// Read first half of UserCode
-				crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);
-				// check firmware version
-				VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-				string s_result = FixLength(VMEresult, 4, true);
-				string firmwareVersion = s_result.substr(1,1)+"."+s_result.substr(2,2);
-				// Shift 16 upper bits
-				crate_->vmeController()->vme_controller(3, addr_read_tlr, &data, rcv);
-				// Read second half of UserCode
-				crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);	
-				crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);
-				// check to see if DCFEB is connected
-				VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-				if (FixLength(VMEresult, 4, true)!="DCFE") continue;
-				else {
-					if (v_firmwareVersion[d].empty()) v_firmwareVersion[d] = firmwareVersion;
-					v_nUCReads[d]++;
-					nConnected++;
-				}
-				// Set instruction register to *Device select*
-				crate_->vmeController()->vme_controller(3, addr_set_int_reg, &reg_dev_sel, rcv);
-				// Set device register to "ADC mask"
-				crate_->vmeController()->vme_controller(3, addr_shift_ht, &reg_dev_val, rcv);
-				// Set IR to *Value select*
-				crate_->vmeController()->vme_controller(3, addr_set_int_reg, &reg_val_sel, rcv);
-				vector<string> tdi;
-				vector<string> tdo;
-				//unsigned int nMatches(0), n_misMatches(0);
-				unsigned short int start(0x111), end(0xFFF);
-				for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
-					if (reg_val_shft>start) v_nJTAGshifts[d]++;
-					// Set DR, shift 12 bits
-					crate_->vmeController()->vme_controller(3, addr_shift_dr, &reg_val_shft, rcv);
-					usleep(10);
-					tdi.push_back(FixLength(reg_val_shft, 3, true));
-					// Read TDO
-					crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);
-					usleep(10);
-					VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-					tdo.push_back(FixLength(VMEresult, 4, true));
-					if (reg_val_shft == 0x111) continue;
-					if (tdo[reg_val_shft-0x111].substr(0,3) == tdi[reg_val_shft-1-0x111]) v_nShiftReads[d]++;
-				}
-				//out << "  Shifted register C " << end-start << " times, ";
-				//out << "read expected tdo " << nMatches << " times." << endl;
-			} // Loop over all DCFEBs
-			if (nConnected==0) out << "Error: could not find DCFEBs. Please check connections." << endl;
-      	} // repeat the test repNum times
+      vector<unsigned int> v_nUCReads(7,0); // number of times we successfully read UserCode of each DCFEB
+      vector<unsigned int> v_nShiftReads(7,0); // number of times we successfully read shifted bits on ADC mask
+      vector<string> v_firmwareVersion(7,""); // store the firmware version
+      vector<unsigned int> v_nJTAGshifts(7,0); // number of JTAG shifts commands issued
+      for(unsigned int repNum=0; repNum<repeatNumber; ++repNum){ // repeat the test repNum times
+	int slot = Manager::getSlotNumber();
+	unsigned int shiftedSlot = slot << 19;
+	char rcv[2];
+	unsigned short int data;
+	unsigned short int reg_user_code = 0x3C8;
+	unsigned short int reg_dev_sel = 0x3C2;
+	unsigned short int reg_dev_val = 0xC;
+	unsigned short int reg_val_sel = 0x3C3;
+	unsigned short int VMEresult;
+	//addresses
+	int addr_sel_dcfeb = (0x001020 & 0x07ffff) | shiftedSlot;
+	int addr_read_dcfeb = (0x001024 & 0x07ffff) | shiftedSlot;
+	int addr_set_int_reg = (0x00191C & 0x07ffff) | shiftedSlot;
+	int addr_read_hdr = (0x001F04 & 0x07ffff) | shiftedSlot;
+	int addr_read_tlr = (0x001F08 & 0x07ffff) | shiftedSlot;
+	int addr_shift_ht = (0x00170C & 0x07ffff) | shiftedSlot;
+	int addr_shift_dr = (0x001B0C & 0x07ffff) | shiftedSlot;
+	int addr_read_tdo = (0x001F14 & 0x07ffff) | shiftedSlot;
+	unsigned short int DCFEB_number[7] = {0x1, 0x2, 0x4, 0x08, 0x10, 0x20,0x40};
+	unsigned int nConnected(0);
+	for (int d = 0; d < 7; d++){ // Loop over all DCFEBs
+	  // Select DCFEB (one bit per DCFEB)
+	  crate_->vmeController()->vme_controller(3, addr_sel_dcfeb, &DCFEB_number[d], rcv);
+	  // Read selected DCFEB
+	  crate_->vmeController()->vme_controller(2, addr_read_dcfeb, &DCFEB_number[d], rcv);
+	  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	  // Set instruction register to *Read UserCode*
+	  crate_->vmeController()->vme_controller(3, addr_set_int_reg, &reg_user_code, rcv);
+	  // Shift 16 lower bits
+	  crate_->vmeController()->vme_controller(3, addr_read_hdr, &data, rcv);
+	  // Read first half of UserCode
+	  crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);
+	  // check firmware version
+	  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	  string s_result = FixLength(VMEresult, 4, true);
+	  string firmwareVersion = s_result.substr(1,1)+"."+s_result.substr(2,2);
+	  // Shift 16 upper bits
+	  crate_->vmeController()->vme_controller(3, addr_read_tlr, &data, rcv);
+	  // Read second half of UserCode
+	  crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);	
+	  crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);
+	  // check to see if DCFEB is connected
+	  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	  if (FixLength(VMEresult, 4, true)!="DCFE") continue;
+	  else {
+	    if (v_firmwareVersion[d].empty()) v_firmwareVersion[d] = firmwareVersion;
+	    v_nUCReads[d]++;
+	    nConnected++;
+	  }
+	  // Set instruction register to *Device select*
+	  crate_->vmeController()->vme_controller(3, addr_set_int_reg, &reg_dev_sel, rcv);
+	  // Set device register to "ADC mask"
+	  crate_->vmeController()->vme_controller(3, addr_shift_ht, &reg_dev_val, rcv);
+	  // Set IR to *Value select*
+	  crate_->vmeController()->vme_controller(3, addr_set_int_reg, &reg_val_sel, rcv);
+	  vector<string> tdi;
+	  vector<string> tdo;
+	  //unsigned int nMatches(0), n_misMatches(0);
+	  unsigned short int start(0x111), end(0xFFF);
+	  for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
+	    if (reg_val_shft>start) v_nJTAGshifts[d]++;
+	    // Set DR, shift 12 bits
+	    crate_->vmeController()->vme_controller(3, addr_shift_dr, &reg_val_shft, rcv);
+	    usleep(10);
+	    tdi.push_back(FixLength(reg_val_shft, 3, true));
+	    // Read TDO
+	    crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);
+	    usleep(10);
+	    VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	    tdo.push_back(FixLength(VMEresult, 4, true));
+	    if (reg_val_shft == 0x111) continue;
+	    if (tdo[reg_val_shft-0x111].substr(0,3) == tdi[reg_val_shft-1-0x111]) v_nShiftReads[d]++;
+	  }
+	  //out << "  Shifted register C " << end-start << " times, ";
+	  //out << "read expected tdo " << nMatches << " times." << endl;
+	} // Loop over all DCFEBs
+	if (nConnected==0) out << "Error: could not find DCFEBs. Please check connections." << endl;
+      } // repeat the test repNum times
       	// Now loop over DCFEBs again to display summary
-      	for (int d = 0; d < 7; d++){ 
-      		out << "DCFEB " << d+1 << ": ";
-      		if (v_nUCReads[d]==0) out << "not connected." << endl;
-      		else {
-      			out << "read UserCode " << v_nUCReads[d] << "/" << repeatNumber << " times.";
-      			out << " Firmware version " << v_firmwareVersion[d] << ".";
-      			out << " Successful reads/shifts = " << v_nShiftReads[d] << "/" 
-      				<< v_nJTAGshifts[d] << "." << endl;
-      			//out << "  Shifted register C " << v_nJTAGshifts[d] << " times, ";
-				//out << "read expected tdo " << v_nShiftReads[d] << " times." << endl;
-			}
-      	}
+      for (int d = 0; d < 7; d++){ 
+	out << "DCFEB " << d+1 << ": ";
+	if (v_nUCReads[d]==0) out << "not connected." << endl;
+	else {
+	  out << "read UserCode " << v_nUCReads[d] << "/" << repeatNumber << " times.";
+	  out << " Firmware version " << v_firmwareVersion[d] << ".";
+	  out << " Successful reads/shifts = " << v_nShiftReads[d] << "/" 
+	      << v_nJTAGshifts[d] << "." << endl;
+	  //out << "  Shifted register C " << v_nJTAGshifts[d] << " times, ";
+	  //out << "read expected tdo " << v_nShiftReads[d] << " times." << endl;
+	}
+      }
     }
     
     DCFEBFiber::DCFEBFiber(Crate * crate, Manager* manager) 
       : ParameterTextBoxAction(crate, manager, "DCFEB Fiber Test", "packets") 
     { 
-    	// blank constructor
+      // blank constructor
     }
     
     void DCFEBFiber::respond(xgi::Input * in, ostringstream & out) { // JB-F
-    	out << "********** High statistics DCFEB fiber tests **********" << endl;
-    	ParameterTextBoxAction::respond(in, out);
-        istringstream countertext(this->textBoxContent);
-        string line;
-      	getline(countertext,line,'\n');
-      	const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
-      	// repeatNumber is currently the number of packets to send
-    	usleep(10000);
-    	int slot = Manager::getSlotNumber();
-      	unsigned int shiftedSlot = slot << 19;
-      	char rcv[2];
-      	// Adresses
-      	unsigned int addr_odmb_ctrl_reg( (0x003000& 0x07ffff) | shiftedSlot ), addr_dcfeb_ctrl_reg( (0x003010& 0x07ffff) | shiftedSlot );
-      	unsigned int addr_set_kill( (0x00401C& 0x07ffff) | shiftedSlot );
-      	unsigned int addr_read_nrx_pckt( (0x00347C& 0x07ffff) | shiftedSlot ), addr_read_ncrcs( (0x00367C& 0x07ffff) | shiftedSlot );
-      	unsigned int addr_sel_dcfeb_fifo( (0x005010& 0x07ffff) | shiftedSlot ), addr_rst_fifo( (0x005020& 0x07ffff) | shiftedSlot );
-    	// Commands
-    	unsigned short int data;
-    	unsigned short int cmd_dreal_tint(0x200), cmd_kill(0x1BF);
-    	unsigned short int cmd_dcfeb_fifo[7] = {0x1,0x2,0x3,0x4,0x5,0x6,0x7};
-    	unsigned short int cms_l1a_match(0x10), cmd_rst_fifo(0x40);
-    	// Results
-    	unsigned short int VMEresult;
-    	// == ================ Configuration ================ ==
-    	// Set real data and internal triggers
-    	crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&cmd_dreal_tint,rcv);
-    	// Set KILL
-    	crate_->vmeController()->vme_controller(3,addr_set_kill,&cmd_kill,rcv);
-		// Select DCFEB FIFO
-		crate_->vmeController()->vme_controller(3,addr_sel_dcfeb_fifo,&cmd_dcfeb_fifo[6],rcv);
-		// Number of received packets before
-		crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
-		VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-		unsigned int nRxPckt_b(VMEresult);
-		// Number of good CRCs before
-		crate_->vmeController()->vme_controller(2,addr_read_ncrcs,&data,rcv);
-		VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-		unsigned int nGoodCRCs_b(VMEresult);
-		// == ============ Send N real packets ============ ==
-		for (unsigned int p = 0; p < repeatNumber; p++) {
-			// Send test L1A(_MATCH) to all DCFEBs
-			crate_->vmeController()->vme_controller(3,addr_dcfeb_ctrl_reg,&cms_l1a_match,rcv);
-			usleep(100);
-			// Reset FIFO 7
-			crate_->vmeController()->vme_controller(3,addr_rst_fifo,&cmd_rst_fifo,rcv);
-		}
-		// == ============ Status summary ============ ==
-		out << "DCFEB 7: " << endl;
-		// Number of received packets [DCFEB 7]
-		crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
-		VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-		unsigned int nRxPckt_a(VMEresult);
-		unsigned int nRxPckt(nRxPckt_a-nRxPckt_b);
-		out << "Received " << nRxPckt << " out of " << repeatNumber << " packets, ";
-		// Number of good CRCs [DCFEB 7]
-		crate_->vmeController()->vme_controller(2,addr_read_ncrcs,&data,rcv);
-		VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-		unsigned int nGoodCRCs_a(VMEresult);
-		unsigned int nGoodCRCs(nGoodCRCs_a-nGoodCRCs_b);
-		out << nGoodCRCs << " good CRCs.";
-		if (nGoodCRCs==nRxPckt&&nRxPckt==repeatNumber) out << " No bit flips." << endl;
-		else out << endl;
+      out << "********** High statistics DCFEB fiber tests **********" << endl;
+      ParameterTextBoxAction::respond(in, out);
+      istringstream countertext(this->textBoxContent);
+      string line;
+      getline(countertext,line,'\n');
+      const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
+      // repeatNumber is currently the number of packets to send
+      usleep(10000);
+      int slot = Manager::getSlotNumber();
+      unsigned int shiftedSlot = slot << 19;
+      char rcv[2];
+      // Adresses
+      unsigned int addr_odmb_ctrl_reg( (0x003000& 0x07ffff) | shiftedSlot ), addr_dcfeb_ctrl_reg( (0x003010& 0x07ffff) | shiftedSlot );
+      unsigned int addr_set_kill( (0x00401C& 0x07ffff) | shiftedSlot );
+      unsigned int addr_read_nrx_pckt( (0x00347C& 0x07ffff) | shiftedSlot ), addr_read_ncrcs( (0x00367C& 0x07ffff) | shiftedSlot );
+      unsigned int addr_sel_dcfeb_fifo( (0x005010& 0x07ffff) | shiftedSlot ), addr_rst_fifo( (0x005020& 0x07ffff) | shiftedSlot );
+      // Commands
+      unsigned short int data;
+      unsigned short int cmd_dreal_tint(0x200), cmd_kill(0x1BF);
+      unsigned short int cmd_dcfeb_fifo[7] = {0x1,0x2,0x3,0x4,0x5,0x6,0x7};
+      unsigned short int cms_l1a_match(0x10), cmd_rst_fifo(0x40);
+      // Results
+      unsigned short int VMEresult;
+      // == ================ Configuration ================ ==
+      // Set real data and internal triggers
+      crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&cmd_dreal_tint,rcv);
+      // Set KILL
+      crate_->vmeController()->vme_controller(3,addr_set_kill,&cmd_kill,rcv);
+      // Select DCFEB FIFO
+      crate_->vmeController()->vme_controller(3,addr_sel_dcfeb_fifo,&cmd_dcfeb_fifo[6],rcv);
+      // Number of received packets before
+      crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
+      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+      unsigned int nRxPckt_b(VMEresult);
+      // Number of good CRCs before
+      crate_->vmeController()->vme_controller(2,addr_read_ncrcs,&data,rcv);
+      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+      unsigned int nGoodCRCs_b(VMEresult);
+      // == ============ Send N real packets ============ ==
+      for (unsigned int p = 0; p < repeatNumber; p++) {
+	// Send test L1A(_MATCH) to all DCFEBs
+	crate_->vmeController()->vme_controller(3,addr_dcfeb_ctrl_reg,&cms_l1a_match,rcv);
+	usleep(100);
+	// Reset FIFO 7
+	crate_->vmeController()->vme_controller(3,addr_rst_fifo,&cmd_rst_fifo,rcv);
+      }
+      // == ============ Status summary ============ ==
+      out << "DCFEB 7: " << endl;
+      // Number of received packets [DCFEB 7]
+      crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
+      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+      unsigned int nRxPckt_a(VMEresult);
+      unsigned int nRxPckt(nRxPckt_a-nRxPckt_b);
+      out << "Received " << nRxPckt << " out of " << repeatNumber << " packets, ";
+      // Number of good CRCs [DCFEB 7]
+      crate_->vmeController()->vme_controller(2,addr_read_ncrcs,&data,rcv);
+      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+      unsigned int nGoodCRCs_a(VMEresult);
+      unsigned int nGoodCRCs(nGoodCRCs_a-nGoodCRCs_b);
+      out << nGoodCRCs << " good CRCs.";
+      if (nGoodCRCs==nRxPckt&&nRxPckt==repeatNumber) out << " No bit flips." << endl;
+      else out << endl;
+    }
+    
+    CCBReg::CCBReg(Crate * crate, Manager* manager) 
+      : RepeatTextBoxAction(crate, manager, "CCB Registers Test") 
+    { 
+      // blank constructor
+    }
+    
+    void CCBReg::respond(xgi::Input * in, ostringstream & out) { // JB-F
+      out << "********** CCB registers tests **********" << endl;
+      RepeatTextBoxAction::respond(in, out);
+      istringstream countertext(this->textBoxContent);
+      string line;
+      getline(countertext,line,'\n');
+      const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
+      out << "********** ccb_other_reg **********" << endl;
+      char rcv[2];
+      // Adresses
+      // Slot numbers
+      unsigned int ccb_slot(13), odmb_slot(Manager::getSlotNumber());
+      unsigned int shiftedSlot_ccb = ccb_slot << 19;
+      unsigned int shiftedSlot_odmb = odmb_slot << 19;
+      unsigned int addr_odmb_ctrl_reg( (0x003000& 0x07ffff) | shiftedSlot_odmb );
+      unsigned int addr_l1a_cnt( (0x0033FC& 0x07ffff) | shiftedSlot_odmb ), addr_ccb_other( (0x0035CC& 0x07ffff) | shiftedSlot_odmb );
+      unsigned int addr_ccb_cs_dl( (0x000000& 0x07ffff) | shiftedSlot_ccb ), addr_ccb_ctr_reg( (0x000020& 0x07ffff) | shiftedSlot_ccb );
+      unsigned int addr_ccb_cmd( (0x000022& 0x07ffff) | shiftedSlot_ccb ), addr_ccb_ctr_data( (0x000024& 0x07ffff) | shiftedSlot_ccb );
+      vector<unsigned int> addr_pulses;
+      addr_pulses.push_back((0x000054&0x07ffff)|shiftedSlot_ccb);
+      addr_pulses.push_back((0x000050&0x07ffff)|shiftedSlot_ccb);
+      addr_pulses.push_back((0x000052&0x07ffff)|shiftedSlot_ccb);
+      addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
+      addr_pulses.push_back((0x000024&0x07ffff)|shiftedSlot_ccb);
+      addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
+      addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
+      addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
+      vector<unsigned short> args;
+      args.push_back(0x0);
+      args.push_back(0x0);
+      args.push_back(0x0);
+      args.push_back(0x7);
+      args.push_back(0x1);
+      args.push_back(0x58);
+      args.push_back(0x54);
+      args.push_back(0x50);
+      vector<unsigned int> other_bits;
+      other_bits.push_back(0x000010);
+      other_bits.push_back(0x000020);
+      other_bits.push_back(0x000080);
+      other_bits.push_back(0x0000C6);
+      other_bits.push_back(0x000001);
+      other_bits.push_back(0x000400);
+      other_bits.push_back(0x000200);
+      other_bits.push_back(0x000100);
+      vector<int> turnsOn (other_bits.size(),0);
+      vector<int> turnsOff (other_bits.size(),0);
+
+      // Commands
+      unsigned short int data(0x0);
+      unsigned short int rst(0x300);
+      //printf("ccb slot: %d, odmb slot: %d\n",ccb_slot,odmb_slot);
+      //printf("shifted ccb slot: %06x, shifted odmb slot: %06x\n",shiftedSlot_ccb,shiftedSlot_odmb);
+      //printf("addr_odmb_ctrl_reg: %06x\n",addr_odmb_ctrl_reg); 
+      // Results
+      unsigned short int VMEresult, VMEresult_prev;
+      // == ================ Configuration ================ ==
+      // Reset counters
+      crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&rst,rcv);
+      printf("Calling:  vme_controller(%d,%06x,&%04x,{%02x,%02x})  \n", 3, 
+	     (addr_odmb_ctrl_reg & 0xffffff), (rst & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff)); 
+      usleep(10000);
+      // Must change slot to send commands to CCB	
+      Manager::setSlotNumber(ccb_slot);
+      crate_->vmeController()->vme_controller(3,addr_ccb_cs_dl,&data,rcv);
+      data=1;
+      crate_->vmeController()->vme_controller(3,addr_ccb_ctr_reg,&data,rcv);
+      for (unsigned int n(0);n<repeatNumber;n++) { // number of times to issue the pulses
+	for (unsigned int p(0);p<addr_pulses.size();p++) {
+	  Manager::setSlotNumber(odmb_slot);
+	  crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
+	  VMEresult_prev = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	  Manager::setSlotNumber(ccb_slot);
+	  crate_->vmeController()->vme_controller(3,addr_pulses[p],&args.at(p),rcv);
+	  Manager::setSlotNumber(odmb_slot);		
+	  crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
+	  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	  if ((VMEresult^VMEresult_prev)&other_bits.at(p)) turnsOn[p]++;
+	  VMEresult_prev=VMEresult;
+	  Manager::setSlotNumber(ccb_slot);
+	  crate_->vmeController()->vme_controller(3,addr_pulses[p],&args.at(p),rcv);
+	  Manager::setSlotNumber(odmb_slot);		
+	  crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
+	  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	  if ((VMEresult^VMEresult_prev)&other_bits.at(p)) turnsOff[p]++;
+	}
+      } // number of times to issue the pulses
+
+      for (unsigned int p(0);p<addr_pulses.size();p++) {
+	out << "Pulse Address/Argument/Fails: " << FixLength(addr_pulses[p],4,true) << "/"
+	    << FixLength(args[p],4,true) << "/" << 2*repeatNumber-turnsOn[p]-turnsOff[p] << endl;	
+      }
     }
 
     /**************************************************************************
@@ -2801,15 +2902,15 @@ namespace emu {
 
     BuckShiftTestDebug::BuckShiftTestDebug(Crate * crate, emu::odmbdev::Manager* manager)
       : Action(crate,manager),
-        ActionValue<int>(2) {}
+	ActionValue<int>(2) {}
 
     void BuckShiftTestDebug::display(xgi::Output * out)
     {
 
       addButtonWithTextBox(out,
-                           "Buck Shift Test Debug",
-                           "extrabits",
-                           numberToString(value()));   
+			   "Buck Shift Test Debug",
+			   "extrabits",
+			   numberToString(value()));   
 
 
     }
@@ -2841,62 +2942,62 @@ namespace emu {
       //crate_->vmeController()->SetPrintVMECommands(1); // turn on debug printouts of VME commands
 
       for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){
-        int i,j,nmtch;
-        int nchips2;
-        int xtrabits = getFormValueInt("extrabits", in);
+	int i,j,nmtch;
+	int nchips2;
+	int xtrabits = getFormValueInt("extrabits", in);
 
-        int swtchbits = -1;
-        unsigned int pat[42],chk[42] = {0xBA,0xDF,0xEE,0xD5,0xDE,0xAD};
+	int swtchbits = -1;
+	unsigned int pat[42],chk[42] = {0xBA,0xDF,0xEE,0xD5,0xDE,0xAD};
         
-        char rcvbuf[8192];
-        char sndbuf[8192];
-        char cmd[8192];
+	char rcvbuf[8192];
+	char sndbuf[8192];
+	char cmd[8192];
  
-        //int pass=0;
-        int boffset=xtrabits+swtchbits;
-        vector<CFEB> cfebs = (*dmb)->cfebs();
-        for(CFEBItr cfebItr = cfebs.begin(); cfebItr != cfebs.end(); ++cfebItr) {
+	//int pass=0;
+	int boffset=xtrabits+swtchbits;
+	vector<CFEB> cfebs = (*dmb)->cfebs();
+	for(CFEBItr cfebItr = cfebs.begin(); cfebItr != cfebs.end(); ++cfebItr) {
 
-          DEVTYPE dv = cfebItr->scamDevice();
-          //int brdn=cfebItr->number();
+	  DEVTYPE dv = cfebItr->scamDevice();
+	  //int brdn=cfebItr->number();
 
-          cmd[0]=vtx_usr1;
-          sndbuf[0]=chip_mask;
+	  cmd[0]=vtx_usr1;
+	  sndbuf[0]=chip_mask;
 	  crate_->vmeController()->devdo(dv,5,cmd,8,sndbuf,rcvbuf,0);
-          cmd[0]=vtx_usr2;
-          char chip_mask = cfebItr->chipMask();
-          crate_->vmeController()->devdo(dv,5,cmd,6,&chip_mask,rcvbuf,0);
-          nchips2=cfebItr->buckeyeChips().size();
-          printf(" nchips2 %d chip_mask %04x \n",nchips2,chip_mask);
-          for(i=0;i<6*nchips2;i++)pat[i]=0;
-          cmd[0]=vtx_usr1;
-          sndbuf[0]=chip_shft;
-          crate_->vmeController()->devdo(dv,5,cmd,8,sndbuf,rcvbuf,2);
-          cmd[0]=vtx_usr2;
-          sndbuf[0]=0xAD;
-          sndbuf[1]=0xDE;
-          sndbuf[2]=0xD5;
-          sndbuf[3]=0xEE;
-          sndbuf[4]=0xDF;
-          sndbuf[5]=0xBA;
-          for(i=6;i<6*(nchips2+1)+1;i++)sndbuf[i]=0x00;
-          crate_->vmeController()->devdo(dv,5,cmd,6*(nchips2+1)*8+xtrabits,sndbuf,rcvbuf,1);
-          j=0;
+	  cmd[0]=vtx_usr2;
+	  char chip_mask = cfebItr->chipMask();
+	  crate_->vmeController()->devdo(dv,5,cmd,6,&chip_mask,rcvbuf,0);
+	  nchips2=cfebItr->buckeyeChips().size();
+	  printf(" nchips2 %d chip_mask %04x \n",nchips2,chip_mask);
+	  for(i=0;i<6*nchips2;i++)pat[i]=0;
+	  cmd[0]=vtx_usr1;
+	  sndbuf[0]=chip_shft;
+	  crate_->vmeController()->devdo(dv,5,cmd,8,sndbuf,rcvbuf,2);
+	  cmd[0]=vtx_usr2;
+	  sndbuf[0]=0xAD;
+	  sndbuf[1]=0xDE;
+	  sndbuf[2]=0xD5;
+	  sndbuf[3]=0xEE;
+	  sndbuf[4]=0xDF;
+	  sndbuf[5]=0xBA;
+	  for(i=6;i<6*(nchips2+1)+1;i++)sndbuf[i]=0x00;
+	  crate_->vmeController()->devdo(dv,5,cmd,6*(nchips2+1)*8+xtrabits,sndbuf,rcvbuf,1);
+	  j=0;
 	  //   for(i=6*(nchips2+1);i>=6*nchips2;i--){
-          for(i=6*(nchips2+1);i>=0;i--){
-            printf("shfttst %d %02X \n",i,rcvbuf[i]&0xFF);
-            pat[j]=pat[j]|(rcvbuf[i]<<(8-boffset));
-            pat[j]=pat[j]|((rcvbuf[i-1]>>boffset)&~(~0<<(8-boffset)));
-            j++;
-          }
-          nmtch=0;
-          for(i=0;i<6;i++){
+	  for(i=6*(nchips2+1);i>=0;i--){
+	    printf("shfttst %d %02X \n",i,rcvbuf[i]&0xFF);
+	    pat[j]=pat[j]|(rcvbuf[i]<<(8-boffset));
+	    pat[j]=pat[j]|((rcvbuf[i-1]>>boffset)&~(~0<<(8-boffset)));
+	    j++;
+	  }
+	  nmtch=0;
+	  for(i=0;i<6;i++){
 	    // (*MyOutput_)<< hex <<pat[i] << dec;
-            printf("%02x",pat[i]&0xff);
-            if(pat[i]==chk[i])nmtch++;
-          }
-          printf("\n");
-          // (*MyOutput_)<< endl;
+	    printf("%02x",pat[i]&0xff);
+	    if(pat[i]==chk[i])nmtch++;
+	  }
+	  printf("\n");
+	  // (*MyOutput_)<< endl;
 	  /* if(nmtch==6){
 	     pass=1;
 	     (*MyOutput_)<<"Pattern returned is OK\n";
@@ -2904,11 +3005,11 @@ namespace emu {
 	     pass=0;
 	     (*MyOutput_)<<"Pattern returned is Wrong\n";
 	     }*/
-          cmd[0]=vtx_usr1;
-          sndbuf[0]=vtx6_isc_noop;//NOOP;
-          crate_->vmeController()->devdo(dv,5,cmd,8,sndbuf,rcvbuf,0);
-          cmd[0]=vtx_bypass;
-          crate_->vmeController()->devdo(dv,5,cmd,0,sndbuf,rcvbuf,2);
+	  cmd[0]=vtx_usr1;
+	  sndbuf[0]=vtx6_isc_noop;//NOOP;
+	  crate_->vmeController()->devdo(dv,5,cmd,8,sndbuf,rcvbuf,0);
+	  cmd[0]=vtx_bypass;
+	  crate_->vmeController()->devdo(dv,5,cmd,0,sndbuf,rcvbuf,2);
 	}
 
   
@@ -2987,14 +3088,14 @@ namespace emu {
 
     ODMB_OTMB_LCT_Testing::ODMB_OTMB_LCT_Testing(Crate * crate, emu::odmbdev::Manager* manager)
       : Action( crate, manager ),
-        ActionValue<int>(1000) {}
+	ActionValue<int>(1000) {}
      
     void ODMB_OTMB_LCT_Testing::display(xgi::Output * out)  
     {
       addButtonWithTextBox(out,
-                           "Generate_CCB_L1As_Custom",
-                           "requested",
-                           numberToString(value()));
+			   "Generate_CCB_L1As_Custom",
+			   "requested",
+			   numberToString(value()));
     }
 
 
@@ -3015,10 +3116,10 @@ namespace emu {
       usleep(1000);
 
       for ( uint64_t indx = 1; indx <= (uint64_t)_requested; ++indx )
-        {
+	{
         
       
-          //////////
+	  //////////
 
 	  ccb_->GenerateL1A();// generate L1A and pretriggers
 	  usleep(1000);
@@ -3048,7 +3149,7 @@ namespace emu {
       addButtonWithTextBox(out,
 			   "ODMB generated L1A+MATCH",
 			   "requested",
-                           numberToString(value()));
+			   numberToString(value()));
     }
 
 
@@ -3108,43 +3209,43 @@ namespace emu {
 
       /// start set up DCFEBS + DDU
       for(vector <DDU*>::iterator ddu = ddus_.begin(); ddu != ddus_.end();++ddu)
-        {
+	{
 
-          (*ddu)->writeFlashKillFiber(0x7fff);
-          usleep(20);
-          ccb_->HardReset_crate();
-          usleep(250000);
-          (*ddu)->writeGbEPrescale( 0x7878 ); // 0x7878: test-stand without TCC
-          usleep(10);
-          (*ddu)->writeFakeL1( 0x8787 ); // 0x8787: passthrough // 0x0000: normal
-          usleep(10);
-          ccb_->l1aReset();
-          usleep(50000);
-          usleep(50000);
-          ccb_->bc0();
+	  (*ddu)->writeFlashKillFiber(0x7fff);
+	  usleep(20);
+	  ccb_->HardReset_crate();
+	  usleep(250000);
+	  (*ddu)->writeGbEPrescale( 0x7878 ); // 0x7878: test-stand without TCC
+	  usleep(10);
+	  (*ddu)->writeFakeL1( 0x8787 ); // 0x8787: passthrough // 0x0000: normal
+	  usleep(10);
+	  ccb_->l1aReset();
+	  usleep(50000);
+	  usleep(50000);
+	  ccb_->bc0();
 
-        }
+	}
 
       // set comparator threshold
       for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){
-        (*dmb)->set_comp_thresh(0.03);
+	(*dmb)->set_comp_thresh(0.03);
       }
       usleep(1000);
 
 
       //  set the pipeline depth
       for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){
-        vector <CFEB> cfebs = (*dmb)->cfebs();
-        for(CFEBItr cfeb = cfebs.begin(); cfeb != cfebs.end(); ++cfeb){
-          int depth = cfeb->GetPipelineDepth(); // get value that was read in from the crate config xml (unless it was changed later)
-          //int delay = cfeb->GetFineDelay();  // get value that was read in from the crate config xml (unless it was changed later)
-          (*dmb)->dcfeb_set_PipelineDepth(*cfeb, depth);
-          usleep(100);
+	vector <CFEB> cfebs = (*dmb)->cfebs();
+	for(CFEBItr cfeb = cfebs.begin(); cfeb != cfebs.end(); ++cfeb){
+	  int depth = cfeb->GetPipelineDepth(); // get value that was read in from the crate config xml (unless it was changed later)
+	  //int delay = cfeb->GetFineDelay();  // get value that was read in from the crate config xml (unless it was changed later)
+	  (*dmb)->dcfeb_set_PipelineDepth(*cfeb, depth);
+	  usleep(100);
 	  //          (*dmb)->dcfeb_fine_delay(*cfeb, delay); // careful, I this may depend on the order in the xml
 	  //          usleep(100);
-          (*dmb)->Pipeline_Restart( *cfeb );
-          usleep(100);
-        }
+	  (*dmb)->Pipeline_Restart( *cfeb );
+	  usleep(100);
+	}
       }
 
       for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){
@@ -3165,14 +3266,14 @@ namespace emu {
       // shift buckeyes into normal mode
       for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){
 
-        (*dmb)->set_comp_mode(0xa); // added by J. Pilot, 5/23, for testing.
-        //usleep(1);
-        //(*dmb)->restoreCFEBIdle();
-        //ccb_->l1aReset();
-        usleep(1);
-        (*dmb)->shift_all(NORM_RUN);
-        (*dmb)->buck_shift();
-        usleep(100);
+	(*dmb)->set_comp_mode(0xa); // added by J. Pilot, 5/23, for testing.
+	//usleep(1);
+	//(*dmb)->restoreCFEBIdle();
+	//ccb_->l1aReset();
+	usleep(1);
+	(*dmb)->shift_all(NORM_RUN);
+	(*dmb)->buck_shift();
+	usleep(100);
       }
 
 
@@ -3311,7 +3412,7 @@ namespace emu {
       addButtonWithTextBox(out,
 			   "Investigate Missing Events",
 			   "requested",
-                           numberToString(value()));
+			   numberToString(value()));
     }
 
 
@@ -3378,22 +3479,22 @@ namespace emu {
 
 
       for(vector <DDU*>::iterator ddu = ddus_.begin(); ddu != ddus_.end();++ddu)
-        {
+	{
 
-          (*ddu)->writeFlashKillFiber(0x7fff);
-          usleep(20);
-          ccb_->HardReset_crate();
-          usleep(250000);
-          (*ddu)->writeGbEPrescale( 0x7878 ); // 0x7878: test-stand without TCC
-          usleep(10);
-          (*ddu)->writeFakeL1( 0x8787 ); // 0x8787: passthrough // 0x0000: normal
-          usleep(10);
-          ccb_->l1aReset();
-          usleep(50000);
-          usleep(50000); 
-          ccb_->bc0();
+	  (*ddu)->writeFlashKillFiber(0x7fff);
+	  usleep(20);
+	  ccb_->HardReset_crate();
+	  usleep(250000);
+	  (*ddu)->writeGbEPrescale( 0x7878 ); // 0x7878: test-stand without TCC
+	  usleep(10);
+	  (*ddu)->writeFakeL1( 0x8787 ); // 0x8787: passthrough // 0x0000: normal
+	  usleep(10);
+	  ccb_->l1aReset();
+	  usleep(50000);
+	  usleep(50000); 
+	  ccb_->bc0();
        
-        } 
+	} 
 
 
 
@@ -3411,7 +3512,7 @@ namespace emu {
 	vector <CFEB> cfebs = (*dmb)->cfebs();
 	for(CFEBItr cfeb = cfebs.begin(); cfeb != cfebs.end(); ++cfeb){
 	  int depth = cfeb->GetPipelineDepth(); // get value that was read in from the crate config xml (unless it was changed later)
-          //int delay = cfeb->GetFineDelay();  // get value that was read in from the crate config xml (unless it was changed later)
+	  //int delay = cfeb->GetFineDelay();  // get value that was read in from the crate config xml (unless it was changed later)
 	  (*dmb)->dcfeb_set_PipelineDepth(*cfeb, depth);
 	  usleep(100);
 	  //          (*dmb)->dcfeb_fine_delay(*cfeb, delay); // careful, I this may depend on the order in the xml
@@ -3448,7 +3549,7 @@ namespace emu {
 	//(*dmb)->restoreCFEBIdle();
 	//ccb_->l1aReset();
 	usleep(1);
-        (*dmb)->shift_all(NORM_RUN);
+	(*dmb)->shift_all(NORM_RUN);
 	(*dmb)->buck_shift();
 	usleep(100);
       }
@@ -3559,8 +3660,8 @@ namespace emu {
 
 
 
-	  // Sent an internally generated L1A/L1A_MATCH to all DCFEBs
-	  // W  3010  10 	
+			      // Sent an internally generated L1A/L1A_MATCH to all DCFEBs
+			      // W  3010  10 	
 	  irdwr = 3;
 	  addr = 0x783010;  
 	  data=0x0010; 
@@ -3593,34 +3694,34 @@ namespace emu {
 
 	  for (unsigned short int idcfeb = 1; idcfeb <= 5; ++idcfeb ) {
             
-            //W  5010 1 Select DCFEB FIFO   (3,785010,&0001,{00,00})
-            data = idcfeb; 
-            addr = 0x785010;  
-            irdwr = 3;
-            crate_->vmeController()->vme_controller(irdwr,addr,&data,rcv);
-            printf("Called select dcfeb fifo:  vme_controller(%d,%06x,&%04x,{%02x,%02x}) \n ", irdwr, 
-                   (addr & 0xffffff), (data & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff));
+	    //W  5010 1 Select DCFEB FIFO   (3,785010,&0001,{00,00})
+	    data = idcfeb; 
+	    addr = 0x785010;  
+	    irdwr = 3;
+	    crate_->vmeController()->vme_controller(irdwr,addr,&data,rcv);
+	    printf("Called select dcfeb fifo:  vme_controller(%d,%06x,&%04x,{%02x,%02x}) \n ", irdwr, 
+		   (addr & 0xffffff), (data & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff));
 
 	    //R  5014 0 Read which DCFEB FIFO is selected (2,785014,&0000,{00,00})
-            data = 0;  // irrelevant for reads
-            irdwr = 2; 
-            addr = 0x785014;    
-            crate_->vmeController()->vme_controller(irdwr,addr,&data,rcv);
-            printf("Called read which dcfeb fifo selected:  vme_controller(%d,%06x,&%04x,{%02x,%02x}) \n ", irdwr, 
-                   (addr & 0xffffff), (data & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff));
+	    data = 0;  // irrelevant for reads
+	    irdwr = 2; 
+	    addr = 0x785014;    
+	    crate_->vmeController()->vme_controller(irdwr,addr,&data,rcv);
+	    printf("Called read which dcfeb fifo selected:  vme_controller(%d,%06x,&%04x,{%02x,%02x}) \n ", irdwr, 
+		   (addr & 0xffffff), (data & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff));
 
-            //R  500C 0 Read word count of DCFEB FIFO     (2,78500c,&0000,{07,00})
-            addr = 0x78500c;    
-            crate_->vmeController()->vme_controller(irdwr,addr,&data,rcv);
-            printf("Called read word count of dcfeb fifo:  vme_controller(%d,%06x,&%04x,{%02x,%02x}) \n ", irdwr, 
-                   (addr & 0xffffff), (data & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff));
+	    //R  500C 0 Read word count of DCFEB FIFO     (2,78500c,&0000,{07,00})
+	    addr = 0x78500c;    
+	    crate_->vmeController()->vme_controller(irdwr,addr,&data,rcv);
+	    printf("Called read word count of dcfeb fifo:  vme_controller(%d,%06x,&%04x,{%02x,%02x}) \n ", irdwr, 
+		   (addr & 0xffffff), (data & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff));
    
-            for ( int iword = 1; iword <= NWORDS; ++iword ) {
+	    for ( int iword = 1; iword <= NWORDS; ++iword ) {
               
 
-              //   R  5000 0    Read DCFEB FIFO (2,785000,&0000,{00,00})
-              addr = 0x785000;  
-              crate_->vmeController()->vme_controller(irdwr,addr,&data,rcv);
+	      //   R  5000 0    Read DCFEB FIFO (2,785000,&0000,{00,00})
+	      addr = 0x785000;  
+	      crate_->vmeController()->vme_controller(irdwr,addr,&data,rcv);
 
 
 	      if(iword<10){
@@ -3630,7 +3731,7 @@ namespace emu {
 	      } // iword < 10
 
 
-            } //           for ( int iword = 1; iword <= NWORDS; ++iword ) {
+	    } //           for ( int iword = 1; iword <= NWORDS; ++iword ) {
             
 	  } //       for ( int idcfeb = 1; idcfeb <= 5; ++idcfeb ) {
 
@@ -3775,7 +3876,7 @@ namespace emu {
       addButtonWithTextBox(out,
 			   "Routine Test - Short Cosmics Run (HV should be ON)",
 			   "time",
-                           numberToString(value()));
+			   numberToString(value()));
     }
     
     void RoutineTest_ShortCosmicsRun::respond(xgi::Input * in, ostringstream & out)
@@ -3795,9 +3896,9 @@ namespace emu {
 
       for(vector <DDU*>::iterator ddu = ddus_.begin(); ddu != ddus_.end();++ddu){
 	(*ddu)->writeFakeL1( 0x0000 ); // 0x8787: passthrough // 0x0000: normal
-      	usleep(10);
+	usleep(10);
 	(*ddu)->writeGbEPrescale( 0x7878 ); // 0x7878: test-stand without TCC
-      	usleep(10);
+	usleep(10);
       }
 
 
@@ -3815,16 +3916,16 @@ namespace emu {
 	vector <CFEB> cfebs = (*dmb)->cfebs();
 	for(CFEBItr cfeb = cfebs.begin(); cfeb != cfebs.end(); ++cfeb){
 	  int depth = cfeb->GetPipelineDepth(); // get value that was read in from the crate config xml (unless it was changed later)
-          int delay = cfeb->GetFineDelay();  // get value that was read in from the crate config xml (unless it was changed later)
+	  int delay = cfeb->GetFineDelay();  // get value that was read in from the crate config xml (unless it was changed later)
 	  (*dmb)->dcfeb_set_PipelineDepth(*cfeb, depth);
 	  usleep(100);
-          (*dmb)->dcfeb_fine_delay(*cfeb, delay); // careful, I this may depend on the order in the xml
-          usleep(100);
+	  (*dmb)->dcfeb_fine_delay(*cfeb, delay); // careful, I this may depend on the order in the xml
+	  usleep(100);
 	  (*dmb)->Pipeline_Restart( *cfeb );
 	  usleep(100);
 
-          (*dmb)->dcfeb_Set_ReadAnyL1a(*cfeb);
-          usleep(100);
+	  (*dmb)->dcfeb_Set_ReadAnyL1a(*cfeb);
+	  usleep(100);
 
 	}
       }
@@ -3840,11 +3941,11 @@ namespace emu {
       for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){
 	
 	(*dmb)->set_comp_mode(0xa); // added by J. Pilot, 5/23, for testing.
-	//usleep(1);
-	//(*dmb)->restoreCFEBIdle();
-	//ccb_->l1aReset();
+				    //usleep(1);
+				    //(*dmb)->restoreCFEBIdle();
+				    //ccb_->l1aReset();
 	usleep(1);
-        (*dmb)->shift_all(NORM_RUN);
+	(*dmb)->shift_all(NORM_RUN);
 	(*dmb)->buck_shift();
 	usleep(100);
       }
@@ -3983,9 +4084,9 @@ namespace emu {
 
       for(vector <DDU*>::iterator ddu = ddus_.begin(); ddu != ddus_.end();++ddu){
 	(*ddu)->writeFakeL1( 0x0000 ); // 0x8787: passthrough // 0x0000: normal
-      	usleep(10);
+	usleep(10);
 	(*ddu)->writeGbEPrescale( 0x7878 ); // 0x7878: test-stand without TCC
-      	usleep(100);
+	usleep(100);
       }
       
 
@@ -4006,7 +4107,7 @@ namespace emu {
       //// Set the pipeline depth on all DCFEBs ////
       for(vector<DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){
 	vector<CFEB> cfebs = (*dmb)->cfebs();
-        out<<cfebs.size()<<endl; 
+	out<<cfebs.size()<<endl; 
 	for(CFEBItr cfeb = cfebs.begin(); cfeb != cfebs.end(); ++cfeb){
 	  
 	  int depth = cfeb->GetPipelineDepth(); // get value that was read in from the crate config xml (unless it was changed later)
@@ -4040,7 +4141,7 @@ namespace emu {
 	//szs	ccb_->l1aReset(); // stop triggering
 	for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){ (*dmb)->restoreCFEBIdle(); }
 	//ccb_->stopTrigger();
-      	usleep(10000);
+	usleep(10000);
 	
 	for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){
 	  (*dmb)->set_ext_chanx(strip_to_pulse, dcfeb_to_pulse); // this only sets the array in software
@@ -4052,9 +4153,9 @@ namespace emu {
 	//szs	ccb_->l1aReset();
 	for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){ (*dmb)->restoreCFEBIdle(); }
 	//ccb_->stopTrigger();
-        usleep(10000);
+	usleep(10000);
 	ccb_->bc0(); // start triggering
-        usleep(10000);
+	usleep(10000);
 	cout<<"npulses = "<<n_pulses<<endl;
 	for(int p=0; p<n_pulses; ++p){
 	  cout<<"pulsing dcfeb "<<dcfeb_to_pulse<<", strip "<<strip_to_pulse<<endl;
@@ -4071,7 +4172,7 @@ namespace emu {
 
 	for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){ (*dmb)->restoreCFEBIdle(); }
 	//	ccb_->l1aReset(); // stop triggering
-      	usleep(10000);
+	usleep(10000);
 	
 	for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){
 	  (*dmb)->set_ext_chanx(strip_to_pulse, feb_to_pulse); // this only sets the array in software
@@ -4082,9 +4183,9 @@ namespace emu {
 
 	//	ccb_->l1aReset();
 	for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){ (*dmb)->restoreCFEBIdle(); }
-        usleep(10000);
+	usleep(10000);
 	ccb_->bc0(); // start triggering
-        usleep(10000);
+	usleep(10000);
 
 	for(int p=0; p<n_pulses; ++p){
 	  cout<<"pulsing dcfeb "<<feb_to_pulse<<", strip "<<strip_to_pulse<<endl;
@@ -4180,41 +4281,41 @@ namespace emu {
 
 	  for(CFEBItr cfeb = cfebs.begin(); cfeb != cfebs.end(); cfeb++){
 	  for(int halfstrip = 2; halfstrip<30; ++halfstrip){
-          int  hp[6] = {halfstrip+1, halfstrip, halfstrip+1, halfstrip, halfstrip+1, halfstrip};
-          (*dmb)->trigsetx(hp, dcfebtrig[cfeb->number()]);
+	  int  hp[6] = {halfstrip+1, halfstrip, halfstrip+1, halfstrip, halfstrip+1, halfstrip};
+	  (*dmb)->trigsetx(hp, dcfebtrig[cfeb->number()]);
 
-          ccb_->l1aReset(); // needed after setting/restarting pipeline
-          usleep(1000);
-          (*dmb)->restoreCFEBIdle(); // need to restore DCFEB JTAG after a buckshift
-          usleep(1000);
-          ccb_->bc0(); // start triggering
-          usleep(1000);
+	  ccb_->l1aReset(); // needed after setting/restarting pipeline
+	  usleep(1000);
+	  (*dmb)->restoreCFEBIdle(); // need to restore DCFEB JTAG after a buckshift
+	  usleep(1000);
+	  ccb_->bc0(); // start triggering
+	  usleep(1000);
 
 
-          tmb_->ResetCounters();
-          usleep(1000);
-          //if(halfstrip==0)
-          out<<dcfeb_pulsed+1<<"\"t<<NumberofPulses<<"\t"<<halfstrip<<"\t";
-          ccb_->inject(NumberofPulses,timebetweenpulse); // send the pulses
-          usleep(100000);
+	  tmb_->ResetCounters();
+	  usleep(1000);
+	  //if(halfstrip==0)
+	  out<<dcfeb_pulsed+1<<"\"t<<NumberofPulses<<"\t"<<halfstrip<<"\t";
+	  ccb_->inject(NumberofPulses,timebetweenpulse); // send the pulses
+	  usleep(100000);
 
-          last_keyhalfstrip_pulsed = int(((tmb_->ReadRegister(0x8a78) & 0xff00)>>8 ));
-          out<<last_keyhalfstrip_pulsed<<"\t";
-          //check key halfstrip decision, exclude  the edge halfstrips
+	  last_keyhalfstrip_pulsed = int(((tmb_->ReadRegister(0x8a78) & 0xff00)>>8 ));
+	  out<<last_keyhalfstrip_pulsed<<"\t";
+	  //check key halfstrip decision, exclude  the edge halfstrips
 	  if(dcfeb_pulsed<5 && last_keyhalfstrip_pulsed != min_hp[dcfeb_pulsed]+halfstrip) cout<<"WARNING: INCORRECT TMB Fiber Mapping for DCFEB "<<dcfeb_pulsed<<endl<<"Meant to pulse halfstrip "<<min_hp[dcfeb_pulsed]+halfstrip<<" but TMB key-halfstrip reads "<<last_keyhalfstrip_pulsed<<endl;
 	  if(dcfeb_pulsed>4 && last_keyhalfstrip_pulsed != min_hp[dcfeb_pulsed]-halfstrip) cout<<"WARNING: INCORRECT TMB Fiber Mapping for DCFEB "<<dcfeb_pulsed<<endl<<"Meant to pulse halfstrip "<<min_hp[dcfeb_pulsed]-halfstrip<<" but TMB key-halfstrip reads "<<last_keyhalfstrip_pulsed;
          
-          //checking pulse efficiency per halfstrip
-          for(int ndcfeb=0;ndcfeb<7;ndcfeb++){
+	  //checking pulse efficiency per halfstrip
+	  for(int ndcfeb=0;ndcfeb<7;ndcfeb++){
 	  tmb_->WriteRegister(tmb_CountersReadReg,tmb_CounterRegValue[ndcfeb]);
 	  counter_DCFEB[ndcfeb] = int(tmb_->ReadRegister(tmb_CountersWriteReg));
 	  //out<<counter_DCFEB[0]<<"\t";
-          }
+	  }
 
-          //This has to do with counter efficiency; when STEP are integrated with 7DCFEBs, this will become a plot 
-          if(NumberofPulses != counter_DCFEB[dcfeb_pulsed]) out<<"Houston, we got problems.  DCFEB"<<dcfeb_pulsed+1<<" got "<<counter_DCFEB[dcfeb_pulsed]<<" and expected "<<NumberofPulses<<endl;
-          sum_DCFEBCounters = counter_DCFEB[0]+counter_DCFEB[1]+counter_DCFEB[2]+counter_DCFEB[3]+counter_DCFEB[4]+counter_DCFEB[5]+counter_DCFEB[6];
-          if((sum_DCFEBCounters - counter_DCFEB[dcfeb_pulsed]) > 0) out<<"More than 1 DCFEB was pulsed"<<endl;
+	  //This has to do with counter efficiency; when STEP are integrated with 7DCFEBs, this will become a plot 
+	  if(NumberofPulses != counter_DCFEB[dcfeb_pulsed]) out<<"Houston, we got problems.  DCFEB"<<dcfeb_pulsed+1<<" got "<<counter_DCFEB[dcfeb_pulsed]<<" and expected "<<NumberofPulses<<endl;
+	  sum_DCFEBCounters = counter_DCFEB[0]+counter_DCFEB[1]+counter_DCFEB[2]+counter_DCFEB[3]+counter_DCFEB[4]+counter_DCFEB[5]+counter_DCFEB[6];
+	  if((sum_DCFEBCounters - counter_DCFEB[dcfeb_pulsed]) > 0) out<<"More than 1 DCFEB was pulsed"<<endl;
 
 
 	  //shifting everything back to normal
@@ -4222,12 +4323,12 @@ namespace emu {
 	  cout<<"Shifting Buckeyes to normal mode"<<endl;
 	  (*dmb)->shift_all(NORM_RUN);
 	  (*dmb)->buck_shift();
-          usleep(1000);
-          (*dmb)->restoreCFEBIdle(); // need to restore DCFEB JTAG after a buckshift
-          usleep(1000);
+	  usleep(1000);
+	  (*dmb)->restoreCFEBIdle(); // need to restore DCFEB JTAG after a buckshift
+	  usleep(1000);
 
-          }
-          dcfeb_pulsed++;
+	  }
+	  dcfeb_pulsed++;
 	  }
 	  }
       */
@@ -4254,10 +4355,10 @@ namespace emu {
       //tmb_->SetRequestL1a(0);  //do not request l1a cause the pulse comes with one            
       
       for(vector <DDU*>::iterator ddu = ddus_.begin(); ddu != ddus_.end();++ddu){
-        (*ddu)->writeFakeL1( 0x0000 ); // 0x8787: passthrough // 0x0000: normal
-        usleep(10);
-        (*ddu)->writeGbEPrescale( 0x7878 ); // 0x7878: test-stand without TCC
-        usleep(10);
+	(*ddu)->writeFakeL1( 0x0000 ); // 0x8787: passthrough // 0x0000: normal
+	usleep(10);
+	(*ddu)->writeGbEPrescale( 0x7878 ); // 0x7878: test-stand without TCC
+	usleep(10);
       }
 
       // Enable L1A and clct_pretrig from any of dmb_cfeb_calib signals and disable all other trigger sources
@@ -4289,16 +4390,16 @@ namespace emu {
      
       int last_keyhalfstrip_pulsed = 0;
       for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){
-        vector<CFEB> cfebs = (*dmb)->cfebs();
-        for(CFEBItr cfeb = cfebs.begin(); cfeb != cfebs.end(); ++cfeb){
-          int depth = 64; // get value that was read in from the crate config xml (unless it was changed later)
-          (*dmb)->dcfeb_set_PipelineDepth( *cfeb, depth ); // set it on the hardware
-          usleep(100);
-          (*dmb)->Pipeline_Restart( *cfeb ); // must restart pipeline after setting it
-          usleep(100);
-          ccb_->l1aReset(); // needed after setting/restarting pipeline
-          usleep(100);
-        }
+	vector<CFEB> cfebs = (*dmb)->cfebs();
+	for(CFEBItr cfeb = cfebs.begin(); cfeb != cfebs.end(); ++cfeb){
+	  int depth = 64; // get value that was read in from the crate config xml (unless it was changed later)
+	  (*dmb)->dcfeb_set_PipelineDepth( *cfeb, depth ); // set it on the hardware
+	  usleep(100);
+	  (*dmb)->Pipeline_Restart( *cfeb ); // must restart pipeline after setting it
+	  usleep(100);
+	  ccb_->l1aReset(); // needed after setting/restarting pipeline
+	  usleep(100);
+	}
       }
      
       // start DAQ
@@ -4307,16 +4408,16 @@ namespace emu {
 
 
       for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){
-        (*dmb)->set_dac(PulseHeight, PulseHeight);
-        (*dmb)->set_comp_thresh(ComparatorThresholds);
-        (*dmb)->settrgsrc(0);
-        DMBposition = int(dmb - dmbs_.begin());
-        if(DMBposition==0) dcfeb_pulsed=5;
-        if(DMBposition==1) dcfeb_pulsed=0;
-        vector<CFEB> cfebs = (*dmb)->cfebs();
+	(*dmb)->set_dac(PulseHeight, PulseHeight);
+	(*dmb)->set_comp_thresh(ComparatorThresholds);
+	(*dmb)->settrgsrc(0);
+	DMBposition = int(dmb - dmbs_.begin());
+	if(DMBposition==0) dcfeb_pulsed=5;
+	if(DMBposition==1) dcfeb_pulsed=0;
+	vector<CFEB> cfebs = (*dmb)->cfebs();
 
-        for(CFEBItr cfeb = cfebs.begin(); cfeb != cfebs.end(); cfeb++){
-          for(int halfstrip = 0; halfstrip<32; ++halfstrip){
+	for(CFEBItr cfeb = cfebs.begin(); cfeb != cfebs.end(); cfeb++){
+	  for(int halfstrip = 0; halfstrip<32; ++halfstrip){
 	    int  hp[6] = {halfstrip+1, halfstrip, halfstrip+1, halfstrip, halfstrip+1, halfstrip};
 	    (*dmb)->trigsetx(hp, dcfebtrig[cfeb->number()]);
 
@@ -4375,9 +4476,9 @@ namespace emu {
 	    (*dmb)->restoreCFEBIdle(); // need to restore DCFEB JTAG after a buckshift
 	    usleep(1000);
 
-          }
-          dcfeb_pulsed++;
-        }
+	  }
+	  dcfeb_pulsed++;
+	}
       }  
       // stop DAQ
       cout<<"stopping DAQ..."<<endl;

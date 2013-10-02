@@ -409,7 +409,18 @@ namespace emu { namespace odmbdev {
       DCFEBFiber(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out);
     }; 
-
+    
+    /**************************************************************************
+     * CCBReg
+     *
+     * A small class to perform high statistics test of CCB firmware and communication
+	 **************************************************************************/
+    class CCBReg : public RepeatTextBoxAction {
+    public:
+      CCBReg(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
+    }; 
+       
     /**************************************************************************
      * Log Buttons
      *
