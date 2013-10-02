@@ -2407,6 +2407,7 @@ namespace emu {
       usleep(10);
       //Format result
       VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+      cout << "should be FF: " << VMEresult << endl;
       if (VMEresult == 0xBAAD){ out << "No device connected." << endl; return; }
       else if (VMEresult != 0xFF){ out << "Failed turn on test!" << endl; fail_turn_on++; return; }
       for (int k = 0; k < nTests; k++){
@@ -2448,32 +2449,25 @@ namespace emu {
             else{
               float voltage_result_2 = float(VMEresult)*5.0/float(0xfff);
               //Error checking
-              if (fabs(voltage_result_2 - voltage_result_1) > .05 && voltage_result_1 < 4.9){ out << "ERROR!  TWO METHODS DISAGREE!! Results are: " << voltage_result_1 << " and " << voltage_result_2 << endl; }
+              bool already_failed = false;
+              if (fabs(voltage_result_2 - voltage_result_1) > .05 && voltage_result_1 < 4.9){ already_failed = true; }
               float voltage = (voltage_result_1 > 4.9 ? voltage_result_1 : 0.5*(voltage_result_1 + voltage_result_2));
               bool done = false;
-              if ( fabs(voltage - expectedV[i]) > tol ){ fail++; cout << "fail! " << VMEresult << " " << i << " " << j << " volt " << voltage << " " << voltage_result_1 << " " << voltage_result_2 << " exp  " << expectedV[i] << endl;   }
-              else{
-                pass++;
+              if ( fabs(voltage - expectedV[i]) > tol || already_failed == true) fail++; 
+              else pass++;
               
-		if (done == false){
-		  voltages[i].push_back(make_pair(voltage, 1));
-		}
-             
-                for (unsigned int l = 0; l < voltages[i].size(); l++){
-                  if (fabs(voltages[i][l].first - voltage) < .00001){
-                    voltages[i][l].second++;
-                    done = true;
-                    break;
-                  } 
-                }
-                
-                if (done == false){
-                  voltages[i].push_back(make_pair(voltage, 1));
-                }
-	      }
+              for (unsigned int l = 0; l < voltages[i].size(); l++){
+                if (fabs(voltages[i][l].first - voltage) < .00001){
+                  voltages[i][l].second++;
+                  done = true;
+                  break;
+                } 
+              }
+              
+              if (done == false){
+                voltages[i].push_back(make_pair(voltage, 1));
+              }
  
-              //output result
-              //out << "LVMB test " << i << ": " << std::fixed << setprecision(2) << voltage_result_1 << " V "<< endl;
             }
           }//i-loop
         }//j-loop
@@ -2487,7 +2481,8 @@ namespace emu {
         std::sort( voltages[i].begin(), voltages[i].end(), myfunction );
         cout << "Printing outliers for box " << i << ":" << endl;
         for (unsigned int l = 0; l < voltages[i].size(); l++){
-          if (voltages[i][l].first - expectedV[i] > tol) cout << voltages[i][l].first << " " << voltages[i][l].second << endl;
+          if ( fabs(voltages[i][l].first - expectedV[i]) > tol) printf("%6.4f   %5d \n", voltages[i][l].first, voltages[i][l].second);
+          //if ( fabs(voltages[i][l].first - expectedV[i]) > tol) cout << voltages[i][l].first << " " << voltages[i][l].second << endl;
           //cout << voltages[i][l].first << " " << voltages[i][l].second << endl;
         }
       }
