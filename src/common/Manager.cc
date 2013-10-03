@@ -144,7 +144,8 @@ namespace emu { namespace odmbdev {
       addActionByTypename<DCFEBJTAGcontrol>(crate, this);
       addActionByTypename<DCFEBFiber>(crate, this);
       addActionByTypename<CCBReg>(crate, this);
-      addActionByTypename<FIFOTest>(crate, this);
+      addActionByTypename<DDUFIFOTest>(crate, this);
+      addActionByTypename<PCFIFOTest>(crate, this);
       addActionByTypename<HardReset>(crate);
       
       // putButtonsInGroup( "Routine Tests" );

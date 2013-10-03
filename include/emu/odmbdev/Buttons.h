@@ -422,13 +422,24 @@ namespace emu { namespace odmbdev {
     }; 
        
     /**************************************************************************
-     * FIFOTest
+     * DDUFIFOTest
      *
      * A small class to perform high statistics test of DDU FIFO
 	 **************************************************************************/
-    class FIFOTest : public RepeatTextBoxAction {
+    class DDUFIFOTest : public RepeatTextBoxAction {
     public:
-      FIFOTest(Crate * crate, emu::odmbdev::Manager* manager);
+      DDUFIFOTest(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
+    }; 
+       
+    /**************************************************************************
+     * PCFIFOTest
+     *
+     * A small class to perform high statistics test of DDU FIFO
+	 **************************************************************************/
+    class PCFIFOTest : public RepeatTextBoxAction {
+    public:
+      PCFIFOTest(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out);
     }; 
        

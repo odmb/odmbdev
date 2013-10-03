@@ -2491,11 +2491,11 @@ namespace emu {
       else out << "LVMB Test Failed!" << endl;
     }
     
-    FIFOTest::FIFOTest(Crate * crate, emu::odmbdev::Manager* manager) :
+    DDUFIFOTest::DDUFIFOTest(Crate * crate, emu::odmbdev::Manager* manager) :
       RepeatTextBoxAction(crate, manager, "FIFO Test"/*,"1"*/) { 
     }
     
-    void FIFOTest::respond(xgi::Input * in, ostringstream & out) {
+    void DDUFIFOTest::respond(xgi::Input * in, ostringstream & out) {
       out << "********** Test FIFO Consistency *********" << endl;
       RepeatTextBoxAction::respond(in, out);
       istringstream countertext(this->textBoxContent);
@@ -2568,9 +2568,109 @@ namespace emu {
 	addr=(0x004024 & 0x07ffff) | shiftedSlot;
 	arg=0;
 	crate_->vmeController()->vme_controller(2, addr, &arg, junk);
-	unsigned int fw_version((junk[1]*0x100) + junk[0]);
-	//cout << "n words: " << dec << word_count <<endl;
-	//cout << "fw: " << hex << fw_version <<endl;
+	for(unsigned int word(0); word<word_count; ++word){
+	  usleep(1);
+	  crate_->vmeController()->vme_controller(2, addr_tx, &arg, rcv_tx); //Read TX
+	  usleep(1);
+	  crate_->vmeController()->vme_controller(2, addr_rx, &arg, rcv_rx); //Read RX
+
+	  //Combine into int
+	  rcv_tx_i=(rcv_tx[1]*0x100) + rcv_tx[0];
+	  rcv_rx_i=(rcv_rx[1]*0x100) + rcv_rx[0];
+
+	  //cout << hex << rcv_tx_i << " " << rcv_rx_i << endl;
+	  
+	  //Compare FIFOs
+	  rcv_diff_i=rcv_tx_i^rcv_rx_i;
+	  
+	  //Count bits set to 1 (where differences occur)
+	  unsigned int setBits(CountSetBits(rcv_diff_i));
+	  bitChanges+=setBits;
+	  bitMatches+=16-setBits;
+	}
+      }
+      out << "Bit success/errors: " << bitMatches << " / " << bitChanges << std::endl;
+      usleep(1);
+    }
+    
+    PCFIFOTest::PCFIFOTest(Crate * crate, emu::odmbdev::Manager* manager) :
+      RepeatTextBoxAction(crate, manager, "FIFO Test"/*,"1"*/) { 
+    }
+    
+    void PCFIFOTest::respond(xgi::Input * in, ostringstream & out) {
+      out << "********** Test FIFO Consistency *********" << endl;
+      RepeatTextBoxAction::respond(in, out);
+      istringstream countertext(this->textBoxContent);
+      string line;
+      getline(countertext,line,'\n');
+      const unsigned long testReps=strtoul(line.c_str(),NULL,0);
+      char rcv_tx[2], rcv_rx[2];
+      char junk[2];
+      unsigned short rcv_tx_i(0), rcv_rx_i(0), rcv_diff_i(0);
+      unsigned long bitChanges(0), bitMatches(0);
+      const int slot(Manager::getSlotNumber()); //the slot number to use
+      const unsigned int shiftedSlot(slot << 19);
+      const unsigned int addr_tx = (0x005100 & 0x07ffff) | shiftedSlot;
+      const unsigned int addr_rx = (0x005200 & 0x07ffff) | shiftedSlot;
+      unsigned int addr(0);
+      unsigned short arg(0);
+      usleep(1);
+      addr=(0x003000 & 0x07ffff) | shiftedSlot;
+      arg=0x300;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1000000);
+      usleep(1);
+      addr=(0x005120 & 0x07ffff) | shiftedSlot;
+      arg=1;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x005220 & 0x07ffff) | shiftedSlot;
+      arg=1;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x003000 & 0x07ffff) | shiftedSlot;
+      arg=0x680;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1000000);
+      usleep(1);
+      addr=(0x00401C & 0x07ffff) | shiftedSlot;
+      arg=0;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x003100 & 0x07ffff) | shiftedSlot;
+      arg=0;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x00400C & 0x07ffff) | shiftedSlot;
+      arg=5;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x004004 & 0x07ffff) | shiftedSlot;
+      arg=2;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      for(unsigned int j(0); j<testReps; ++j){
+	usleep(1);
+	addr=(0x005120 & 0x07ffff) | shiftedSlot;
+	arg=1;
+	crate_->vmeController()->vme_controller(3, addr, &arg, junk); //Clear TX FIFO 
+	usleep(1);
+	addr=(0x005220 & 0x07ffff) | shiftedSlot;
+	arg=1;
+	crate_->vmeController()->vme_controller(3, addr, &arg, junk); //Clear RX FIFO
+	usleep(1);
+	addr=(0x003010 & 0x07ffff) | shiftedSlot;
+	arg=0x10;
+	crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+	usleep(1);
+	addr=(0x00510C & 0x07ffff) | shiftedSlot;
+	arg=0;
+	crate_->vmeController()->vme_controller(2, addr, &arg, junk);
+	unsigned int word_count((junk[1]*0x100) + junk[0]);
+	usleep(1);
+	addr=(0x004024 & 0x07ffff) | shiftedSlot;
+	arg=0;
+	crate_->vmeController()->vme_controller(2, addr, &arg, junk);
+
 	for(unsigned int word(0); word<word_count; ++word){
 	  usleep(1);
 	  crate_->vmeController()->vme_controller(2, addr_tx, &arg, rcv_tx); //Read TX
