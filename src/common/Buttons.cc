@@ -2822,7 +2822,8 @@ namespace emu {
       getline(countertext,line,'\n');
       const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
       // repeatNumber is currently the number of packets to send
-      usleep(10000);
+      
+      
       int slot = Manager::getSlotNumber();
       unsigned int shiftedSlot = slot << 19;
       char rcv[2];
@@ -2833,12 +2834,15 @@ namespace emu {
       unsigned int addr_sel_dcfeb_fifo( (0x005010& 0x07ffff) | shiftedSlot ), addr_rst_fifo( (0x005020& 0x07ffff) | shiftedSlot );
       // Commands
       unsigned short int data;
-      unsigned short int cmd_dreal_tint(0x200), cmd_kill(0x1BF);
+      unsigned short int cmd_rst(0x300), cmd_dreal_tint(0x200), cmd_kill(0x1BF);
       unsigned short int cmd_dcfeb_fifo[7] = {0x1,0x2,0x3,0x4,0x5,0x6,0x7};
       unsigned short int cms_l1a_match(0x10), cmd_rst_fifo(0x40);
       // Results
       unsigned short int VMEresult;
       // == ================ Configuration ================ ==
+      // Reset!
+      crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&cmd_rst,rcv);
+      usleep(10000000);
       // Set real data and internal triggers
       crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&cmd_dreal_tint,rcv);
       // Set KILL
@@ -2848,32 +2852,44 @@ namespace emu {
       // Number of received packets before
       crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
       VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      unsigned int nRxPckt_b(VMEresult);
+      //unsigned int nRxPckt_b(VMEresult);
       // Number of good CRCs before
       crate_->vmeController()->vme_controller(2,addr_read_ncrcs,&data,rcv);
       VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      unsigned int nGoodCRCs_b(VMEresult);
+      //unsigned int nGoodCRCs_b(VMEresult);
+      //vector <unsigned int> RxPckts;
+      unsigned int nCntRst(0); // how many times we hit FFFF and restart the counter
       // == ============ Send N real packets ============ ==
       for (unsigned int p = 0; p < repeatNumber; p++) {
 	// Send test L1A(_MATCH) to all DCFEBs
 	crate_->vmeController()->vme_controller(3,addr_dcfeb_ctrl_reg,&cms_l1a_match,rcv);
 	usleep(100);
+	// Read number of received packets
+	crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
+    VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+    //cout << VMEresult << endl;
+    //RxPckts.push_back(VMEresult);
+    if (p>0&&VMEresult==0) nCntRst++; // keep track of how many times the counter resets
 	// Reset FIFO 7
-	crate_->vmeController()->vme_controller(3,addr_rst_fifo,&cmd_rst_fifo,rcv);
+	//crate_->vmeController()->vme_controller(3,addr_rst_fifo,&cmd_rst_fifo,rcv);
       }
       // == ============ Status summary ============ ==
       out << "DCFEB 7: " << endl;
       // Number of received packets [DCFEB 7]
       crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
       VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      unsigned int nRxPckt_a(VMEresult);
-      unsigned int nRxPckt(nRxPckt_a-nRxPckt_b);
+      //cout << VMEresult << endl;
+      unsigned int nRxPckt(VMEresult+nCntRst*65536);
+      //unsigned int nRxPckt_a(VMEresult);
+      //unsigned int nRxPckt(nRxPckt_a-nRxPckt_b);
       out << "Received " << nRxPckt << " out of " << repeatNumber << " packets, ";
       // Number of good CRCs [DCFEB 7]
       crate_->vmeController()->vme_controller(2,addr_read_ncrcs,&data,rcv);
       VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      unsigned int nGoodCRCs_a(VMEresult);
-      unsigned int nGoodCRCs(nGoodCRCs_a-nGoodCRCs_b);
+      //cout << VMEresult << endl;
+      unsigned int nGoodCRCs(VMEresult+nCntRst*65536);
+      //unsigned int nGoodCRCs_a(VMEresult);
+      //unsigned int nGoodCRCs(nGoodCRCs_a-nGoodCRCs_b);
       out << nGoodCRCs << " good CRCs.";
       if (nGoodCRCs==nRxPckt&&nRxPckt==repeatNumber) out << " No bit flips." << endl;
       else out << endl;
