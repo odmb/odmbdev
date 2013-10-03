@@ -422,6 +422,17 @@ namespace emu { namespace odmbdev {
     }; 
        
     /**************************************************************************
+     * FIFOTest
+     *
+     * A small class to perform high statistics test of DDU FIFO
+	 **************************************************************************/
+    class FIFOTest : public RepeatTextBoxAction {
+    public:
+      FIFOTest(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
+    }; 
+       
+    /**************************************************************************
      * Log Buttons
      *
      * These are special actions that modify the log
