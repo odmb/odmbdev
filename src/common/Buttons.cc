@@ -1699,7 +1699,73 @@ namespace emu {
       }
       return count;
     }
-
+	
+	string hexToBin(char inHex) {
+		switch(inHex) {
+			case ' ':
+			case '0':
+				return "0000";
+			case '1':
+				return "0001";
+			case '2':
+				return "0010";
+			case '3':
+				return "0011";
+			case '4':
+				return "0100";
+			case '5':
+				return "0101";
+			case '6':
+				return "0110";
+			case '7':
+				return "0111";
+			case '8':
+				return "1000";
+			case '9':
+				return "1001";
+			case 'A':
+			case 'a':
+				return "1010";
+			case 'B':
+			case 'b':
+				return "1011";
+			case 'C':
+			case 'c':
+				return "1100";
+			case 'D':
+			case 'd':
+				return "1101";
+			case 'E':
+			case 'e':
+				return "1110";
+			case 'F':
+			case 'f':
+				return "1111";
+			default:
+				return "0";
+		}
+	} 
+    
+	string printBinary(unsigned int Number) {
+		string hexRepn = FixLength(Number,4,true);
+		string result("");
+		for (unsigned int i=0;i<hexRepn.size();i++) {
+			result+=hexToBin(hexRepn.at(i));
+		}
+		return result;
+	}
+	
+	unsigned int GetBitFlips (unsigned int ui1, unsigned int ui2) {
+		string s_Binary1(printBinary(ui1)), s_Binary2(printBinary(ui2));
+		if (s_Binary1.size()!=s_Binary2.size())
+			cerr << "Error: strings of binary numbers not equal in length." << endl;
+		unsigned int numFlips(0);
+		for (unsigned int i=0;i<s_Binary1.size();i++) {
+			if (s_Binary1.at(i)!=s_Binary2.at(i)) numFlips++;
+		}
+		return numFlips;
+	}
+	
     int write_eth_raw(std::string tag){
       time_t rawtime;
       struct tm *timeinfo;
@@ -2537,7 +2603,7 @@ namespace emu {
     }
     
     DDUFIFOTest::DDUFIFOTest(Crate * crate, emu::odmbdev::Manager* manager) :
-      RepeatTextBoxAction(crate, manager, "FIFO Test"/*,"1"*/) { 
+      RepeatTextBoxAction(crate, manager, "DDU FIFO Test"/*,"1"*/) { 
     }
     
     void DDUFIFOTest::respond(xgi::Input * in, ostringstream & out) {
@@ -2639,7 +2705,7 @@ namespace emu {
     }
     
     PCFIFOTest::PCFIFOTest(Crate * crate, emu::odmbdev::Manager* manager) :
-      RepeatTextBoxAction(crate, manager, "FIFO Test"/*,"1"*/) { 
+      RepeatTextBoxAction(crate, manager, "PC FIFO Test"/*,"1"*/) { 
     }
     
     void PCFIFOTest::respond(xgi::Input * in, ostringstream & out) {
@@ -2876,12 +2942,12 @@ namespace emu {
       unsigned int addr_odmb_ctrl_reg( (0x003000& 0x07ffff) | shiftedSlot ), addr_dcfeb_ctrl_reg( (0x003010& 0x07ffff) | shiftedSlot );
       unsigned int addr_set_kill( (0x00401C& 0x07ffff) | shiftedSlot );
       unsigned int addr_read_nrx_pckt( (0x00347C& 0x07ffff) | shiftedSlot ), addr_read_ncrcs( (0x00367C& 0x07ffff) | shiftedSlot );
-      unsigned int addr_sel_dcfeb_fifo( (0x005010& 0x07ffff) | shiftedSlot ), addr_rst_fifo( (0x005020& 0x07ffff) | shiftedSlot );
+      unsigned int addr_sel_dcfeb_fifo( (0x005010& 0x07ffff) | shiftedSlot );
       // Commands
       unsigned short int data;
       unsigned short int cmd_rst(0x300), cmd_dreal_tint(0x200), cmd_kill(0x1BF);
       unsigned short int cmd_dcfeb_fifo[7] = {0x1,0x2,0x3,0x4,0x5,0x6,0x7};
-      unsigned short int cms_l1a_match(0x10), cmd_rst_fifo(0x40);
+      unsigned short int cms_l1a_match(0x10);
       // Results
       unsigned short int VMEresult;
       // == ================ Configuration ================ ==
@@ -2915,8 +2981,6 @@ namespace emu {
     //cout << VMEresult << endl;
     //RxPckts.push_back(VMEresult);
     if (p>0&&VMEresult==0) nCntRst++; // keep track of how many times the counter resets
-	// Reset FIFO 7
-	//crate_->vmeController()->vme_controller(3,addr_rst_fifo,&cmd_rst_fifo,rcv);
       }
       // == ============ Status summary ============ ==
       out << "DCFEB 7: " << endl;
@@ -2952,6 +3016,7 @@ namespace emu {
       string line;
       getline(countertext,line,'\n');
       const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
+      out << "Repeated " << repeatNumber << " times." << endl;
       char rcv[2];
 
       unsigned int ccb_slot(13), odmb_slot(Manager::getSlotNumber());
@@ -2988,7 +3053,7 @@ namespace emu {
       other_bits.push_back(0x410);
       other_bits.push_back(0x210);
       other_bits.push_back(0x110);
-      vector<int> success (other_bits.size(),0);
+      //vector<int> success (other_bits.size(),0);
       vector<string> signalNames(0); // for output
       signalNames.push_back("l1acc");
       signalNames.push_back("bx0");
@@ -3001,7 +3066,6 @@ namespace emu {
 
       unsigned short int data(0x300);
       unsigned short int VMEresult, VMEresult_prev;
-      int data_success(0), cmd_success(0);
       // Reset counters
       crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&data,rcv);
       usleep(10000);
@@ -3014,18 +3078,27 @@ namespace emu {
       crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
       VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
       usleep(1);
+      vector<unsigned int> nBAADs_other(other_bits.size(),0);
+      unsigned int nBAADs_cmd(0), nBAADs_data(0);
+      vector<unsigned int> nBitFlips_other(other_bits.size(),0);
+      unsigned int nBitFlips_cmd(0), nBitFlips_data(0);
       for (unsigned int n(0);n<repeatNumber;n++) {
+      	bool BAAD_read(false);
 	for (unsigned int p(0);p<addr_pulses.size();++p) {
+	  BAAD_read = false;
 	  crate_->vmeController()->vme_controller(3,addr_pulses.at(p),&args.at(p),rcv);
 	  usleep(1);
 	  crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
 	  VMEresult_prev = VMEresult;
 	  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	  if (((VMEresult^VMEresult_prev)&(0xFF7))==(other_bits.at(p) & 0xffff)){
-	    ++success.at(p);
+	  if (VMEresult>0x7FF) BAAD_read = true;
+	  if (BAAD_read) nBAADs_other[p]++;
+	  else {
+	    nBitFlips_other[p]+=GetBitFlips((VMEresult^VMEresult_prev)&(0xFF7),(other_bits.at(p) & 0xffff));
 	  }
 	}
-
+	
+	BAAD_read = false; // reset for data
 	unsigned short to_data(0);
 	crate_->vmeController()->vme_controller(3,
 						(0x000024 & 0x07ffff)|shiftedSlot_ccb,
@@ -3035,6 +3108,7 @@ namespace emu {
 						(0x35BC & 0x07ffff)|shiftedSlot_odmb,
 						&to_data,rcv);
 	unsigned int data_result_before=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	if (data_result_before>0xFF) BAAD_read=true;
 	to_data=0xFF;
 	crate_->vmeController()->vme_controller(3,
 						(0x000024 & 0x07ffff)|shiftedSlot_ccb,
@@ -3044,8 +3118,14 @@ namespace emu {
 						(0x35BC & 0x07ffff)|shiftedSlot_odmb,
 						&to_data,rcv);
 	unsigned int data_result_after=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	if(data_result_before==0xFF && data_result_after==0x00) ++data_success;
-
+	if (data_result_after>0xFF) BAAD_read=true;
+	if (BAAD_read) nBAADs_data++;
+	else { // only count flipped bits if we don't have a BAAD
+		nBitFlips_data+=GetBitFlips(data_result_before,0x00FF);
+		nBitFlips_data+=GetBitFlips(data_result_after,0x0000);
+	}
+	BAAD_read = false; // reset to check cmd
+	//if(data_result_before==0x00FF && data_result_after==0x0000) ++data_success;
 	to_data=0;
 	crate_->vmeController()->vme_controller(3,
 						(0x000022 & 0x07ffff)|shiftedSlot_ccb,
@@ -3055,6 +3135,7 @@ namespace emu {
 						(0x35AC & 0x07ffff)|shiftedSlot_odmb,
 						&to_data,rcv);
 	unsigned int cmd_result_before=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	if (cmd_result_before>0xFF) BAAD_read=true;
 	to_data=0xFC;
 	crate_->vmeController()->vme_controller(3,
 						(0x000022 & 0x07ffff)|shiftedSlot_ccb,
@@ -3064,20 +3145,44 @@ namespace emu {
 						(0x35AC & 0x07ffff)|shiftedSlot_odmb,
 						&to_data,rcv);
 	unsigned int cmd_result_after=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	if(cmd_result_before==0xFF && cmd_result_after==0x03) ++cmd_success;
+	if (cmd_result_after>0xFF) BAAD_read=true;
+	//if(cmd_result_before==0x00FF && cmd_result_after==0x0003) ++cmd_success;
+	if (BAAD_read) nBAADs_cmd++;
+	else { // only count flipped bits if we don't have a BAAD
+		nBitFlips_cmd+=GetBitFlips(cmd_result_before,0x00FF);
+		nBitFlips_cmd+=GetBitFlips(cmd_result_after,0x0003);
+	}
       }
 
       for (unsigned int p(0);p<addr_pulses.size();p++) {
 	out << setfill(' ');
-	out << "CCB Signal / Fails: " << setw(32) << signalNames[p] << " / "
-	    << dec << setw(16) << repeatNumber-success[p] << endl;	
+	out << "CCB Signal / BAAD Reads / Bit Flips: " << setw(32) << signalNames[p] << " / "
+	    << nBAADs_other[p] << " / " << nBitFlips_other[p] << endl;	
       }
-      out << "CCB Signal / Fails: " << setw(32) << "ccb_data" << " / "
-	  << dec << setw(16) << repeatNumber-data_success << endl;
-      out << "CCB Signal / Fails: " << setw(32) << "ccb_cmd" << " / "
-	  << dec << setw(16) << repeatNumber-cmd_success << endl;
+      out << "CCB Data Register: BAAD Reads / Bit Flips: " 
+	  << dec << setw(16) << nBAADs_data << " / " << nBitFlips_data << endl;
+      out << "CCB Command Register: BAAD Reads / Bit Flips: " 
+	  << dec << setw(16) << nBAADs_cmd << " / " << nBitFlips_cmd << endl;
     }
 
+    PRBSTest::PRBSTest(Crate * crate, Manager* manager) :
+      RepeatTextBoxAction(crate, manager, "PRBS Test"){ 
+    }
+    
+    void PRBSTest::respond(xgi::Input * in, ostringstream & out) { // JB-F
+      out << "********** PRBS Test **********" << endl;
+      RepeatTextBoxAction::respond(in, out);
+	}
+	
+    OTMBTest::OTMBTest(Crate * crate, Manager* manager) :
+      RepeatTextBoxAction(crate, manager, "OTMB Test"){ 
+    }
+    
+    void OTMBTest::respond(xgi::Input * in, ostringstream & out) { // JB-F
+      out << "********** OTMB Test **********" << endl;
+      RepeatTextBoxAction::respond(in, out);
+	}
+    
     /**************************************************************************
      * ResetRegisters
      *

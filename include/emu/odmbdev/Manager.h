@@ -106,7 +106,7 @@ namespace odmbdev {
       void commonActionsCallback(xgi::Input *in, xgi::Output *out);
       void actionsCallback(xgi::Input *in, xgi::Output *out);
       void groupActionsCallback(xgi::Input *in, xgi::Output *out);
-      //void groupActionsSDCallback(xgi::Input *in, xgi::Output *out);
+      void groupActionsSDCallback(xgi::Input *in, xgi::Output *out);
       void logActionsCallback(xgi::Input *in, xgi::Output *out);
       static void backToMainPage(xgi::Input * in, xgi::Output * out, const std::string& anchor = "");
       void ProductionTests(xgi::Input *in, xgi::Output *out);

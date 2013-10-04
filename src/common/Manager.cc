@@ -61,7 +61,7 @@ namespace emu { namespace odmbdev {
       xgi::bind( this, &Manager::commonActionsCallback, "commonActions" );
       xgi::bind( this, &Manager::groupActionsCallback, "groupActions" );
       xgi::bind( this, &Manager::logActionsCallback, "logActions" );
-      //xgi::bind( this, &Manager::groupActionsSDCallback, "groupActionsSD" );
+      xgi::bind( this, &Manager::groupActionsSDCallback, "groupActionsSD" );
       xgi::bind( this, &Manager::ProductionTests, "ProductionTests");
     }
 
@@ -146,6 +146,8 @@ namespace emu { namespace odmbdev {
       addActionByTypename<CCBReg>(crate, this);
       addActionByTypename<DDUFIFOTest>(crate, this);
       addActionByTypename<PCFIFOTest>(crate, this);
+      addActionByTypename<PRBSTest>(crate, this);
+      addActionByTypename<OTMBTest>(crate, this);
       addActionByTypename<HardReset>(crate);
       
       // putButtonsInGroup( "Routine Tests" );
@@ -442,7 +444,7 @@ namespace emu { namespace odmbdev {
 	  *out << p()
 	       << cgicc::form()
 	    .set("method","GET")
-	    .set("action", "groupActions")
+	    .set("action", "groupActionsSD")
 	       << cgicc::input()
 	    .set("type","hidden")
 	    .set("value",numberToString(i*groups_.size()+g))
@@ -521,7 +523,7 @@ namespace emu { namespace odmbdev {
       backToMainPage(in, out, anchor);
     }
 
-    /*void Manager::groupActionsSDCallback(xgi::Input *in, xgi::Output *out)
+    void Manager::groupActionsSDCallback(xgi::Input *in, xgi::Output *out)
     {
       int action_to_call = getFormValueInt("__action_to_call", in);
 
@@ -535,7 +537,7 @@ namespace emu { namespace odmbdev {
 
       string anchor = withoutSpecialChars(groups_[g])+"#";
       backToMainPage(in, out, anchor);
-    }*/
+    }
 
     void Manager::logActionsCallback(xgi::Input *in, xgi::Output *out)
     {

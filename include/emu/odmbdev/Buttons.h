@@ -420,6 +420,28 @@ namespace emu { namespace odmbdev {
       CCBReg(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out);
     }; 
+
+    /**************************************************************************
+     * PRBSTest
+     *
+     * A small class to perform high statistics test of PRBS
+	 **************************************************************************/
+    class PRBSTest : public RepeatTextBoxAction {
+    public:
+      PRBSTest(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
+    }; 
+    
+    /**************************************************************************
+     * OTMBTest
+     *
+     * A small class to perform high statistics test of OTMB communication and firmware
+	 **************************************************************************/
+    class OTMBTest : public RepeatTextBoxAction {
+    public:
+      OTMBTest(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
+    }; 
        
     /**************************************************************************
      * DDUFIFOTest
