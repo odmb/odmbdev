@@ -2448,7 +2448,7 @@ namespace emu {
       int fail_turn_off = 0;
       int fail_turn_on = 0;
       unsigned short int ctrl_byte_vec[7] =       {0x89, 0xB9, 0xA9, 0xD9, 0x99, 0xE9, 0xD9};
-      unsigned short int ctrl_byte_vec2[7] =      {0x81, 0xB1, 0xA1, 0xD1, 0x91, 0xE1, 0xD9};
+      unsigned short int ctrl_byte_vec2[7] =      {0x81, 0xB1, 0xA1, 0xD1, 0x91, 0xE1, 0xD1};
       unsigned short int ctrl_byte_vec_onoff[7] = {0xC9, 0xE9, 0xE9, 0x89, 0xD9, 0xA9, 0x99};
       vector <pair<float, int> > voltages[7];
       unsigned short int ADC_number_vec[7] =      {0x00, 0x04, 0x01, 0x05, 0x03, 0x06, 0x02};
@@ -2471,6 +2471,7 @@ namespace emu {
           //Write ADC to be read 
           unsigned short int ADC_number = ADC_number_vec[i];
           crate_->vmeController()->vme_controller(3, addr_sel_adc, &ADC_number, rcv);
+          usleep(30);
           //Send control byte to ADC
           ctrl_byte = ctrl_byte_vec_onoff[i];
           crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
@@ -2505,13 +2506,14 @@ namespace emu {
           //Write ADC to be read 
           unsigned short int ADC_number = ADC_number_vec[i];
           crate_->vmeController()->vme_controller(3, addr_sel_adc, &ADC_number, rcv);
+          usleep(10);
           //Send control byte to ADC
           unsigned short int ctrl_byte = ctrl_byte_vec[i];
           crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
-          usleep(30);
+          usleep(100);
           //Read from ADC
           crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv); //often returns -100, maybe fixed by introducing sleeps?
-          usleep(100);
+          usleep(10);
           //Format result
           VMEresult = 0;
           VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
@@ -2520,7 +2522,7 @@ namespace emu {
           if (voltage_result_1 > 9) cout << "BAD.  received:  " << std::hex << (rcv[1] & 0xff) << " " << std::hex << (rcv[0] & 0xff) << " VME result: " << VMEresult << " voltage " << voltage_result_1 << endl;
 
           //Send control byte to ADC -- method 2
-          ctrl_byte = ctrl_byte_vec2[i];
+          ctrl_byte = ctrl_byte_vec[i];
           crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
           usleep(100);
           //Read from ADC
@@ -2538,7 +2540,7 @@ namespace emu {
             break;
           }
           else{
-            float voltage_result_2 = float(VMEresult)*5.0/float(0xfff);
+            float voltage_result_2 = float(VMEresult)*10.0/float(0xfff);
             //Error checking
             bool already_failed = false;
             if (fabs(voltage_result_2 - voltage_result_1) > .05 && voltage_result_1 < 4.9){ already_failed = true; }
