@@ -2536,6 +2536,211 @@ namespace emu {
       else out << "LVMB Test Failed!" << endl;
     }
     
+    DDUFIFOTest::DDUFIFOTest(Crate * crate, emu::odmbdev::Manager* manager) :
+      RepeatTextBoxAction(crate, manager, "FIFO Test"/*,"1"*/) { 
+    }
+    
+    void DDUFIFOTest::respond(xgi::Input * in, ostringstream & out) {
+      out << "********** Test FIFO Consistency *********" << endl;
+      RepeatTextBoxAction::respond(in, out);
+      istringstream countertext(this->textBoxContent);
+      string line;
+      getline(countertext,line,'\n');
+      const unsigned long testReps=strtoul(line.c_str(),NULL,0);
+      char rcv_tx[2], rcv_rx[2];
+      char junk[2];
+      unsigned short rcv_tx_i(0), rcv_rx_i(0), rcv_diff_i(0);
+      unsigned long bitChanges(0), bitMatches(0);
+      const int slot(Manager::getSlotNumber()); //the slot number to use
+      const unsigned int shiftedSlot(slot << 19);
+      const unsigned int addr_tx = (0x005300 & 0x07ffff) | shiftedSlot;
+      const unsigned int addr_rx = (0x005400 & 0x07ffff) | shiftedSlot;
+      unsigned int addr(0);
+      unsigned short arg(0);
+      usleep(1);
+      addr=(0x003000 & 0x07ffff) | shiftedSlot;
+      arg=0x300;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1000000);
+      usleep(1);
+      addr=(0x005320 & 0x07ffff) | shiftedSlot;
+      arg=1;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x005420 & 0x07ffff) | shiftedSlot;
+      arg=1;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x003000 & 0x07ffff) | shiftedSlot;
+      arg=0x680;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1000000);
+      usleep(1);
+      addr=(0x00401C & 0x07ffff) | shiftedSlot;
+      arg=0;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x003100 & 0x07ffff) | shiftedSlot;
+      arg=0;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x00400C & 0x07ffff) | shiftedSlot;
+      arg=5;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x004004 & 0x07ffff) | shiftedSlot;
+      arg=2;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      for(unsigned int j(0); j<testReps; ++j){
+	usleep(1);
+	addr=(0x005320 & 0x07ffff) | shiftedSlot;
+	arg=1;
+	crate_->vmeController()->vme_controller(3, addr, &arg, junk); //Clear TX FIFO 
+	usleep(1);
+	addr=(0x005420 & 0x07ffff) | shiftedSlot;
+	arg=1;
+	crate_->vmeController()->vme_controller(3, addr, &arg, junk); //Clear RX FIFO
+	usleep(1);
+	addr=(0x003010 & 0x07ffff) | shiftedSlot;
+	arg=0x10;
+	crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+	usleep(1);
+	addr=(0x00530C & 0x07ffff) | shiftedSlot;
+	arg=0;
+	crate_->vmeController()->vme_controller(2, addr, &arg, junk);
+	unsigned int word_count((junk[1]*0x100) + junk[0]);
+	usleep(1);
+	addr=(0x004024 & 0x07ffff) | shiftedSlot;
+	arg=0;
+	crate_->vmeController()->vme_controller(2, addr, &arg, junk);
+	for(unsigned int word(0); word<word_count; ++word){
+	  usleep(1);
+	  crate_->vmeController()->vme_controller(2, addr_tx, &arg, rcv_tx); //Read TX
+	  usleep(1);
+	  crate_->vmeController()->vme_controller(2, addr_rx, &arg, rcv_rx); //Read RX
+
+	  //Combine into int
+	  rcv_tx_i=(rcv_tx[1]*0x100) + rcv_tx[0];
+	  rcv_rx_i=(rcv_rx[1]*0x100) + rcv_rx[0];
+
+	  //cout << hex << rcv_tx_i << " " << rcv_rx_i << endl;
+	  
+	  //Compare FIFOs
+	  rcv_diff_i=rcv_tx_i^rcv_rx_i;
+	  
+	  //Count bits set to 1 (where differences occur)
+	  unsigned int setBits(CountSetBits(rcv_diff_i));
+	  bitChanges+=setBits;
+	  bitMatches+=16-setBits;
+	}
+      }
+      out << "Bit success/errors: " << bitMatches << " / " << bitChanges << std::endl;
+      usleep(1);
+    }
+    
+    PCFIFOTest::PCFIFOTest(Crate * crate, emu::odmbdev::Manager* manager) :
+      RepeatTextBoxAction(crate, manager, "FIFO Test"/*,"1"*/) { 
+    }
+    
+    void PCFIFOTest::respond(xgi::Input * in, ostringstream & out) {
+      out << "********** Test FIFO Consistency *********" << endl;
+      RepeatTextBoxAction::respond(in, out);
+      istringstream countertext(this->textBoxContent);
+      string line;
+      getline(countertext,line,'\n');
+      const unsigned long testReps=strtoul(line.c_str(),NULL,0);
+      char rcv_tx[2], rcv_rx[2];
+      char junk[2];
+      unsigned short rcv_tx_i(0), rcv_rx_i(0), rcv_diff_i(0);
+      unsigned long bitChanges(0), bitMatches(0);
+      const int slot(Manager::getSlotNumber()); //the slot number to use
+      const unsigned int shiftedSlot(slot << 19);
+      const unsigned int addr_tx = (0x005100 & 0x07ffff) | shiftedSlot;
+      const unsigned int addr_rx = (0x005200 & 0x07ffff) | shiftedSlot;
+      unsigned int addr(0);
+      unsigned short arg(0);
+      usleep(1);
+      addr=(0x003000 & 0x07ffff) | shiftedSlot;
+      arg=0x300;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1000000);
+      usleep(1);
+      addr=(0x005120 & 0x07ffff) | shiftedSlot;
+      arg=1;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x005220 & 0x07ffff) | shiftedSlot;
+      arg=1;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x003000 & 0x07ffff) | shiftedSlot;
+      arg=0x680;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1000000);
+      usleep(1);
+      addr=(0x00401C & 0x07ffff) | shiftedSlot;
+      arg=0;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x003100 & 0x07ffff) | shiftedSlot;
+      arg=0;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x00400C & 0x07ffff) | shiftedSlot;
+      arg=5;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      usleep(1);
+      addr=(0x004004 & 0x07ffff) | shiftedSlot;
+      arg=2;
+      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      for(unsigned int j(0); j<testReps; ++j){
+	usleep(1);
+	addr=(0x005120 & 0x07ffff) | shiftedSlot;
+	arg=1;
+	crate_->vmeController()->vme_controller(3, addr, &arg, junk); //Clear TX FIFO 
+	usleep(1);
+	addr=(0x005220 & 0x07ffff) | shiftedSlot;
+	arg=1;
+	crate_->vmeController()->vme_controller(3, addr, &arg, junk); //Clear RX FIFO
+	usleep(1);
+	addr=(0x003010 & 0x07ffff) | shiftedSlot;
+	arg=0x10;
+	crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+	usleep(1);
+	addr=(0x00510C & 0x07ffff) | shiftedSlot;
+	arg=0;
+	crate_->vmeController()->vme_controller(2, addr, &arg, junk);
+	unsigned int word_count((junk[1]*0x100) + junk[0]);
+	usleep(1);
+	addr=(0x004024 & 0x07ffff) | shiftedSlot;
+	arg=0;
+	crate_->vmeController()->vme_controller(2, addr, &arg, junk);
+
+	for(unsigned int word(0); word<word_count; ++word){
+	  usleep(1);
+	  crate_->vmeController()->vme_controller(2, addr_tx, &arg, rcv_tx); //Read TX
+	  usleep(1);
+	  crate_->vmeController()->vme_controller(2, addr_rx, &arg, rcv_rx); //Read RX
+
+	  //Combine into int
+	  rcv_tx_i=(rcv_tx[1]*0x100) + rcv_tx[0];
+	  rcv_rx_i=(rcv_rx[1]*0x100) + rcv_rx[0];
+
+	  //cout << hex << rcv_tx_i << " " << rcv_rx_i << endl;
+	  
+	  //Compare FIFOs
+	  rcv_diff_i=rcv_tx_i^rcv_rx_i;
+	  
+	  //Count bits set to 1 (where differences occur)
+	  unsigned int setBits(CountSetBits(rcv_diff_i));
+	  bitChanges+=setBits;
+	  bitMatches+=16-setBits;
+	}
+      }
+      out << "Bit success/errors: " << bitMatches << " / " << bitChanges << std::endl;
+      usleep(1);
+    }
+    
     DCFEBJTAGcontrol::DCFEBJTAGcontrol(Crate * crate, emu::odmbdev::Manager* manager) 
       : RepeatTextBoxAction(crate, manager, "DCFEB JTAG Control") 
     { 
@@ -2662,7 +2867,8 @@ namespace emu {
       getline(countertext,line,'\n');
       const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
       // repeatNumber is currently the number of packets to send
-      usleep(10000);
+      
+      
       int slot = Manager::getSlotNumber();
       unsigned int shiftedSlot = slot << 19;
       char rcv[2];
@@ -2673,12 +2879,15 @@ namespace emu {
       unsigned int addr_sel_dcfeb_fifo( (0x005010& 0x07ffff) | shiftedSlot ), addr_rst_fifo( (0x005020& 0x07ffff) | shiftedSlot );
       // Commands
       unsigned short int data;
-      unsigned short int cmd_dreal_tint(0x200), cmd_kill(0x1BF);
+      unsigned short int cmd_rst(0x300), cmd_dreal_tint(0x200), cmd_kill(0x1BF);
       unsigned short int cmd_dcfeb_fifo[7] = {0x1,0x2,0x3,0x4,0x5,0x6,0x7};
       unsigned short int cms_l1a_match(0x10), cmd_rst_fifo(0x40);
       // Results
       unsigned short int VMEresult;
       // == ================ Configuration ================ ==
+      // Reset!
+      crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&cmd_rst,rcv);
+      usleep(10000000);
       // Set real data and internal triggers
       crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&cmd_dreal_tint,rcv);
       // Set KILL
@@ -2688,97 +2897,99 @@ namespace emu {
       // Number of received packets before
       crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
       VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      unsigned int nRxPckt_b(VMEresult);
+      //unsigned int nRxPckt_b(VMEresult);
       // Number of good CRCs before
       crate_->vmeController()->vme_controller(2,addr_read_ncrcs,&data,rcv);
       VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      unsigned int nGoodCRCs_b(VMEresult);
+      //unsigned int nGoodCRCs_b(VMEresult);
+      //vector <unsigned int> RxPckts;
+      unsigned int nCntRst(0); // how many times we hit FFFF and restart the counter
       // == ============ Send N real packets ============ ==
       for (unsigned int p = 0; p < repeatNumber; p++) {
 	// Send test L1A(_MATCH) to all DCFEBs
 	crate_->vmeController()->vme_controller(3,addr_dcfeb_ctrl_reg,&cms_l1a_match,rcv);
 	usleep(100);
+	// Read number of received packets
+	crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
+    VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+    //cout << VMEresult << endl;
+    //RxPckts.push_back(VMEresult);
+    if (p>0&&VMEresult==0) nCntRst++; // keep track of how many times the counter resets
 	// Reset FIFO 7
-	crate_->vmeController()->vme_controller(3,addr_rst_fifo,&cmd_rst_fifo,rcv);
+	//crate_->vmeController()->vme_controller(3,addr_rst_fifo,&cmd_rst_fifo,rcv);
       }
       // == ============ Status summary ============ ==
       out << "DCFEB 7: " << endl;
       // Number of received packets [DCFEB 7]
       crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
       VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      unsigned int nRxPckt_a(VMEresult);
-      unsigned int nRxPckt(nRxPckt_a-nRxPckt_b);
+      //cout << VMEresult << endl;
+      unsigned int nRxPckt(VMEresult+nCntRst*65536);
+      //unsigned int nRxPckt_a(VMEresult);
+      //unsigned int nRxPckt(nRxPckt_a-nRxPckt_b);
       out << "Received " << nRxPckt << " out of " << repeatNumber << " packets, ";
       // Number of good CRCs [DCFEB 7]
       crate_->vmeController()->vme_controller(2,addr_read_ncrcs,&data,rcv);
       VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      unsigned int nGoodCRCs_a(VMEresult);
-      unsigned int nGoodCRCs(nGoodCRCs_a-nGoodCRCs_b);
+      //cout << VMEresult << endl;
+      unsigned int nGoodCRCs(VMEresult+nCntRst*65536);
+      //unsigned int nGoodCRCs_a(VMEresult);
+      //unsigned int nGoodCRCs(nGoodCRCs_a-nGoodCRCs_b);
       out << nGoodCRCs << " good CRCs.";
       if (nGoodCRCs==nRxPckt&&nRxPckt==repeatNumber) out << " No bit flips." << endl;
       else out << endl;
     }
     
-    CCBReg::CCBReg(Crate * crate, Manager* manager) 
-      : RepeatTextBoxAction(crate, manager, "CCB Registers Test") 
-    { 
-      // blank constructor
+    CCBReg::CCBReg(Crate * crate, Manager* manager) :
+      RepeatTextBoxAction(crate, manager, "CCB Registers Test"){ 
     }
     
     void CCBReg::respond(xgi::Input * in, ostringstream & out) { // JB-F
+      srand(time(NULL));
       out << "********** CCB registers tests **********" << endl;
       RepeatTextBoxAction::respond(in, out);
       istringstream countertext(this->textBoxContent);
       string line;
       getline(countertext,line,'\n');
       const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
-      out << "********** ccb_other_reg **********" << endl;
       char rcv[2];
-      // Adresses
-      // Slot numbers
+
       unsigned int ccb_slot(13), odmb_slot(Manager::getSlotNumber());
       unsigned int shiftedSlot_ccb = ccb_slot << 19;
       unsigned int shiftedSlot_odmb = odmb_slot << 19;
       unsigned int addr_odmb_ctrl_reg( (0x003000& 0x07ffff) | shiftedSlot_odmb );
-      unsigned int addr_l1a_cnt( (0x0033FC& 0x07ffff) | shiftedSlot_odmb ), addr_ccb_other( (0x0035CC& 0x07ffff) | shiftedSlot_odmb );
-      unsigned int addr_ccb_cs_dl( (0x000000& 0x07ffff) | shiftedSlot_ccb ), addr_ccb_ctr_reg( (0x000020& 0x07ffff) | shiftedSlot_ccb );
-      unsigned int addr_ccb_cmd( (0x000022& 0x07ffff) | shiftedSlot_ccb ), addr_ccb_ctr_data( (0x000024& 0x07ffff) | shiftedSlot_ccb );
-      vector<unsigned int> addr_pulses;
+      unsigned int addr_ccb_other( (0x0035CC& 0x07ffff) | shiftedSlot_odmb );
+      unsigned int addr_ccb_cs_dl( (0x000000& 0x07ffff) | shiftedSlot_ccb );
+      unsigned int addr_ccb_ctr_reg( (0x000020& 0x07ffff) | shiftedSlot_ccb );
+      vector<unsigned int> addr_pulses(0);
       addr_pulses.push_back((0x000054&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x000050&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x000052&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x000024&0x07ffff)|shiftedSlot_ccb);
-      /*addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
-      addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
-      addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);*/
       addr_pulses.push_back((0x00008e&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x00008c&0x07ffff)|shiftedSlot_ccb);
       addr_pulses.push_back((0x00008a&0x07ffff)|shiftedSlot_ccb);
-      vector<unsigned short> args;
+      vector<unsigned short> args(0);
       args.push_back(0x0);
       args.push_back(0x0);
       args.push_back(0x0);
       args.push_back(0x7);
       args.push_back(0x1);
-      /*args.push_back(0x58);
-      args.push_back(0x54);
-      args.push_back(0x50);*/
       args.push_back(0x0);
       args.push_back(0x0);
       args.push_back(0x0);
-      vector<unsigned int> other_bits;
-      other_bits.push_back(0x000010);
-      other_bits.push_back(0x000020);
-      other_bits.push_back(0x000080);
-      other_bits.push_back(0x0000C6);
-      other_bits.push_back(0x000001);
-      other_bits.push_back(0x000400);
-      other_bits.push_back(0x000200);
-      other_bits.push_back(0x000100);
-      vector<int> turnsOn (other_bits.size(),0);
-      vector<int> turnsOff (other_bits.size(),0);
-      vector<string> signalNames; // for output
+      vector<unsigned int> other_bits(0);
+      other_bits.push_back(0x010);
+      other_bits.push_back(0x020);
+      other_bits.push_back(0x080);
+      other_bits.push_back(0x0C6);
+      other_bits.push_back(0x001);
+      other_bits.push_back(0x410);
+      other_bits.push_back(0x210);
+      other_bits.push_back(0x110);
+      vector<int> success (other_bits.size(),0);
+      vector<string> signalNames(0); // for output
       signalNames.push_back("l1acc");
       signalNames.push_back("bx0");
       signalNames.push_back("l1arst");
@@ -2788,50 +2999,83 @@ namespace emu {
       signalNames.push_back("cal(1)");
       signalNames.push_back("cal(0)");
 
-      // Commands
-      unsigned short int data(0x0);
-      unsigned short int rst(0x300);
-      //printf("ccb slot: %d, odmb slot: %d\n",ccb_slot,odmb_slot);
-      //printf("shifted ccb slot: %06x, shifted odmb slot: %06x\n",shiftedSlot_ccb,shiftedSlot_odmb);
-      //printf("addr_odmb_ctrl_reg: %06x\n",addr_odmb_ctrl_reg); 
-      // Results
+      unsigned short int data(0x300);
       unsigned short int VMEresult, VMEresult_prev;
-      // == ================ Configuration ================ ==
+      int data_success(0), cmd_success(0);
       // Reset counters
-      crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&rst,rcv);
-      //printf("Calling:  vme_controller(%d,%06x,&%04x,{%02x,%02x})  \n", 3, 
-      //	     (addr_odmb_ctrl_reg & 0xffffff), (rst & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff)); 
+      crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&data,rcv);
       usleep(10000);
-      // Must change slot to send commands to CCB	
-      Manager::setSlotNumber(ccb_slot);
+      data=0;
       crate_->vmeController()->vme_controller(3,addr_ccb_cs_dl,&data,rcv);
       data=1;
+      usleep(1);
       crate_->vmeController()->vme_controller(3,addr_ccb_ctr_reg,&data,rcv);
-      for (unsigned int n(0);n<repeatNumber;n++) { // number of times to issue the pulses
-	for (unsigned int p(0);p<addr_pulses.size();p++) {
-	  Manager::setSlotNumber(odmb_slot);
+      usleep(1);
+      crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
+      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+      usleep(1);
+      for (unsigned int n(0);n<repeatNumber;n++) {
+	for (unsigned int p(0);p<addr_pulses.size();++p) {
+	  crate_->vmeController()->vme_controller(3,addr_pulses.at(p),&args.at(p),rcv);
+	  usleep(1);
 	  crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
-	  VMEresult_prev = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	  Manager::setSlotNumber(ccb_slot);
-	  crate_->vmeController()->vme_controller(3,addr_pulses[p],&args.at(p),rcv);
-	  Manager::setSlotNumber(odmb_slot);		
-	  crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
+	  VMEresult_prev = VMEresult;
 	  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	  if ((VMEresult^VMEresult_prev)&other_bits.at(p)) turnsOn[p]++;
-	  VMEresult_prev=VMEresult;
-	  Manager::setSlotNumber(ccb_slot);
-	  crate_->vmeController()->vme_controller(3,addr_pulses[p],&args.at(p),rcv);
-	  Manager::setSlotNumber(odmb_slot);		
-	  crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
-	  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	  if ((VMEresult^VMEresult_prev)&other_bits.at(p)) turnsOff[p]++;
+	  if (((VMEresult^VMEresult_prev)&(0xFF7))==(other_bits.at(p) & 0xffff)){
+	    ++success.at(p);
+	  }
 	}
-      } // number of times to issue the pulses
+
+	unsigned short to_data(0);
+	crate_->vmeController()->vme_controller(3,
+						(0x000024 & 0x07ffff)|shiftedSlot_ccb,
+						&to_data,rcv);
+	usleep(1);
+	crate_->vmeController()->vme_controller(2,
+						(0x35BC & 0x07ffff)|shiftedSlot_odmb,
+						&to_data,rcv);
+	unsigned int data_result_before=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	to_data=0xFF;
+	crate_->vmeController()->vme_controller(3,
+						(0x000024 & 0x07ffff)|shiftedSlot_ccb,
+						&to_data,rcv);
+	usleep(1);
+	crate_->vmeController()->vme_controller(2,
+						(0x35BC & 0x07ffff)|shiftedSlot_odmb,
+						&to_data,rcv);
+	unsigned int data_result_after=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	if(data_result_before==0xFF && data_result_after==0x00) ++data_success;
+
+	to_data=0;
+	crate_->vmeController()->vme_controller(3,
+						(0x000022 & 0x07ffff)|shiftedSlot_ccb,
+						&to_data,rcv);
+	usleep(1);
+	crate_->vmeController()->vme_controller(2,
+						(0x35AC & 0x07ffff)|shiftedSlot_odmb,
+						&to_data,rcv);
+	unsigned int cmd_result_before=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	to_data=0xFC;
+	crate_->vmeController()->vme_controller(3,
+						(0x000022 & 0x07ffff)|shiftedSlot_ccb,
+						&to_data,rcv);
+	usleep(1);
+	crate_->vmeController()->vme_controller(2,
+						(0x35AC & 0x07ffff)|shiftedSlot_odmb,
+						&to_data,rcv);
+	unsigned int cmd_result_after=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+	if(cmd_result_before==0xFF && cmd_result_after==0x03) ++cmd_success;
+      }
 
       for (unsigned int p(0);p<addr_pulses.size();p++) {
-	out << "CCB Signal / Fails: " << signalNames[p] << " / "
-	    << 2*repeatNumber-turnsOn[p]-turnsOff[p] << endl;	
+	out << setfill(' ');
+	out << "CCB Signal / Fails: " << setw(32) << signalNames[p] << " / "
+	    << dec << setw(16) << repeatNumber-success[p] << endl;	
       }
+      out << "CCB Signal / Fails: " << setw(32) << "ccb_data" << " / "
+	  << dec << setw(16) << repeatNumber-data_success << endl;
+      out << "CCB Signal / Fails: " << setw(32) << "ccb_cmd" << " / "
+	  << dec << setw(16) << repeatNumber-cmd_success << endl;
     }
 
     /**************************************************************************
