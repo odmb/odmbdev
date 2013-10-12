@@ -139,6 +139,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<CommonUtilities_setupDDU_passThrough>(crate);
       
       putButtonsInGroup("Production Tests");
+      addLogActionByTypename<CreateTestLog>(crate, this);
       addActionByTypename<ChangeSlotNumber>(crate, this);
       addActionByTypename<LVMBtest>(crate, this);
       addActionByTypename<DCFEBJTAGcontrol>(crate, this);
@@ -366,7 +367,7 @@ namespace emu { namespace odmbdev {
 
       *out << cgicc::div().set("style", string("margin-left: 525px;") + "padding-left: 30px;"+ "padding-right: 30px;");
 
-      for(unsigned int i = 0; i < logActions_.size(); ++i) { // display log buttons at the top
+      for(unsigned int i = 1; i < logActions_.size(); ++i) { // display log buttons at the top
         *out << p()
 	     << cgicc::form().set("method","GET")
 	  .set("action", "logActions")
@@ -431,12 +432,24 @@ namespace emu { namespace odmbdev {
           
         std::string GoToMainPage = toolbox::toString("/%s/",getApplicationDescriptor()->getURN().c_str());
   	    *out << cgicc::a("[Main Page]").set("href",GoToMainPage) << std::endl;
+	// This is just for the create log button
+	*out << p()
+	     << cgicc::form().set("method","GET")
+	  .set("action", "logActions")
+	     << "Output log " 
+             << cgicc::input().set("type","hidden")
+	  .set("value",numberToString(0))
+	  .set("name","__action_to_call");
 
+	logActions_[0]->display(out);
+
+	*out << cgicc::form()
+	     << p();
+	     
 	for(uint g=1; g<groups_.size(); ++g) { // all groups except for the routine tests on the main page
 	  t_actionvector av=groupActions_[groups_[g]];
 	  
 	  for(unsigned int i = 0; i <av.size(); ++i) {
-
 	  // this multi-line statement sets up a form for the action,
 	  // which will create buttons, etc. The __action_to_call hidden
 	  // form element tells the Manager which action to use when
@@ -464,7 +477,7 @@ namespace emu { namespace odmbdev {
 
       *out << cgicc::div().set("style", string("margin-left: 525px;") + "padding-left: 30px;"+ "padding-right: 30px;");
 
-      for(unsigned int i = 0; i < logActions_.size(); ++i) { // display log buttons at the top
+      for(unsigned int i = 1; i < logActions_.size(); ++i) { // display log buttons at the top
         *out << p()
 	     << cgicc::form().set("method","GET")
 	  .set("action", "logActions")
@@ -603,7 +616,12 @@ namespace emu { namespace odmbdev {
       logActions_.push_back(shared_ptr<T>(new T(crate)));
       logActions_.back()->useTMBInSlot(tmbSlot_);
     }
-
+    
+    template <typename T>
+    void Manager::addLogActionByTypename(Crate * crate,  emu::odmbdev::Manager* manager) {
+      logActions_.push_back(shared_ptr<T>(new T(crate,manager)));
+      logActions_.back()->useTMBInSlot(tmbSlot_);
+    }
 
     // Redirect back to the main page. -Joe
     void Manager::backToMainPage(xgi::Input * in, xgi::Output * out, const std::string& anchor )

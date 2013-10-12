@@ -2408,6 +2408,54 @@ namespace emu {
       out<<endl;
     }
 
+    CreateTestLog::CreateTestLog(Crate * crate, Manager* manager) 
+      : SignatureTextBoxAction(crate, manager, "Save Test Log") 
+    { 
+      // blank constructor
+    }
+    
+    void CreateTestLog::respond(xgi::Input * in, xgi::Output * out, std::ostringstream & ssout, std::ostringstream & log) { // JB-F
+      SignatureTextBoxAction::respond(in, out, ssout);
+      istringstream text(this->textBoxContent);
+      string initials;
+      getline(text,initials,'\n');
+      
+      // First obtain ODMB id and firmware version
+      int slot = Manager::getSlotNumber();
+      unsigned int shiftedSlot = slot << 19;
+      char rcv[2];
+      unsigned short int data;
+      //addresses
+      unsigned short int VMEresult = 0;
+      int addr_read_fwv= (0x004024 & 0x07ffff) | shiftedSlot;
+      
+      // Read firmware version
+      crate_->vmeController()->vme_controller(2, addr_read_fwv, &data, rcv);
+      //Format result
+      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+      string fwv = FixLength(VMEresult, 3, true);
+      
+      
+      cout << "Saving production test log for ODMB " << endl;
+      cout << "Tester: " << initials << endl;
+       // create log file
+      string file_name("logfiles/odmb_#_fw_v");
+      string logContents;
+      file_name += fwv + string("_") + emu::utils::getDateTime(true) + string("_") + initials + string(".log");
+      ofstream ofs(file_name.c_str(),ios::app);
+      if(ofs.good())
+      {   // print log header
+          ofs << "Production test log for ODMB " << endl;
+      	  ofs << "Tester: " << initials << endl;
+      	  ofs << "Firmware version: " << fwv << endl;
+      	  // Now copy the test outputs displayed on the web page into the log
+      	  ofs << log.str();
+      }
+      
+      ssout << "Created log file " << file_name << endl;
+      
+    }
+
     LVMBtest::LVMBtest(Crate * crate, emu::odmbdev::Manager* manager) 
       : ThreeTextBoxAction(crate, manager, "LVMB test") 
     { 
@@ -2448,7 +2496,7 @@ namespace emu {
       int fail_turn_off = 0;
       int fail_turn_on = 0;
       unsigned short int ctrl_byte_vec[7] =       {0x89, 0xB9, 0xA9, 0xD9, 0x99, 0xE9, 0xD9};
-      unsigned short int ctrl_byte_vec2[7] =      {0x81, 0xB1, 0xA1, 0xD1, 0x91, 0xE1, 0xD1};
+      //unsigned short int ctrl_byte_vec2[7] =      {0x81, 0xB1, 0xA1, 0xD1, 0x91, 0xE1, 0xD1};
       unsigned short int ctrl_byte_vec_onoff[7] = {0xC9, 0xE9, 0xE9, 0x89, 0xD9, 0xA9, 0x99};
       vector <pair<float, int> > voltages[7];
       unsigned short int ADC_number_vec[7] =      {0x00, 0x04, 0x01, 0x05, 0x03, 0x06, 0x02};
@@ -2492,7 +2540,7 @@ namespace emu {
           }
           else{
             //Error checking
-            bool already_failed = false;
+            //bool already_failed = false;
             float voltage = voltage_result_1;
             if (mode == 0 && fabs(voltage) > .1) out << "Failed turn off test #" << ADC_number_vec[i] << "!" << endl; 
             if (mode == 1 && fabs(voltage) < .5) out << "Failed turn on test #" << ADC_number_vec[i] << "!" << endl; 
@@ -2573,7 +2621,7 @@ namespace emu {
       sort(hexes.begin(), hexes.end()); 
       sort(the_voltages.begin(), the_voltages.end()); 
       int old = 0;
-      for (int i1 = 0; i1 < hexes.size(); i1++){
+      for (unsigned int i1 = 0; i1 < hexes.size(); i1++){
         if (hexes[i1] != old) cout << hex << hexes[i1] << " voltages " << the_voltages[i1] <<  endl;
         old = hexes[i1]; 
       }

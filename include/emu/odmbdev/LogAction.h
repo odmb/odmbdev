@@ -18,6 +18,8 @@ namespace emu { namespace odmbdev {
     public:
 
       LogAction(emu::pc::Crate * crate);
+      // Special version for production tests log
+      LogAction(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
 
       // "= 0" forces subclases to implement this
       virtual void display(xgi::Output * out) = 0;
@@ -30,6 +32,7 @@ namespace emu { namespace odmbdev {
        * In a perfect world, I'd rewrite the class heirarchy to have a
        * "displayable" class. God, class-based object-oriented models are
        * annoying.
+       * 10/11: I guess now we're allowing ourselves to use these as actions as well...
        ************************************************************************/
       void respond(xgi::Input * in, std::ostringstream & out);
 

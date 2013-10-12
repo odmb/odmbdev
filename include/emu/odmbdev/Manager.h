@@ -72,14 +72,15 @@ namespace odmbdev {
       template <typename T> void addCommonActionByTypename(emu::pc::Crate * crate, emu::odmbdev::Manager* manager );
       template <typename T> void addCommonActionByTypename(emu::pc::Crate * crate);
       template <typename T> void addLogActionByTypename(emu::pc::Crate * crate);
+      template <typename T> void addLogActionByTypename(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
 
       void setDAQOutSubdir( const std::string& subdir );
       void startDAQ( const std::string& runtype );
       void stopDAQ();
       bool waitForDAQToExecute( const std::string command, const uint64_t seconds );
       static int getSlotNumber() {return slot_number;}
-      static void setSlotNumber(int slot) {slot_number = slot;}            
-
+      static void setSlotNumber(int slot) {slot_number = slot;}
+		
     protected:
       static int slot_number;
       std::ostringstream webOutputLog_;

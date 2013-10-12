@@ -91,6 +91,28 @@ namespace emu { namespace odmbdev {
 	   << endl;
     }
     
+    void Action::addButtonWithNameBox(xgi::Output *out,
+				      const string& button_name,
+				      const string& textbox_name,
+				      const string& textbox_default_value,
+				      const string& button_style,
+				      const string& textbox_style)
+    {
+      *out << 
+        "Enter your intials: " <<
+	   cgicc::input()
+	.set("type","text")
+	.set("value",textbox_default_value)
+	.set("style", textbox_style)
+	.set("name",textbox_name) 
+          << endl
+          << cgicc::input()
+	.set("type","submit")
+	.set("style", button_style)
+	.set("value",button_name)
+	   << endl;
+    }
+    
     void Action::addButtonWithRepeatOpt(xgi::Output *out,
 				      const string& button_name,
 				      const string& textbox_name,

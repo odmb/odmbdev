@@ -18,6 +18,7 @@
 #include "emu/odmbdev/ThreeTextBoxAction.h"
 #include "emu/odmbdev/RepeatTextBoxAction.h"
 #include "emu/odmbdev/ParameterTextBoxAction.h"
+#include "emu/odmbdev/SignatureTextBoxAction.h"
 
 /******************************************************************************
  * The Buttons
@@ -377,6 +378,18 @@ namespace emu { namespace odmbdev {
       void respond(xgi::Input * in, ostringstream & out);
     };      
 
+	/**************************************************************************
+     * CreateTestLog
+     *
+     * A small class to save a log of completed production tests
+     * Saves the board number, firmware version, and tester intials
+	 **************************************************************************/
+    class CreateTestLog : public SignatureTextBoxAction {
+    public:
+      CreateTestLog(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, xgi::Output * out, std::ostringstream & ssout, std::ostringstream & log);
+    }; 
+    
     /**************************************************************************
      * LVMBtest
      *
