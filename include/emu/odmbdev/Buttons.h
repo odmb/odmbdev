@@ -331,6 +331,7 @@ namespace emu { namespace odmbdev {
     class ChangeSlotNumber : public OneTextBoxAction {
     public:
       ChangeSlotNumber(Crate * crate, emu::odmbdev::Manager* manager);
+      void display(xgi::Output * out);
       void respond(xgi::Input * in, ostringstream & out);
     };
 
@@ -617,7 +618,17 @@ namespace emu { namespace odmbdev {
       void display(xgi::Output * out);
       void respond(xgi::Input * in, std::ostringstream & out);
     };     
-    
+
+    /**************************************************************************
+     * Load MCS via BPI
+     *
+     * Load MCS to PROM using BPI engine
+     *************************************************************************/
+    class LoadMCSviaBPI : public OneTextBoxAction {
+    public:
+      LoadMCSviaBPI(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
+    };    
   }
 }
 

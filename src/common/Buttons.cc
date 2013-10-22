@@ -1888,9 +1888,22 @@ namespace emu {
       return str;
     }
 
+    void ChangeSlotNumber::display(xgi::Output * out)
+    {
+      string str = static_cast<ostringstream*>( &(ostringstream() << Manager::getSlotNumber() ))->str();
+      addButtonWithTextBox(out,
+			   this->buttonLabel,
+			   "textbox",
+			   str.c_str());
+    }
+
+
     void ChangeSlotNumber::respond(xgi::Input * in, ostringstream & out) {
       OneTextBoxAction::respond(in, out);
-      out<<"SET_SLOT     "<< Manager::getSlotNumber() <<"           Changed default slot to " 
+      
+      out<<"SET_SLOT     "<< Manager::getSlotNumber();
+      Manager::setSlotNumber(atoi(this->textBoxContent.c_str()));
+      out <<"           Changed default slot to " 
 	 << Manager::getSlotNumber()<<endl<<endl;
     } // End ChangeSlotNumber::respond
 
@@ -5020,6 +5033,44 @@ namespace emu {
       manager_->stopDAQ();
       cout<<" Done "<<endl;
     }
+
+      /**************************************************************************
+       * Load MCS via BPI
+       *
+       * Load MCS to PROM using BPI engine
+       *************************************************************************/
+
+      LoadMCSviaBPI::LoadMCSviaBPI(Crate * crate, emu::odmbdev::Manager* manager)
+          : OneTextBoxAction(crate, manager, "load MCS")
+      {
+          //cout << "Updating the slot number box" << endl; 
+      }
+
+      void LoadMCSviaBPI::respond(xgi::Input * in, ostringstream & out)
+      {
+          OneTextBoxAction::respond(in, out);
+          std::string filename(this->textBoxContent);
+          if (filename.empty())
+          {
+              printf("No MCS file specified.  Exiting.\n");
+          }
+          else
+          {
+              if (dmbs_.size() == 0)
+              {
+                  printf("No ODMBs found.  Exiting.\n");
+              }
+              else
+              {
+                  for (vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb)
+                  {
+                    printf("loading MCS file %s...\n", filename.c_str());
+                      (*dmb)->odmb_epromload_mcs(filename.c_str(), 0);
+                  }
+              }
+
+          }
+      } // end LoadMCSviaBPI::respond    
 
   } // namespace odmbdev
 } // namespace emu

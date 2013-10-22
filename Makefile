@@ -36,8 +36,8 @@ Sources = \
         ThreeTextBoxAction.cc \
         RepeatTextBoxAction.cc \
         ParameterTextBoxAction.cc \
-        SignatureTextBoxAction.cc \
-	Spy.cc
+        SignatureTextBoxAction.cc
+#	Spy.cc
 TestSources =
 TestIncludeDirs =
 
@@ -47,7 +47,8 @@ IncludeDirs = \
 	$(BUILD_HOME)/emu/soap/include \
 	$(BUILD_HOME)/emu/emuDCS/PeripheralCore/include \
 	$(BUILD_HOME)/emu/emuDCS/PeripheralApps/include \
-	$(BUILD_HOME)/emu/odmbdev/include
+	$(BUILD_HOME)/emu/odmbdev_fgolf/include \
+	$(BUILD_HOME)/emu/daq/reader
 LibraryDirs =
 
 UserSourcePath =
