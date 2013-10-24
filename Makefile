@@ -36,7 +36,8 @@ Sources = \
         ThreeTextBoxAction.cc \
         RepeatTextBoxAction.cc \
         ParameterTextBoxAction.cc \
-        SignatureTextBoxAction.cc
+        SignatureTextBoxAction.cc \
+        VMEWrapper.cc
 #	Spy.cc
 TestSources =
 TestIncludeDirs =

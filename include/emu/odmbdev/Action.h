@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include "VMEWrapper.h"
 
 /******************************************************************************
  * The Action Class
@@ -111,6 +112,7 @@ namespace odmbdev {
       emu::pc::CCB* ccb_;
       emu::pc::ALCTController* alct_;
       emu::odmbdev::Manager* manager_;
+      emu::odmbdev::VMEWrapper* vme_wrapper_;
 
       static void addButton(xgi::Output *out,
 			    const std::string& button_name,

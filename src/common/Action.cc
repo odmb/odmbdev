@@ -24,7 +24,7 @@ namespace emu { namespace odmbdev {
       ccb_(crate_->ccb()),
       alct_(tmb_->alctController()),
       manager_(NULL)
-    {}
+    {vme_wrapper_ = new VMEWrapper(crate_);}
 
     Action::Action(Crate * crate, emu::odmbdev::Manager* manager):
       crate_(crate),
@@ -34,7 +34,7 @@ namespace emu { namespace odmbdev {
       ccb_(crate_->ccb()),
       alct_(tmb_->alctController()),
       manager_(manager)
-    {}
+    {vme_wrapper_ = new VMEWrapper(crate_);}
 
 
     void Action::useTMBInSlot(int slot)

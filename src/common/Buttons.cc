@@ -2394,8 +2394,6 @@ namespace emu {
     void SYSMON::respond(xgi::Input * in, ostringstream & out) { // TD
       out << "********** System Monitoring **********" << endl;
       int slot = Manager::getSlotNumber();
-      unsigned int shiftedSlot = slot << 19;
-      char rcv[2];
       unsigned int read_addr_vec[9] = {0x7150, 0x7120, 0x7000, 0x7160, 0x7140, 0x7100, 0x7130, 0x7110, 0x7170};
       string description[9] = {" C\t -  Thermistor 1 temperature", " C\t -  Thermistor 2 temperature", " C\t -  FPGA temperature", 
 			       " V\t -  P1V0: Voltage for FPGA", " V\t -  P2V5: Voltage for FPGA", " V\t -  LV_P3V3: Voltage for FPGA", 
@@ -2404,12 +2402,14 @@ namespace emu {
       float voltmax[9] = {1.0, 1.0, 1.0, 1.0, 2.5, 3.3, 3.3, 5.0, 5.0};
       float result2[9];
       for (int i = 0; i < 9; i++){
-        int read_addr = (read_addr_vec[i] & 0x07ffff) | shiftedSlot;
-        unsigned short int data;
-        crate_->vmeController()->vme_controller(2,read_addr,&data,rcv);
-        unsigned short int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-        crate_->vmeController()->vme_controller(2,read_addr,&data,rcv);
-        VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+        // old version...
+        // crate_->vmeController()->vme_controller(2,read_addr,&data,rcv);
+        //unsigned short int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+        //crate_->vmeController()->vme_controller(2,read_addr,&data,rcv);
+        //VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+        // new version ...
+        unsigned short int VMEresult = vme_wrapper_->VMERead(read_addr_vec[i],slot);
+        VMEresult = vme_wrapper_->VMERead(read_addr_vec[i],slot);
         if (i == 0 && VMEresult > 0xfff){ cout << "ERROR: bad readout from system monitoring." << endl; out << "ERROR: bad readout from system monitoring." << endl; break; }
         if (i == 2){ result2[i] = 503.975*VMEresult/4096.0 - 273.15; }
         else if (i > 1) result2[i] = VMEresult*2.0*voltmax[i]/4096.0;
