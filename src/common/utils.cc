@@ -107,6 +107,21 @@ string getFormValueString(const string& form_element, xgi::Input *in)
   return form_value;
 }
 
+string GetLogFileName(unsigned int port_number) {
+  time_t rawtime;
+  struct tm *timeinfo;
+  time(&rawtime);
+  timeinfo = localtime(&rawtime);
+  char year[10], month[10], day[10], hour[10], minute[10], second[10];
+  strftime(year, 10, "%g", timeinfo ); strftime(month, 10, "%m", timeinfo ); strftime(day, 10, "%d", timeinfo ); 
+  strftime(hour, 10, "%H", timeinfo ); strftime(minute, 10, "%M", timeinfo ); strftime(second, 10, "%S", timeinfo );
+  string file_name("/data/odmb/logfiles/odmb_log_");
+  char time_stamp[100];
+  sprintf (time_stamp,"%s%s%s_%s%s%s_p%d.log",year,month,day,hour,minute,second,port_number);
+  file_name+=time_stamp;
+  return file_name;
+}
+
 
 }} // namespaces
 

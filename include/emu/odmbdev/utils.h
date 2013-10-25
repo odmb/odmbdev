@@ -4,6 +4,7 @@
 #include "xgi/Input.h"
 #include <string>
 #include <sstream>
+#include <time.h>
 
 namespace emu{ 
   namespace odmbdev{
@@ -23,7 +24,7 @@ namespace emu{
       convert << number;
       return convert.str();
     }
-
+	std::string GetLogFileName(unsigned int port_number);
   }
 }
 

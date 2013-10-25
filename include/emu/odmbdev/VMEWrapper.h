@@ -35,12 +35,14 @@ namespace odmbdev {
       VMEWrapper(emu::pc::Crate * crate);
       VMEWrapper(const VMEWrapper&);
       virtual ~VMEWrapper() { };
-      void VMEWrite (unsigned short int, unsigned short int, unsigned int=15);
-      unsigned short int VMERead (unsigned short int, unsigned int=15);
+      void VMEWrite (unsigned short int, unsigned short int, unsigned int=15, string="");
+      unsigned short int VMERead (unsigned short int, unsigned int=15, string="");
     
     protected:
     	emu::pc::Crate * crate_;
     	unsigned int port_number_;
+    	string logFile_;
+    	ofstream logger_;
     private:
     	VMEWrapper(VMEWrapper * vme_wrapper=0){cout << "Fail." << endl;}
     };

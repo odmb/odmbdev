@@ -2411,8 +2411,8 @@ namespace emu {
         //crate_->vmeController()->vme_controller(2,read_addr,&data,rcv);
         //VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
         // new version ...
-        unsigned short int VMEresult = vme_wrapper_->VMERead(read_addr_vec[i],slot);
-        VMEresult = vme_wrapper_->VMERead(read_addr_vec[i],slot);
+        unsigned short int VMEresult = vme_wrapper_->VMERead(read_addr_vec[i],slot,description[i]);
+        VMEresult = vme_wrapper_->VMERead(read_addr_vec[i],slot,description[i]);
         if (i == 0 && VMEresult > 0xfff){ cout << "ERROR: bad readout from system monitoring." << endl; out << "ERROR: bad readout from system monitoring." << endl; break; }
         if (i == 2){ result2[i] = 503.975*VMEresult/4096.0 - 273.15; }
         else if (i > 1) result2[i] = VMEresult*2.0*voltmax[i]/4096.0;
@@ -3124,15 +3124,15 @@ namespace emu {
       unsigned short int data(0x300);
       unsigned short int VMEresult, VMEresult_prev;
       // Reset counters
-      vme_wrapper_->VMEWrite(addr_odmb_ctrl_reg,data,odmb_slot);
+      vme_wrapper_->VMEWrite(addr_odmb_ctrl_reg,data,odmb_slot,"Reset counters, select internal L1A/LCT");
       usleep(10000);
       data=0;
       vme_wrapper_->VMEWrite(addr_ccb_cs_dl,data,ccb_slot);
       data=1;
       usleep(1);
-      vme_wrapper_->VMEWrite(addr_ccb_ctr_reg,data,ccb_slot);
+      vme_wrapper_->VMEWrite(addr_ccb_ctr_reg,data,ccb_slot,"Write to CCB command bus");
       usleep(1);
-      VMEresult = vme_wrapper_->VMERead(addr_ccb_other,odmb_slot);
+      VMEresult = vme_wrapper_->VMERead(addr_ccb_other,odmb_slot,"Read CCB *other* signals from ODMB");
       usleep(1);
       vector<unsigned int> nBAADs_other(other_bits.size(),0);
       unsigned int nBAADs_cmd(0), nBAADs_data(0);
@@ -3142,9 +3142,9 @@ namespace emu {
       	bool BAAD_read(false);
 		for (unsigned int p(0);p<addr_pulses.size();++p) {
 		  BAAD_read = false;
-		  vme_wrapper_->VMEWrite(addr_pulses.at(p),args.at(p),ccb_slot);
+		  vme_wrapper_->VMEWrite(addr_pulses.at(p),args.at(p),ccb_slot,"Send address pulse to CCB");
 		  usleep(1);
-		  unsigned short int temp = vme_wrapper_->VMERead(addr_ccb_other,odmb_slot);
+		  unsigned short int temp = vme_wrapper_->VMERead(addr_ccb_other,odmb_slot,"Read CCB *other* signals from ODMB");
 		  VMEresult_prev = VMEresult;
 		  VMEresult = temp;
 		  if (VMEresult>0x7FF) BAAD_read = true;
@@ -3156,14 +3156,14 @@ namespace emu {
 	
 		BAAD_read = false; // reset for data
 		unsigned short to_data(0);
-		vme_wrapper_->VMEWrite(0x000024,to_data,ccb_slot);
+		vme_wrapper_->VMEWrite(0x000024,to_data,ccb_slot,"Write to CCB data bus");
 		usleep(1);
-		unsigned int data_result_before = vme_wrapper_->VMERead(0x35BC,odmb_slot);
+		unsigned int data_result_before = vme_wrapper_->VMERead(0x35BC,odmb_slot,"Read CCB data register from ODMB");
 		if (data_result_before>0xFF) BAAD_read=true;
 		to_data=0xFF;
-		vme_wrapper_->VMEWrite(0x000024,to_data,ccb_slot);
+		vme_wrapper_->VMEWrite(0x000024,to_data,ccb_slot,"Write to CCB data bus");
 		usleep(1);
-		unsigned int data_result_after = vme_wrapper_->VMERead(0x35BC,odmb_slot);
+		unsigned int data_result_after = vme_wrapper_->VMERead(0x35BC,odmb_slot,"Read CCB data register from ODMB");
 		if (data_result_after>0xFF) BAAD_read=true;
 		if (BAAD_read) nBAADs_data++;
 		else { // only count flipped bits if we don't have a BAAD
@@ -3173,14 +3173,14 @@ namespace emu {
 		BAAD_read = false; // reset to check cmd
 		//if(data_result_before==0x00FF && data_result_after==0x0000) ++data_success;
 		to_data=0;
-		vme_wrapper_->VMEWrite(0x000022,to_data,ccb_slot);
+		vme_wrapper_->VMEWrite(0x000022,to_data,ccb_slot,"Write to CCB command bus");
 		usleep(1);
-		unsigned int cmd_result_before = vme_wrapper_->VMERead(0x35AC,odmb_slot);
+		unsigned int cmd_result_before = vme_wrapper_->VMERead(0x35AC,odmb_slot,"Read CCB command register from ODMB");
 		if (cmd_result_before>0xFF) BAAD_read=true;
 		to_data=0xFC;
-		vme_wrapper_->VMEWrite(0x000022,to_data,ccb_slot);
+		vme_wrapper_->VMEWrite(0x000022,to_data,ccb_slot,"Write to CCB command bus");
 		usleep(1);
-		unsigned int cmd_result_after = vme_wrapper_->VMERead(0x35AC,odmb_slot);
+		unsigned int cmd_result_after = vme_wrapper_->VMERead(0x35AC,odmb_slot,"Read CCB command register from ODMB");
 		if (cmd_result_after>0xFF) BAAD_read=true;
 		if (BAAD_read) nBAADs_cmd++;
 		else { // only count flipped bits if we don't have a BAAD
