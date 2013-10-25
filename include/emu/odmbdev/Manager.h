@@ -80,9 +80,11 @@ namespace odmbdev {
       bool waitForDAQToExecute( const std::string command, const uint64_t seconds );
       static int getSlotNumber() {return slot_number;}
       static void setSlotNumber(int slot) {slot_number = slot;}
+      static int getPortNumber() {return port_;}
 		
     protected:
       static int slot_number;
+      static unsigned int port_;
       std::ostringstream webOutputLog_;
       std::string OutputLogTitle_;
       // see the comment above addAction for why we use a vector of boost::shared_ptr
@@ -100,6 +102,7 @@ namespace odmbdev {
       void firstUse();
       xdata::String xmlConfig_;
       xdata::Integer tmbSlot_;
+      
 
       void bindWebInterface();
       void defaultWebPage(xgi::Input *in, xgi::Output *out);

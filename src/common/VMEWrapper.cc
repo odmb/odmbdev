@@ -1,12 +1,17 @@
 #include "emu/odmbdev/VMEWrapper.h" 
+#include "emu/odmbdev/Manager.h"
  
 namespace emu { namespace odmbdev {
-    VMEWrapper::VMEWrapper(Crate * crate) : crate_(crate)
+    VMEWrapper::VMEWrapper(Crate * crate) : 
+    crate_(crate),
+    port_number_(Manager::getPortNumber())
     {
       // blank constructor
     }
     
-    VMEWrapper::VMEWrapper( const VMEWrapper& other ) : crate_( other.crate_ )
+    VMEWrapper::VMEWrapper( const VMEWrapper& other ) : 
+    crate_(other.crate_),
+    port_number_(other.port_number_)
     {
     // copy constructor
     }

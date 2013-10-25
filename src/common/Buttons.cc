@@ -50,6 +50,9 @@ namespace emu {
   namespace odmbdev {
     
     int Manager::slot_number = 15;
+    unsigned int Manager::port_ = 9991; // This doesn't affect the xdaq app;
+    									// I just needed to initialize this
+    									// static member variable.
 
     void HardReset::respond(xgi::Input * in, ostringstream & out) { cout<<"==>HardReset"<<endl; 
       if(ccb_->GetCCBmode() != CCB::VMEFPGA) ccb_->setCCBMode(CCB::VMEFPGA); // we want the CCB in this mode for out test stand

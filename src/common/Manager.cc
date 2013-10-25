@@ -101,6 +101,15 @@ namespace emu { namespace odmbdev {
       Crate * crate = xmlparser.GetEmuEndcap()->crates().at(USE_CRATE_N); // we could make this a member variable and not need to pass it around everywhere
 
       cout<<"ME11Dev: configured to test TMB in slot "<<int(tmbSlot_)<<endl;
+      
+      xdaq::ApplicationDescriptor *appDescriptor = getApplicationDescriptor();
+      string url = appDescriptor->getContextDescriptor()->getURL();
+      cout << "xdaq page url: " << url << endl;
+      size_t pos1 = url.find_first_of(":",5);
+      size_t pos2 = url.find_first_not_of("0123456789",pos1+2);
+      string s_port = url.substr(pos1+1,pos2-pos1-1);
+      port_ = atoi(s_port.c_str());
+
 
 
       /************************************************************************

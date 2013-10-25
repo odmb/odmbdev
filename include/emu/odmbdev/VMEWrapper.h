@@ -40,6 +40,7 @@ namespace odmbdev {
     
     protected:
     	emu::pc::Crate * crate_;
+    	unsigned int port_number_;
     private:
     	VMEWrapper(VMEWrapper * vme_wrapper=0){cout << "Fail." << endl;}
     };
