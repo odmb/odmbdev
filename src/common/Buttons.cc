@@ -2959,7 +2959,6 @@ namespace emu {
 			tdo.push_back(FixLength(VMEresult, 4, true));
 			if (reg_val_shft == start) continue;
 			if (tdo[reg_val_shft-0x111].substr(0,3) == tdi[reg_val_shft-1-0x111]) v_nShiftReads[d]++;
-			cout << "tdi/tdo = " << tdi[reg_val_shft-1-0x111] << "/" << tdo[reg_val_shft-0x111].substr(0,3) << endl;
 		  }
 		} // Loop over all DCFEBs
 		if (nConnected==0) out << "Error: could not find DCFEBs. Please check connections." << endl;
@@ -3075,24 +3074,21 @@ namespace emu {
       getline(countertext,line,'\n');
       const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
       out << "Repeated " << repeatNumber << " times." << endl;
-      char rcv[2];
 
       unsigned int ccb_slot(13), odmb_slot(Manager::getSlotNumber());
-      unsigned int shiftedSlot_ccb = ccb_slot << 19;
-      unsigned int shiftedSlot_odmb = odmb_slot << 19;
-      unsigned int addr_odmb_ctrl_reg( (0x003000& 0x07ffff) | shiftedSlot_odmb );
-      unsigned int addr_ccb_other( (0x0035CC& 0x07ffff) | shiftedSlot_odmb );
-      unsigned int addr_ccb_cs_dl( (0x000000& 0x07ffff) | shiftedSlot_ccb );
-      unsigned int addr_ccb_ctr_reg( (0x000020& 0x07ffff) | shiftedSlot_ccb );
+      unsigned int addr_odmb_ctrl_reg(0x003000);
+      unsigned int addr_ccb_other(0x0035CC);
+      unsigned int addr_ccb_cs_dl(0x000000);
+      unsigned int addr_ccb_ctr_reg(0x000020);
       vector<unsigned int> addr_pulses(0);
-      addr_pulses.push_back((0x000054&0x07ffff)|shiftedSlot_ccb);
-      addr_pulses.push_back((0x000050&0x07ffff)|shiftedSlot_ccb);
-      addr_pulses.push_back((0x000052&0x07ffff)|shiftedSlot_ccb);
-      addr_pulses.push_back((0x000022&0x07ffff)|shiftedSlot_ccb);
-      addr_pulses.push_back((0x000024&0x07ffff)|shiftedSlot_ccb);
-      addr_pulses.push_back((0x00008e&0x07ffff)|shiftedSlot_ccb);
-      addr_pulses.push_back((0x00008c&0x07ffff)|shiftedSlot_ccb);
-      addr_pulses.push_back((0x00008a&0x07ffff)|shiftedSlot_ccb);
+      addr_pulses.push_back(0x000054);
+      addr_pulses.push_back(0x000050);
+      addr_pulses.push_back(0x000052);
+      addr_pulses.push_back(0x000022);
+      addr_pulses.push_back(0x000024);
+      addr_pulses.push_back(0x00008e);
+      addr_pulses.push_back(0x00008c);
+      addr_pulses.push_back(0x00008a);
       vector<unsigned short> args(0);
       args.push_back(0x0);
       args.push_back(0x0);
@@ -3125,16 +3121,15 @@ namespace emu {
       unsigned short int data(0x300);
       unsigned short int VMEresult, VMEresult_prev;
       // Reset counters
-      crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&data,rcv);
+      vme_wrapper_->VMEWrite(addr_odmb_ctrl_reg,data,odmb_slot);
       usleep(10000);
       data=0;
-      crate_->vmeController()->vme_controller(3,addr_ccb_cs_dl,&data,rcv);
+      vme_wrapper_->VMEWrite(addr_ccb_cs_dl,data,ccb_slot);
       data=1;
       usleep(1);
-      crate_->vmeController()->vme_controller(3,addr_ccb_ctr_reg,&data,rcv);
+      vme_wrapper_->VMEWrite(addr_ccb_ctr_reg,data,ccb_slot);
       usleep(1);
-      crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
-      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+      VMEresult = vme_wrapper_->VMERead(addr_ccb_other,odmb_slot);
       usleep(1);
       vector<unsigned int> nBAADs_other(other_bits.size(),0);
       unsigned int nBAADs_cmd(0), nBAADs_data(0);
@@ -3142,74 +3137,53 @@ namespace emu {
       unsigned int nBitFlips_cmd(0), nBitFlips_data(0);
       for (unsigned int n(0);n<repeatNumber;n++) {
       	bool BAAD_read(false);
-	for (unsigned int p(0);p<addr_pulses.size();++p) {
-	  BAAD_read = false;
-	  crate_->vmeController()->vme_controller(3,addr_pulses.at(p),&args.at(p),rcv);
-	  usleep(1);
-	  crate_->vmeController()->vme_controller(2,addr_ccb_other,&data,rcv);
-	  VMEresult_prev = VMEresult;
-	  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	  if (VMEresult>0x7FF) BAAD_read = true;
-	  if (BAAD_read) nBAADs_other[p]++;
-	  else {
-	    nBitFlips_other[p]+=GetBitFlips((VMEresult^VMEresult_prev)&(0xFF7),(other_bits.at(p) & 0xffff));
-	  }
-	}
+		for (unsigned int p(0);p<addr_pulses.size();++p) {
+		  BAAD_read = false;
+		  vme_wrapper_->VMEWrite(addr_pulses.at(p),args.at(p),ccb_slot);
+		  usleep(1);
+		  unsigned short int temp = vme_wrapper_->VMERead(addr_ccb_other,odmb_slot);
+		  VMEresult_prev = VMEresult;
+		  VMEresult = temp;
+		  if (VMEresult>0x7FF) BAAD_read = true;
+		  if (BAAD_read) nBAADs_other[p]++;
+		  else {
+			nBitFlips_other[p]+=GetBitFlips((VMEresult^VMEresult_prev)&(0xFF7),(other_bits.at(p) & 0xffff));
+		  }
+		}
 	
-	BAAD_read = false; // reset for data
-	unsigned short to_data(0);
-	crate_->vmeController()->vme_controller(3,
-						(0x000024 & 0x07ffff)|shiftedSlot_ccb,
-						&to_data,rcv);
-	usleep(1);
-	crate_->vmeController()->vme_controller(2,
-						(0x35BC & 0x07ffff)|shiftedSlot_odmb,
-						&to_data,rcv);
-	unsigned int data_result_before=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	if (data_result_before>0xFF) BAAD_read=true;
-	to_data=0xFF;
-	crate_->vmeController()->vme_controller(3,
-						(0x000024 & 0x07ffff)|shiftedSlot_ccb,
-						&to_data,rcv);
-	usleep(1);
-	crate_->vmeController()->vme_controller(2,
-						(0x35BC & 0x07ffff)|shiftedSlot_odmb,
-						&to_data,rcv);
-	unsigned int data_result_after=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	if (data_result_after>0xFF) BAAD_read=true;
-	if (BAAD_read) nBAADs_data++;
-	else { // only count flipped bits if we don't have a BAAD
-		nBitFlips_data+=GetBitFlips(data_result_before,0x00FF);
-		nBitFlips_data+=GetBitFlips(data_result_after,0x0000);
-	}
-	BAAD_read = false; // reset to check cmd
-	//if(data_result_before==0x00FF && data_result_after==0x0000) ++data_success;
-	to_data=0;
-	crate_->vmeController()->vme_controller(3,
-						(0x000022 & 0x07ffff)|shiftedSlot_ccb,
-						&to_data,rcv);
-	usleep(1);
-	crate_->vmeController()->vme_controller(2,
-						(0x35AC & 0x07ffff)|shiftedSlot_odmb,
-						&to_data,rcv);
-	unsigned int cmd_result_before=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	if (cmd_result_before>0xFF) BAAD_read=true;
-	to_data=0xFC;
-	crate_->vmeController()->vme_controller(3,
-						(0x000022 & 0x07ffff)|shiftedSlot_ccb,
-						&to_data,rcv);
-	usleep(1);
-	crate_->vmeController()->vme_controller(2,
-						(0x35AC & 0x07ffff)|shiftedSlot_odmb,
-						&to_data,rcv);
-	unsigned int cmd_result_after=(rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-	if (cmd_result_after>0xFF) BAAD_read=true;
-	//if(cmd_result_before==0x00FF && cmd_result_after==0x0003) ++cmd_success;
-	if (BAAD_read) nBAADs_cmd++;
-	else { // only count flipped bits if we don't have a BAAD
-		nBitFlips_cmd+=GetBitFlips(cmd_result_before,0x00FF);
-		nBitFlips_cmd+=GetBitFlips(cmd_result_after,0x0003);
-	}
+		BAAD_read = false; // reset for data
+		unsigned short to_data(0);
+		vme_wrapper_->VMEWrite(0x000024,to_data,ccb_slot);
+		usleep(1);
+		unsigned int data_result_before = vme_wrapper_->VMERead(0x35BC,odmb_slot);
+		if (data_result_before>0xFF) BAAD_read=true;
+		to_data=0xFF;
+		vme_wrapper_->VMEWrite(0x000024,to_data,ccb_slot);
+		usleep(1);
+		unsigned int data_result_after = vme_wrapper_->VMERead(0x35BC,odmb_slot);
+		if (data_result_after>0xFF) BAAD_read=true;
+		if (BAAD_read) nBAADs_data++;
+		else { // only count flipped bits if we don't have a BAAD
+			nBitFlips_data+=GetBitFlips(data_result_before,0x00FF);
+			nBitFlips_data+=GetBitFlips(data_result_after,0x0000);
+		}
+		BAAD_read = false; // reset to check cmd
+		//if(data_result_before==0x00FF && data_result_after==0x0000) ++data_success;
+		to_data=0;
+		vme_wrapper_->VMEWrite(0x000022,to_data,ccb_slot);
+		usleep(1);
+		unsigned int cmd_result_before = vme_wrapper_->VMERead(0x35AC,odmb_slot);
+		if (cmd_result_before>0xFF) BAAD_read=true;
+		to_data=0xFC;
+		vme_wrapper_->VMEWrite(0x000022,to_data,ccb_slot);
+		usleep(1);
+		unsigned int cmd_result_after = vme_wrapper_->VMERead(0x35AC,odmb_slot);
+		if (cmd_result_after>0xFF) BAAD_read=true;
+		if (BAAD_read) nBAADs_cmd++;
+		else { // only count flipped bits if we don't have a BAAD
+			nBitFlips_cmd+=GetBitFlips(cmd_result_before,0x00FF);
+			nBitFlips_cmd+=GetBitFlips(cmd_result_after,0x0003);
+		}
       }
 
       for (unsigned int p(0);p<addr_pulses.size();p++) {
