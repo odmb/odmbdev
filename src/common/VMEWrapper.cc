@@ -24,18 +24,18 @@ namespace emu { namespace odmbdev {
     void VMEWrapper::VMEWrite (unsigned short int address, unsigned short int command, unsigned int slot, string comment) {
     	unsigned int shiftedSlot = slot << 19;
     	int addr = (address & 0x07ffff) | shiftedSlot;
-    	char rcv[2];
+        char rcv[2];
         crate_->vmeController()->vme_controller(3,addr,&command,rcv);
         // Get timestamp
         time_t rawtime;
-  		struct tm * timeinfo;
- 		time ( &rawtime );
-  		timeinfo = localtime ( &rawtime );
-  		char timestamp[30];
-  		strftime (timestamp,30,"%D %X",timeinfo);
-  		// Write to log
-        logger_ << "W" << std::setw(7) << hex << address
-        		<< std::setw(7) << hex << command
+        struct tm * timeinfo;
+        time ( &rawtime );
+        timeinfo = localtime ( &rawtime );
+        char timestamp[30];
+        strftime (timestamp,30,"%D %X",timeinfo);
+        // Write to log
+        logger_ << "W" << std::setw(7) << FixLength(address,4,true)
+        		<< std::setw(7) << FixLength(command,4,true)
         		<< std::setw(15) << dec << slot 
         		<< "   " << timestamp
         	    << "    " << comment.c_str() << endl;
@@ -50,11 +50,11 @@ namespace emu { namespace odmbdev {
         
         // Get timestamp
         time_t rawtime;
-  		struct tm * timeinfo;
- 		time ( &rawtime );
-  		timeinfo = localtime ( &rawtime );
-  		char timestamp[30];
-  		strftime (timestamp,30,"%D %X",timeinfo);
+        struct tm * timeinfo;
+        time ( &rawtime );
+        timeinfo = localtime ( &rawtime );
+        char timestamp[30];
+        strftime (timestamp,30,"%D %X",timeinfo);
         // Get formatting
         bool readHex = true;
         if((address >= 0x321C && address <= 0x337C) || (address >= 0x33FC && address < 0x35AC)  || 
@@ -64,10 +64,10 @@ namespace emu { namespace odmbdev {
 	      		readHex = false;
 	      }
 	    // Write to log
-        logger_ << "R" << std::setw(7) << hex << address;
-        if (readHex) logger_<< std::setw(14) << hex << result;
+        logger_ << "R" << std::setw(7) << FixLength(address,4,true);
+        if (readHex) logger_<< std::setw(14) << FixLength(result,4,true);
         else logger_<< std::setw(12) << dec << result << "_d";
-        logger_	<< std::setw(8) << dec << slot 
+        logger_ << std::setw(8) << dec << slot 
         	    << "   " << timestamp
         	    << "    " << comment.c_str() << endl;
         return result;

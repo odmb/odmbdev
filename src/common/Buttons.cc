@@ -2398,9 +2398,9 @@ namespace emu {
       out << "********** System Monitoring **********" << endl;
       int slot = Manager::getSlotNumber();
       unsigned int read_addr_vec[9] = {0x7150, 0x7120, 0x7000, 0x7160, 0x7140, 0x7100, 0x7130, 0x7110, 0x7170};
-      string description[9] = {" C\t -  Thermistor 1 temperature", " C\t -  Thermistor 2 temperature", " C\t -  FPGA temperature", 
-			       " V\t -  P1V0: Voltage for FPGA", " V\t -  P2V5: Voltage for FPGA", " V\t -  LV_P3V3: Voltage for FPGA", 
-			       " V\t -  P3V3_PP: Voltage for PPIB", " V\t -  P5V: General voltage", " V\t -  P5V_LVMB: Voltage for LVMB"};
+      string description[9] = {"C\t -  Thermistor 1 temperature", "C\t -  Thermistor 2 temperature", "C\t -  FPGA temperature", 
+			       "V\t -  P1V0: Voltage for FPGA", "V\t -  P2V5: Voltage for FPGA", "V\t -  LV_P3V3: Voltage for FPGA", 
+			       "V\t -  P3V3_PP: Voltage for PPIB", "V\t -  P5V: General voltage", "V\t -  P5V_LVMB: Voltage for LVMB"};
       //int precision[9] = {1, 1, 1, 2, 2, 2, 2, 2, 2};
       float voltmax[9] = {1.0, 1.0, 1.0, 1.0, 2.5, 3.3, 3.3, 5.0, 5.0};
       float result2[9];
@@ -2419,7 +2419,7 @@ namespace emu {
         else if (i == 0 || i == 1) result2[i] = 7.865766417e-10*pow(VMEresult,3) - 7.327237418e-6*pow(VMEresult,2) + 3.38189673e-2*VMEresult - 9.678340882;
 
         //out << "R  " << FixLength(read_addr & 0xffff) << "        " << description[i] << ": " << setprecision(precision[i]) << result2[i] << endl;      
-        out << setprecision(3) << result2[i] << description[i]<< endl;      
+        out << setprecision(3) << result2[i] << " " << description[i]<< endl;      
       }
       out<<endl;
     }
@@ -2893,8 +2893,6 @@ namespace emu {
 	  unsigned short int start(0x111), end(0xFFF);
       for(unsigned int repNum=0; repNum<repeatNumber; ++repNum){ // repeat the test repNum times
 		int slot = Manager::getSlotNumber();
-		unsigned int shiftedSlot = slot << 19;
-		char rcv[2];
 		unsigned short int data;
 		unsigned short int reg_user_code = 0x3C8;
 		unsigned short int reg_dev_sel = 0x3C2;
@@ -2902,39 +2900,35 @@ namespace emu {
 		unsigned short int reg_val_sel = 0x3C3;
 		unsigned short int VMEresult;
 		//addresses
-		int addr_sel_dcfeb = (0x001020 & 0x07ffff) | shiftedSlot;
-		int addr_read_dcfeb = (0x001024 & 0x07ffff) | shiftedSlot;
-		int addr_set_int_reg = (0x00191C & 0x07ffff) | shiftedSlot;
-		int addr_read_hdr = (0x001F04 & 0x07ffff) | shiftedSlot;
-		int addr_read_tlr = (0x001F08 & 0x07ffff) | shiftedSlot;
-		int addr_shift_ht = (0x00170C & 0x07ffff) | shiftedSlot;
-		int addr_shift_dr = (0x001B0C & 0x07ffff) | shiftedSlot;
-		int addr_read_tdo = (0x001F14 & 0x07ffff) | shiftedSlot;
+		int addr_sel_dcfeb = (0x001020);
+		int addr_read_dcfeb = (0x001024);
+		int addr_set_int_reg = (0x00191C);
+		int addr_read_hdr = (0x001F04);
+		int addr_read_tlr = (0x001F08);
+		int addr_shift_ht = (0x00170C);
+		int addr_shift_dr = (0x001B0C);
+		int addr_read_tdo = (0x001F14);
 		unsigned short int DCFEB_number[7] = {0x1, 0x2, 0x4, 0x08, 0x10, 0x20,0x40};
 		unsigned int nConnected(0);
 		for (int d = 0; d < 7; d++){ // Loop over all DCFEBs
 		  // Select DCFEB (one bit per DCFEB)
-		  crate_->vmeController()->vme_controller(3, addr_sel_dcfeb, &DCFEB_number[d], rcv);
+		  vme_wrapper_->VMEWrite(addr_sel_dcfeb,DCFEB_number[d],slot,"Select DCFEB (one bit per DCFEB)");
 		  // Read selected DCFEB
-		  crate_->vmeController()->vme_controller(2, addr_read_dcfeb, &DCFEB_number[d], rcv);
-		  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+		  VMEresult = vme_wrapper_->VMERead(addr_read_dcfeb,slot,"Read selected DCFEB");
 		  // Set instruction register to *Read UserCode*
-		  crate_->vmeController()->vme_controller(3, addr_set_int_reg, &reg_user_code, rcv);
+		  vme_wrapper_->VMEWrite(addr_set_int_reg,reg_user_code,slot,"Set instruction register to *Read UserCode*");
 		  // Shift 16 lower bits
-		  crate_->vmeController()->vme_controller(3, addr_read_hdr, &data, rcv);
+		  vme_wrapper_->VMEWrite(addr_read_hdr,data,slot,"Shift 16 lower bits");
 		  // Read first half of UserCode
-		  crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);
+		  VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read first half of UserCode");
 		  // check firmware version
-		  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
 		  string s_result = FixLength(VMEresult, 4, true);
 		  string firmwareVersion = s_result.substr(1,1)+"."+s_result.substr(2,2);
 		  // Shift 16 upper bits
-		  crate_->vmeController()->vme_controller(3, addr_read_tlr, &data, rcv);
+		  vme_wrapper_->VMEWrite(addr_read_tlr,data,slot,"Shift 16 upper bits");
 		  // Read second half of UserCode
-		  crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);	
-		  crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);
+		  VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read second half of UserCode");
 		  // check to see if DCFEB is connected
-		  VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
 		  if (FixLength(VMEresult, 4, true)!="DCFE") continue;
 		  else {
 			if (v_firmwareVersion[d].empty()) v_firmwareVersion[d] = firmwareVersion;
@@ -2942,23 +2936,23 @@ namespace emu {
 			nConnected++;
 		  }
 		  // Set instruction register to *Device select*
-		  crate_->vmeController()->vme_controller(3, addr_set_int_reg, &reg_dev_sel, rcv);
-		  // Set device register to "ADC mask"
-		  crate_->vmeController()->vme_controller(3, addr_shift_ht, &reg_dev_val, rcv);
+		  vme_wrapper_->VMEWrite(addr_set_int_reg,reg_dev_sel,slot,"Set instruction register to *Device select*");
+		  // Set device register to *ADC mask*
+		  vme_wrapper_->VMEWrite(addr_shift_ht,reg_dev_val,slot,"Set device register to *ADC mask*");
 		  // Set IR to *Value select*
-		  crate_->vmeController()->vme_controller(3, addr_set_int_reg, &reg_val_sel, rcv);
+		  vme_wrapper_->VMEWrite(addr_set_int_reg,reg_val_sel,slot,"Set IR to *Value select*");
+
 		  vector<string> tdi;
 		  vector<string> tdo;
 		  for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
 			if (reg_val_shft>start) v_nJTAGshifts[d]++;
 			// Set DR, shift 12 bits
-			crate_->vmeController()->vme_controller(3, addr_shift_dr, &reg_val_shft, rcv);
+			vme_wrapper_->VMEWrite(addr_shift_dr,reg_val_shft,slot,"Set DR, shift 12 bits");
 			usleep(100);
 			tdi.push_back(FixLength(reg_val_shft, 3, true));
 			// Read TDO
-			crate_->vmeController()->vme_controller(2, addr_read_tdo, &data, rcv);
+			VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read TDO");
 			usleep(100);
-			VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
 			tdo.push_back(FixLength(VMEresult, 4, true));
 			if (reg_val_shft == start) continue;
 			if (tdo[reg_val_shft-0x111].substr(0,3) == tdi[reg_val_shft-1-0x111]) v_nShiftReads[d]++;
@@ -2993,18 +2987,13 @@ namespace emu {
       getline(countertext,line,'\n');
       const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
       // repeatNumber is currently the number of packets to send
-      
-      
       int slot = Manager::getSlotNumber();
-      unsigned int shiftedSlot = slot << 19;
-      char rcv[2];
-      // Adresses
-      unsigned int addr_odmb_ctrl_reg( (0x003000& 0x07ffff) | shiftedSlot ), addr_dcfeb_ctrl_reg( (0x003010& 0x07ffff) | shiftedSlot );
-      unsigned int addr_set_kill( (0x00401C& 0x07ffff) | shiftedSlot );
-      unsigned int addr_read_nrx_pckt( (0x00347C& 0x07ffff) | shiftedSlot ), addr_read_ncrcs( (0x00367C& 0x07ffff) | shiftedSlot );
-      unsigned int addr_sel_dcfeb_fifo( (0x005010& 0x07ffff) | shiftedSlot );
+      unsigned int addr_odmb_ctrl_reg(0x003000), addr_dcfeb_ctrl_reg(0x003010);
+      unsigned int addr_set_kill(0x00401C);
+      unsigned int addr_read_nrx_pckt(0x00347C), addr_read_ncrcs(0x00367C);
+      unsigned int addr_sel_dcfeb_fifo(0x005010);
       // Commands
-      unsigned short int data;
+      //unsigned short int data;
       unsigned short int cmd_rst(0x300), cmd_dreal_tint(0x200), cmd_kill(0x1BF);
       unsigned short int cmd_dcfeb_fifo[7] = {0x1,0x2,0x3,0x4,0x5,0x6,0x7};
       unsigned short int cms_l1a_match(0x10);
@@ -3012,53 +3001,37 @@ namespace emu {
       unsigned short int VMEresult;
       // == ================ Configuration ================ ==
       // Reset!
-      crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&cmd_rst,rcv);
+      vme_wrapper_->VMEWrite(addr_odmb_ctrl_reg,cmd_rst,slot,"Reset");
       usleep(10000000);
       // Set real data and internal triggers
-      crate_->vmeController()->vme_controller(3,addr_odmb_ctrl_reg,&cmd_dreal_tint,rcv);
+      vme_wrapper_->VMEWrite(addr_odmb_ctrl_reg,cmd_dreal_tint,slot,"Set real data and internal triggers");
       // Set KILL
-      crate_->vmeController()->vme_controller(3,addr_set_kill,&cmd_kill,rcv);
+      vme_wrapper_->VMEWrite(addr_set_kill,cmd_kill,slot,"Set KILL");
       // Select DCFEB FIFO
-      crate_->vmeController()->vme_controller(3,addr_sel_dcfeb_fifo,&cmd_dcfeb_fifo[6],rcv);
+      vme_wrapper_->VMEWrite(addr_sel_dcfeb_fifo,cmd_dcfeb_fifo[6],slot,"Select DCFEB FIFO");
       // Number of received packets before
-      crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
-      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      //unsigned int nRxPckt_b(VMEresult);
+      VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt,slot,"Read number of received packets before");
       // Number of good CRCs before
-      crate_->vmeController()->vme_controller(2,addr_read_ncrcs,&data,rcv);
-      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      //unsigned int nGoodCRCs_b(VMEresult);
-      //vector <unsigned int> RxPckts;
+      VMEresult = vme_wrapper_->VMERead(addr_read_ncrcs,slot,"Read number of good CRCs before");
       unsigned int nCntRst(0); // how many times we hit FFFF and restart the counter
       // == ============ Send N real packets ============ ==
       for (unsigned int p = 0; p < repeatNumber; p++) {
 	// Send test L1A(_MATCH) to all DCFEBs
-	crate_->vmeController()->vme_controller(3,addr_dcfeb_ctrl_reg,&cms_l1a_match,rcv);
+	vme_wrapper_->VMEWrite(addr_dcfeb_ctrl_reg,cms_l1a_match,slot,"Send test L1A(_MATCH) to all DCFEBs");
 	usleep(100);
 	// Read number of received packets
-	crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
-    VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-    //cout << VMEresult << endl;
-    //RxPckts.push_back(VMEresult);
+	VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt,slot,"Read number of received packets");
     if (p>0&&VMEresult==0) nCntRst++; // keep track of how many times the counter resets
       }
       // == ============ Status summary ============ ==
       out << "DCFEB 7: " << endl;
       // Number of received packets [DCFEB 7]
-      crate_->vmeController()->vme_controller(2,addr_read_nrx_pckt,&data,rcv);
-      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      //cout << VMEresult << endl;
+      VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt,slot,"Read number of received packets [DCFEB 7]");
       unsigned int nRxPckt(VMEresult+nCntRst*65536);
-      //unsigned int nRxPckt_a(VMEresult);
-      //unsigned int nRxPckt(nRxPckt_a-nRxPckt_b);
       out << "Received " << nRxPckt << " out of " << repeatNumber << " packets, ";
       // Number of good CRCs [DCFEB 7]
-      crate_->vmeController()->vme_controller(2,addr_read_ncrcs,&data,rcv);
-      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      //cout << VMEresult << endl;
+      VMEresult = vme_wrapper_->VMERead(addr_read_ncrcs,slot,"Read number of good CRCs [DCFEB 7]");
       unsigned int nGoodCRCs(VMEresult+nCntRst*65536);
-      //unsigned int nGoodCRCs_a(VMEresult);
-      //unsigned int nGoodCRCs(nGoodCRCs_a-nGoodCRCs_b);
       out << nGoodCRCs << " good CRCs.";
       if (nGoodCRCs==nRxPckt&&nRxPckt==repeatNumber) out << " No bit flips." << endl;
       else out << endl;
