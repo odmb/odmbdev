@@ -2438,19 +2438,13 @@ namespace emu {
       
       // First obtain ODMB id and firmware version
       int slot = Manager::getSlotNumber();
-      unsigned int shiftedSlot = slot << 19;
-      char rcv[2];
-      unsigned short int data;
       //addresses
       unsigned short int VMEresult = 0;
-      int addr_read_fwv= (0x004024 & 0x07ffff) | shiftedSlot;
+      int addr_read_fwv(0x004024);
       
       // Read firmware version
-      crate_->vmeController()->vme_controller(2, addr_read_fwv, &data, rcv);
-      //Format result
-      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      string fwv = FixLength(VMEresult, 3, true);
-      
+      VMEresult = vme_wrapper_->VMERead(addr_read_fwv,slot,"Read firmware version");
+      string fwv = FixLength(VMEresult, 3, true); // Format result
       
       cout << "Saving production test log for ODMB " << endl;
       cout << "Tester: " << initials << endl;
@@ -3208,49 +3202,28 @@ namespace emu {
       out << "********** VME REGISTER RESET **********" << endl;
       bool debug = false;
       int slot = Manager::getSlotNumber();
-      unsigned int shiftedSlot = slot << 19;
-      char rcv[2];
       // These are the appropriate R/W addresses for register reset
       unsigned int read_addr = 0x003000;
       unsigned int write_addr = 0x003000;
-      // Set the top bits of address to the slot number
-      read_addr = (read_addr & 0x07ffff) | shiftedSlot;
-      write_addr = (write_addr & 0x07ffff) | shiftedSlot;
       unsigned short int reset_command = 0x100;
-      unsigned short int data;
-      if (debug) out << "data initialized to " << hex << data << endl;
-      
-      // Read = 2
-      // Write = 3
-      
-      if (debug) printf("Calling:  vme_controller(%d,%06x,&%04x,{%02x,%02x})  \n", 2, 
-			(read_addr & 0xffffff), (data & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff));      
-      crate_->vmeController()->vme_controller(2,read_addr,&data,rcv);
-      unsigned short int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-      if (debug) {
-	out << "read: " << FixLength(VMEresult) << endl;
-	printf("Calling:  vme_controller(%d,%06x,&%04x,{%02x,%02x})  \n", 3, 
-	       (write_addr & 0xffffff), (reset_command & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff));
-      }
-      crate_->vmeController()->vme_controller(3,write_addr,&reset_command,rcv);
-      usleep(100);      
-      if (debug) printf("Calling:  vme_controller(%d,%06x,&%04x,{%02x,%02x})  \n", 3, 
-			(write_addr & 0xffffff), (VMEresult & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff));
-      crate_->vmeController()->vme_controller(3,write_addr,&VMEresult,rcv);
+      unsigned short int VMEresult;
+   
+      VMEresult = vme_wrapper_->VMERead(read_addr,slot,"Read ODMB_CTRL register");
+      if (debug) out << "read: " << FixLength(VMEresult) << endl;
+      vme_wrapper_->VMEWrite(write_addr,reset_command,slot,"Send reset to ODMB_CTRL register");
       usleep(100);
-      if (debug) printf("Calling:  vme_controller(%d,%06x,&%04x,{%02x,%02x})  \n", 2, 
-			(read_addr & 0xffffff), (data & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff));            
-      crate_->vmeController()->vme_controller(2,read_addr,&data,rcv);
-      VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+      vme_wrapper_->VMEWrite(write_addr,VMEresult,slot,"Send VMEresult to ODMB_CTRL register");
+      usleep(100);            
+      VMEresult = vme_wrapper_->VMERead(read_addr,slot,"Read ODMB_CTRL register");
 
       out << "R  " << FixLength(read_addr & 0xffff) << "        " << FixLength(VMEresult)  << endl<< endl;      
       
     }
 
     /**************************************************************************
-     * ResetRegisters
+     * ReprogramDCFEB
      *
-     * A small class to implement a reset from the ODMB_CTRL bits --TD
+     * A small class to reprogram the DCFEBs --TD
      **************************************************************************/
     ReprogramDCFEB::ReprogramDCFEB(Crate * crate) 
       : ButtonAction(crate,"Reprogram DCFEBs") 
@@ -3262,15 +3235,11 @@ namespace emu {
     void ReprogramDCFEB::respond(xgi::Input * in, ostringstream & out) { // TD
       out << "********** VME REGISTER RESET **********" << endl;
       int slot = Manager::getSlotNumber();
-      unsigned int shiftedSlot = slot << 19;
-      char rcv[2];
       // These are the appropriate R/W addresses for register reset
       unsigned int write_addr = 0x003010;
-      // Set the top bits of address to the slot number
-      write_addr = (write_addr & 0x07ffff) | shiftedSlot;
       unsigned short int reset_command = 0x1;
       
-      crate_->vmeController()->vme_controller(3,write_addr,&reset_command,rcv);
+      vme_wrapper_->VMEWrite(write_addr,reset_command,slot,"Send reset to DCFEB_CTRL register");
       usleep(100);      
 
       out << "W   3010      1          Reprogram all DCFEBs" << endl;      
