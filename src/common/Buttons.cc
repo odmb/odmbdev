@@ -1935,7 +1935,6 @@ namespace emu {
       nCommand++;
       out<<"****************   VME command "<<nCommand<<"   ***************"<<endl;
       int slot = Manager::getSlotNumber(); //the slot number to use
-      char rcv[2];
       unsigned int sleepTimer;
       unsigned int testReps(0);
       unsigned int addr;
@@ -2045,6 +2044,7 @@ namespace emu {
         std::vector<unsigned int> loopCounter(0), loopMax(0), loopStart(0);
         for(unsigned int lineNum=0; lineNum<allLines.size(); ++lineNum){
           slot = Manager::getSlotNumber(); //Load the default slot number for each iteration
+          unsigned int shiftedSlot = slot << 19;
           line=allLines.at(lineNum);
           while(line.length()>0 && (line.at(0)==' ' || line.at(0)=='\t')) line.erase(0,1);
           istringstream iss(line);
@@ -2247,24 +2247,23 @@ namespace emu {
           //out << TypeCommand << endl;
 
           // Set the top bits of address to the slot number
-          unsigned int shiftedSlot = slot << 19;
           int nDigits = 5;
+          unsigned short int VMEresult(0);
           if(TypeCommand>=2 && TypeCommand<=5){
-            addr = (addr & 0x07ffff) | shiftedSlot;	    
-            printf("Calling:  vme_controller(%d,%06x,&%04x,{%02x,%02x})  ", irdwr, 
-        	   (addr & 0xffffff), (data & 0xffff), (rcv[0] & 0xff), (rcv[1] & 0xff));
-            crate_->vmeController()->vme_controller(irdwr, addr, &data, rcv); // Send the VME command!
-            usleep(1);
-            
-            // If it was a read, then show the result
-            if(irdwr==2) printf("  ==> rcv[1,0] = %02x %02x", (rcv[1] & 0xff), (rcv[0] & 0xff));
+            if(irdwr==2) {
+              VMEresult = vme_wrapper_->VMERead(addr,slot,comments);
+              usleep(1);
+			}
+			else if(irdwr==3) {
+              vme_wrapper_->VMEWrite(addr,data,slot,comments);
+              usleep(1);
+			}
+			else cerr << "Error: the wrapper couldn't handle your command!";
             printf("\n");
             fflush(stdout);
             
             
             // Output to website
-            addr = (addr & 0x07ffff);  // Masks out the slot number
-            unsigned int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
 	    stringstream slot_stream; 
 	    slot_stream << slot;
 	    string slot_s = slot_stream.str(), label = "  ", command;
@@ -2301,16 +2300,12 @@ namespace emu {
           } else if (TypeCommand==9 || TypeCommand==10){
             unsigned int read_fifo = 0x005000;
             unsigned int reset_fifo = 0x005020;
-            // Set the top bits of address to the slot number
-            read_fifo = (read_fifo & 0x07ffff) | shiftedSlot;
-            reset_fifo = (reset_fifo & 0x07ffff) | shiftedSlot;
-            crate_->vmeController()->vme_controller(2, read_fifo, &data, rcv); // Read the 1st word for L1A_MATCH
-            if(TypeCommand == 9) crate_->vmeController()->vme_controller(2, read_fifo, &data, rcv); //2nd word for L1A
-            unsigned int VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+            VMEresult = vme_wrapper_->VMERead(read_fifo,slot,"Read the 1st word for L1A_MATCH");
+            if(TypeCommand == 9) VMEresult = vme_wrapper_->VMERead(read_fifo,slot,"Read the 2nd word for L1A");
             usleep(1);
             
             data = 0xff;
-            crate_->vmeController()->vme_controller(3, reset_fifo, &data, rcv); // Send the VME command!
+            vme_wrapper_->VMEWrite(reset_fifo,data,slot,"Reset fifo");
             usleep(1);
             long l1a_cnt = VMEresult;
             string command = "RL1A ", l1a_comment = "L1A";
