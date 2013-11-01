@@ -4957,6 +4957,8 @@ namespace emu {
 
       void LoadMCSviaBPI::respond(xgi::Input * in, ostringstream & out)
       {
+	cout << "Request to program PROM..." << endl;
+
           OneTextBoxAction::respond(in, out);
           std::string filename(this->textBoxContent);
           if (filename.empty())
@@ -4971,10 +4973,26 @@ namespace emu {
               }
               else
               {
+		int manager_slot = Manager::getSlotNumber();
+
                   for (vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb)
                   {
+		    int hw_version = (*dmb)->GetHardwareVersion();
+		    if (hw_version != 2) 
+		      {
+			printf("DO NOT PROGAM OLD DMB!!! Skipping.\n");
+			continue; // only program ODMB
+		      }
+
+		    int slot = (*dmb)->slot();
+		    if (slot != manager_slot) 
+		      {
+			cout << "skipping ODMB in slot " << manager_slot << " which is not in requested slot " << slot << endl;
+			continue; // only program the ODMB requested
+		      }
+		    
                     printf("loading MCS file %s...\n", filename.c_str());
-                      (*dmb)->odmb_epromload_mcs(filename.c_str(), 0);
+		    (*dmb)->odmb_program_eprom(filename.c_str());
                   }
               }
 
