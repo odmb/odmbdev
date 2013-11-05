@@ -1,18 +1,10 @@
 /*
-DDU parsing script
-Parses CSC raw files for either single event or whole file diagnostic report. The diagnostic
-report produces a 16 bit error-code for each event containing, from MSB to LSB, a 1 for the
-errors ((no ODMB trailer, no ODMB header, no OTMB data, no ALCT data), (missing words at end of OTMB data, extra words at end of OTMB data, missing words at start of OTMB data, extra words at start of OTMB data), (missing words at end of ALCT data, extra words at end of ALCT data, missing words at start of ALCT data, extra words at start of ALCT data), (unparsed words, no DDU trailer, no DDU header, no DCFEB data)).
+add_ddu_hdr: Adds DDU headers and trailers to raw file obtained with ODMB's spy PC channel.
+It takes the name of the input file as an argument. The output files is the same name
+with "ddu_" pre-pended.
 
-Command line options:
--f: Sets input file.
--e: Sets event number to parse and process. Setting this to zero or leaving it unset produces a     diagnostic report for all events in the file.
--w: Sets the number of words to print per line. Default is 20.
-
-If only one comman line option is given (without a "-"), it is used as a file name and a diagnostic report is produced.
-
-Author: Adam Dishaw (ald77@physics.ucsb.edu)
-Last modified: 2013-09-19
+Authors: Adam Dishaw (ald77@physics.ucsb.edu), Manuel Franco Sevilla (manuelf@physics.ucsb.edu)
+Last modified: 2013-11-05
 */
 
 #include <stdio.h>
@@ -65,34 +57,35 @@ int main(int argc, char *argv[]){
   if(ifs.is_open()){
     DataPacket data_packet;
     svu packet(0);
-    unsigned short uipacket[MaxWords];
+    unsigned short crcpacket[MaxWords];
     unsigned int entry=0;
 
     // Loop over all ODMB packets
     for(entry=0; FindStartOfPacket(ifs, packet); ++entry){
       GetRestOfPacket(ifs, packet);
       if(packet.size()>=MaxWords){cout<<"Event "<<entry<<" is too long"<<endl; continue;}
-      for(unsigned int ind=0; ind<packet.size(); ind++){
-	uipacket[ind] = packet[ind];
-      }
 
       // Parsing ODMB header
-      unsigned short l1a_lsb = 0x0FFF & uipacket[0];
-      unsigned short l1a_msb = 0x0FFF & uipacket[1];
-      unsigned short bxcnt = 0x0FFF & uipacket[3];
+      unsigned short l1a_lsb = 0x0FFF & packet[0];
+      unsigned short l1a_msb = 0x0FFF & packet[1];
+      unsigned short bxcnt = 0x0FFF & packet[3];
       dduheader[1] = (bxcnt<<4) | (dduheader[1] & 0x000F);
       dduheader[2] = (l1a_msb<<12) | l1a_lsb;
       dduheader[3] = (l1a_msb>>4) | (dduheader[3] & 0xFF00);
-      int CRC = calcDDUcrc(uipacket, packet.size());
       int nWords = 6 + packet.size()/4;
-      ddutrailer[9] = 0xFFFF & CRC;
+      ddutrailer[9] = 0;
       ddutrailer[10] = 0xFFFF & nWords;
       ddutrailer[11] = (0x00FF & nWords>>16) | (ddutrailer[11] & 0xFF00);
+      for(unsigned int ind=0; ind<12; ind++) crcpacket[ind] = dduheader[ind];
+      for(unsigned int ind=0; ind<packet.size(); ind++){
+	crcpacket[ind+12] = packet[ind];
+      }
+      for(unsigned int ind=0; ind<12; ind++) crcpacket[ind+12+packet.size()] = ddutrailer[ind];      
+      int CRC = calcDDUcrc(crcpacket, packet.size()+24);
+      crcpacket[packet.size()+21] = 0xFFFF & CRC;
 
       // Write packet to file
-      fwrite(dduheader, sizeof(dduheader[0]), 12, outfile);
-      fwrite(uipacket, sizeof(uipacket[0]), packet.size(), outfile);
-      fwrite(ddutrailer, sizeof(ddutrailer[0]), 12, outfile);
+      fwrite(crcpacket, sizeof(crcpacket[0]), packet.size()+24, outfile);
     }
     ifs.close();
     if(outfile) fclose(outfile);
