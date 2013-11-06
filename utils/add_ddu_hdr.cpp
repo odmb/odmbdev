@@ -1,7 +1,7 @@
 /*
 add_ddu_hdr: Adds DDU headers and trailers to raw file obtained with ODMB's spy PC channel.
-It takes the name of the input file as an argument. The output files is the same name
-with "ddu_" pre-pended.
+It takes the name of the input file as an argument. The output file can be given as an 
+argument, or the default is the same name with "ddu_" pre-pended.
 
 Authors: Adam Dishaw (ald77@physics.ucsb.edu), Manuel Franco Sevilla (manuelf@physics.ucsb.edu)
 Last modified: 2013-11-05
@@ -37,11 +37,13 @@ using Packet::InRange;
 
 int main(int argc, char *argv[]){
   std::string filename("");
+  if(argc>=2) filename = argv[1];
 
-  if(argc==2 && argv[1][0]!='-'){
-    filename=argv[1];
-  }else{
-    cout<<"USAGE: ./add_ddu_hdr.exe FileName"<<endl;
+  string outname("ddu_" + filename); 
+  if(argc>=3)outname = argv[2];
+
+  if(argc<2 || argc>3) {
+    cout<<endl<<"USAGE:\n=======\n./add_ddu_hdr.exe InputFile [OutputFile]"<<endl<<endl;
     return 0;
   }
 
@@ -49,7 +51,6 @@ int main(int argc, char *argv[]){
 				0x0001, 0x8000, 0x2FC1, 0x0001, 0x3030, 0x0001};
   unsigned short ddutrailer[] = {0x8000, 0x8000, 0xFFFF, 0x8000, 0x0001, 0x0005, 
 				 0xC2DB, 0x8040, 0xC2C0, 0x4918, 0x000E, 0xA000};
-  string outname("ddu_" + filename); 
   FILE *outfile;
   outfile = fopen(outname.c_str(),"wb");
 
@@ -65,7 +66,7 @@ int main(int argc, char *argv[]){
       GetRestOfPacket(ifs, packet);
       if(packet.size()>=MaxWords){cout<<"Event "<<entry<<" is too long"<<endl; continue;}
 
-      // Parsing ODMB header
+      // Parsing L1A/BX counters, and number of words in packet
       unsigned short l1a_lsb = 0x0FFF & packet[0];
       unsigned short l1a_msb = 0x0FFF & packet[1];
       unsigned short bxcnt = 0x0FFF & packet[3];
@@ -76,6 +77,8 @@ int main(int argc, char *argv[]){
       ddutrailer[9] = 0;
       ddutrailer[10] = 0xFFFF & nWords;
       ddutrailer[11] = (0x00FF & nWords>>16) | (ddutrailer[11] & 0xFF00);
+
+      // Calculating CRC
       for(unsigned int ind=0; ind<12; ind++) crcpacket[ind] = dduheader[ind];
       for(unsigned int ind=0; ind<packet.size(); ind++){
 	crcpacket[ind+12] = packet[ind];
@@ -150,10 +153,10 @@ void GetRestOfPCPacket(std::ifstream &ifs, svu &packet){
 	  && InRange(packet.at(packet.size()-7), 0xF000, 0xFFFF)
 	  && InRange(packet.at(packet.size()-6), 0xF000, 0xFFFF)
 	  && InRange(packet.at(packet.size()-5), 0xF000, 0xFFFF)
-	  && InRange(packet.at(packet.size()-4), 0xE000, 0xEFFF)
-	  && InRange(packet.at(packet.size()-3), 0xE000, 0xEFFF)
-	  && InRange(packet.at(packet.size()-2), 0xE000, 0xEFFF)
-	  && InRange(packet.at(packet.size()-1), 0xE000, 0xEFFF))
+	  && InRange(packet.at(packet.size()-4), 0xE000, 0xEFFF))
+	//&& InRange(packet.at(packet.size()-3), 0xE000, 0xEFFF)
+	//&& InRange(packet.at(packet.size()-2), 0xE000, 0xEFFF)
+	//&& InRange(packet.at(packet.size()-1), 0xE000, 0xEFFF))
 	&& ifs.read(reinterpret_cast<char*>(&word), sizeof(word))){
     packet.push_back(word);
   }
