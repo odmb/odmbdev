@@ -3009,86 +3009,87 @@ namespace emu {
       string line;
       getline(countertext,line,'\n');
       const unsigned long repeatNumber=strtoul(line.c_str(),NULL,0);
-      vector<unsigned int> v_nUCReads(7,0); // number of times we successfully read UserCode of each DCFEB
+      vector<bool> v_UCRead(7,false); // tell us if we read UserCode of each DCFEB
       vector<unsigned int> v_nShiftReads(7,0); // number of times we successfully read shifted bits on ADC mask
       vector<string> v_firmwareVersion(7,""); // store the firmware version
       vector<unsigned int> v_nJTAGshifts(7,0); // number of JTAG shifts commands issued
+      unsigned short int data;
+      unsigned short int reg_user_code = 0x3C8;
+      unsigned short int reg_dev_sel = 0x3C2;
+      unsigned short int reg_dev_val = 0xC;
+      unsigned short int reg_val_sel = 0x3C3;
+      unsigned short int VMEresult;
+      //addresses
+      int addr_sel_dcfeb = (0x001020);
+      int addr_read_dcfeb = (0x001024);
+      int addr_set_int_reg = (0x00191C);
+      int addr_read_hdr = (0x001F04);
+      int addr_read_tlr = (0x001F08);
+      int addr_shift_ht = (0x00170C);
+      int addr_shift_dr = (0x001B0C);
+      int addr_read_tdo = (0x001F14);
+      unsigned short int DCFEB_number[7] = {0x1, 0x2, 0x4, 0x08, 0x10, 0x20,0x40};
+      unsigned int nConnected(0);
       unsigned short int start(0x111), end(0xFFF);
-      for(unsigned int repNum=0; repNum<repeatNumber; ++repNum){ // repeat the test repNum times
-	int slot = Manager::getSlotNumber();
-	unsigned short int data;
-	unsigned short int reg_user_code = 0x3C8;
-	unsigned short int reg_dev_sel = 0x3C2;
-	unsigned short int reg_dev_val = 0xC;
-	unsigned short int reg_val_sel = 0x3C3;
-	unsigned short int VMEresult;
-	//addresses
-	int addr_sel_dcfeb = (0x001020);
-	int addr_read_dcfeb = (0x001024);
-	int addr_set_int_reg = (0x00191C);
-	int addr_read_hdr = (0x001F04);
-	int addr_read_tlr = (0x001F08);
-	int addr_shift_ht = (0x00170C);
-	int addr_shift_dr = (0x001B0C);
-	int addr_read_tdo = (0x001F14);
-	unsigned short int DCFEB_number[7] = {0x1, 0x2, 0x4, 0x08, 0x10, 0x20,0x40};
-	unsigned int nConnected(0);
-	for (int d = 0; d < 7; d++){ // Loop over all DCFEBs
-	  // Select DCFEB (one bit per DCFEB)
-	  vme_wrapper_->VMEWrite(addr_sel_dcfeb,DCFEB_number[d],slot,"Select DCFEB (one bit per DCFEB)");
-	  // Read selected DCFEB
-	  VMEresult = vme_wrapper_->VMERead(addr_read_dcfeb,slot,"Read selected DCFEB");
-	  // Set instruction register to *Read UserCode*
-	  vme_wrapper_->VMEWrite(addr_set_int_reg,reg_user_code,slot,"Set instruction register to *Read UserCode*");
-	  // Shift 16 lower bits
-	  vme_wrapper_->VMEWrite(addr_read_hdr,data,slot,"Shift 16 lower bits");
-	  // Read first half of UserCode
-	  VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read first half of UserCode");
-	  // check firmware version
-	  string s_result = FixLength(VMEresult, 4, true);
-	  string firmwareVersion = s_result.substr(1,1)+"."+s_result.substr(2,2);
-	  // Shift 16 upper bits
-	  vme_wrapper_->VMEWrite(addr_read_tlr,data,slot,"Shift 16 upper bits");
-	  // Read second half of UserCode
-	  VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read second half of UserCode");
-	  // check to see if DCFEB is connected
-	  if (FixLength(VMEresult, 4, true)!="DCFE") continue;
-	  else {
-	    if (v_firmwareVersion[d].empty()) v_firmwareVersion[d] = firmwareVersion;
-	    v_nUCReads[d]++;
-	    nConnected++;
-	  }
-	  // Set instruction register to *Device select*
-	  vme_wrapper_->VMEWrite(addr_set_int_reg,reg_dev_sel,slot,"Set instruction register to *Device select*");
-	  // Set device register to *ADC mask*
-	  vme_wrapper_->VMEWrite(addr_shift_ht,reg_dev_val,slot,"Set device register to *ADC mask*");
-	  // Set IR to *Value select*
-	  vme_wrapper_->VMEWrite(addr_set_int_reg,reg_val_sel,slot,"Set IR to *Value select*");
+      int slot = Manager::getSlotNumber();
 
-	  vector<string> tdi;
-	  vector<string> tdo;
-	  for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
-	    if (reg_val_shft>start) v_nJTAGshifts[d]++;
-	    // Set DR, shift 12 bits
-	    vme_wrapper_->VMEWrite(addr_shift_dr,reg_val_shft,slot,"Set DR, shift 12 bits");
-	    usleep(100);
-	    tdi.push_back(FixLength(reg_val_shft, 3, true));
-	    // Read TDO
-	    VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read TDO");
-	    usleep(100);
-	    tdo.push_back(FixLength(VMEresult, 4, true));
-	    if (reg_val_shft == start) continue;
-	    if (tdo[reg_val_shft-0x111].substr(0,3) == tdi[reg_val_shft-1-0x111]) v_nShiftReads[d]++;
-	  }
-	} // Loop over all DCFEBs
-	if (nConnected==0) out << "Error: could not find DCFEBs. Please check connections." << endl;
-      } // repeat the test repNum times
-      	// Now loop over DCFEBs again to display summary
+      for (int d = 0; d < 7; d++){ // Loop over all DCFEBs
+	// Select DCFEB (one bit per DCFEB)
+	vme_wrapper_->VMEWrite(addr_sel_dcfeb,DCFEB_number[d],slot,"Select DCFEB (one bit per DCFEB)");
+	// Read selected DCFEB
+	VMEresult = vme_wrapper_->VMERead(addr_read_dcfeb,slot,"Read selected DCFEB");
+	// Set instruction register to *Read UserCode*
+	vme_wrapper_->VMEWrite(addr_set_int_reg,reg_user_code,slot,"Set instruction register to *Read UserCode*");
+	// Shift 16 lower bits
+	vme_wrapper_->VMEWrite(addr_read_hdr,data,slot,"Shift 16 lower bits");
+	// Read first half of UserCode
+	VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read first half of UserCode");
+	// check firmware version
+	string s_result = FixLength(VMEresult, 4, true);
+	string firmwareVersion = s_result.substr(1,1)+"."+s_result.substr(2,2);
+	// Shift 16 upper bits
+	vme_wrapper_->VMEWrite(addr_read_tlr,data,slot,"Shift 16 upper bits");
+	// Read second half of UserCode
+	VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read second half of UserCode");
+	// check to see if DCFEB is connected
+	if (FixLength(VMEresult, 4, true)!="DCFE") continue;
+	else {
+	  if (v_firmwareVersion[d].empty()) v_firmwareVersion[d] = firmwareVersion;
+	  v_UCRead[d]=true;
+	  nConnected++;
+	  for(unsigned int repNum=0; repNum<repeatNumber; ++repNum){ // repeat the test repNum times
+	    // Set instruction register to *Device select*
+	    vme_wrapper_->VMEWrite(addr_set_int_reg,reg_dev_sel,slot,"Set instruction register to *Device select*");
+	    // Set device register to *ADC mask*
+	    vme_wrapper_->VMEWrite(addr_shift_ht,reg_dev_val,slot,"Set device register to *ADC mask*");
+	    // Set IR to *Value select*
+	    vme_wrapper_->VMEWrite(addr_set_int_reg,reg_val_sel,slot,"Set IR to *Value select*");
+	    vector<string> tdi;
+	    vector<string> tdo;
+	    for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
+	      if (reg_val_shft>start) v_nJTAGshifts[d]++;
+	      // Set DR, shift 12 bits
+	      vme_wrapper_->VMEWrite(addr_shift_dr,reg_val_shft,slot,"Set DR, shift 12 bits");
+	      usleep(100);
+	      tdi.push_back(FixLength(reg_val_shft, 3, true));
+	      // Read TDO
+	      VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read TDO");
+	      usleep(100);
+	      tdo.push_back(FixLength(VMEresult, 4, true));
+	      if (reg_val_shft == start) continue;
+	      if (tdo[reg_val_shft-0x111].substr(0,3) == tdi[reg_val_shft-1-0x111]) v_nShiftReads[d]++;
+	    } // loop over words to shift
+	  } // repeat the test repNum times per DCFEB
+	} // if DCFEB is connected
+      } // Loop over all DCFEBs
+      if (nConnected==0) out << "Error: could not find DCFEBs. Please check connections." << endl;
+ 
+      // Now loop over DCFEBs again to display summary
       for (int d = 0; d < 7; d++){ 
 	out << "DCFEB " << d+1 << ": ";
-	if (v_nUCReads[d]==0) out << "not connected." << endl;
+	if (v_UCRead[d]==false) out << "not connected." << endl;
 	else {
-	  out << "read UserCode " << v_nUCReads[d] << "/" << repeatNumber << " times.";
+	  out << "read UserCode.";
 	  out << " Firmware version " << v_firmwareVersion[d] << ".";
 	  out << " Sent " << 2*repeatNumber*(end-start) << " shift+read commands.";
 	  out << " Errors: " << 2*repeatNumber*(end-start)-v_nJTAGshifts[d]-v_nShiftReads[d] << "." << endl;
@@ -3128,9 +3129,9 @@ namespace emu {
       // Set real data and internal triggers
       vme_wrapper_->VMEWrite(addr_odmb_ctrl_reg,cmd_dreal_tint,slot,"Set real data and internal triggers");
       for (unsigned short int dcfeb(0x0); dcfeb<7; dcfeb++) {
-      // Set KILL
+	// Set KILL
 	unsigned int cmd_kill_d = ~(unsigned int)pow(2,dcfeb);
-      vme_wrapper_->VMEWrite(addr_set_kill,cmd_kill_d,slot,"Set KILL");
+	vme_wrapper_->VMEWrite(addr_set_kill,cmd_kill_d,slot,"Set KILL");
 	// check if DCFEB is connected
 	VMEresult = vme_wrapper_->VMERead(addr_read_done_bits,slot,"Read DCFEB done bits");
 	if (VMEresult==dcfeb_done_bits[dcfeb]){
@@ -3242,7 +3243,7 @@ namespace emu {
       vector<unsigned int> nBitFlips_other(other_bits.size(),0);
       unsigned int nBitFlips_cmd(0), nBitFlips_data(0);
       for (unsigned int n(0);n<repeatNumber;n++) {
-      	bool BAAD_read(false);
+	bool BAAD_read(false);
 	for (unsigned int p(0);p<addr_pulses.size();++p) {
 	  BAAD_read = false;
 	  vme_wrapper_->VMEWrite(addr_pulses.at(p),args.at(p),ccb_slot,"Send address pulse to CCB");
@@ -4281,8 +4282,8 @@ namespace emu {
 
 
 
-			      // Sent an internally generated L1A/L1A_MATCH to all DCFEBs
-			      // W  3010  10 	
+	  // Sent an internally generated L1A/L1A_MATCH to all DCFEBs
+	  // W  3010  10 	
 	  irdwr = 3;
 	  addr = 0x783010;  
 	  data=0x0010; 
@@ -4562,9 +4563,9 @@ namespace emu {
       for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb){
 	
 	(*dmb)->set_comp_mode(0xa); // added by J. Pilot, 5/23, for testing.
-				    //usleep(1);
-				    //(*dmb)->restoreCFEBIdle();
-				    //ccb_->l1aReset();
+	//usleep(1);
+	//(*dmb)->restoreCFEBIdle();
+	//ccb_->l1aReset();
 	usleep(1);
 	(*dmb)->shift_all(NORM_RUN);
 	(*dmb)->buck_shift();
