@@ -3113,11 +3113,10 @@ namespace emu {
       int slot = Manager::getSlotNumber();
       unsigned int addr_odmb_ctrl_reg(0x003000), addr_dcfeb_ctrl_reg(0x003010);
       unsigned int addr_set_kill(0x00401C), addr_read_done_bits(0x003120);
-      unsigned int addr_read_nrx_pckt(0x00347C), addr_read_ncrcs(0x00367C);
-      unsigned int addr_sel_dcfeb_fifo(0x005010);
+      unsigned int addr_read_nrx_pckt(0x00340C), addr_read_ncrcs(0x00360C);
       // Commands
       //unsigned short int data;
-      unsigned short int cmd_rst(0x300), cmd_dreal_tint(0x200), cmd_kill(0x1BF);
+      unsigned short int cmd_rst(0x300), cmd_dreal_tint(0x200);
       unsigned short int dcfeb_done_bits[7] = {0x1,0x2,0x4,0x8,0x10,0x20,0x40};
       unsigned short int cms_l1a_match(0x10);
       // Results
@@ -3128,18 +3127,19 @@ namespace emu {
       usleep(10000000);
       // Set real data and internal triggers
       vme_wrapper_->VMEWrite(addr_odmb_ctrl_reg,cmd_dreal_tint,slot,"Set real data and internal triggers");
-      // Set KILL
-      vme_wrapper_->VMEWrite(addr_set_kill,cmd_kill,slot,"Set KILL");
       for (unsigned short int dcfeb(0x0); dcfeb<7; dcfeb++) {
+      // Set KILL
+	unsigned int cmd_kill_d = ~(unsigned int)pow(2,dcfeb);
+      vme_wrapper_->VMEWrite(addr_set_kill,cmd_kill_d,slot,"Set KILL");
 	// check if DCFEB is connected
 	VMEresult = vme_wrapper_->VMERead(addr_read_done_bits,slot,"Read DCFEB done bits");
 	if (VMEresult==dcfeb_done_bits[dcfeb]){
-	  // Select DCFEB FIFO
-	  vme_wrapper_->VMEWrite(addr_sel_dcfeb_fifo,dcfeb,slot,"Select DCFEB FIFO");
 	  // Number of received packets before
-	  VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt,slot,"Read number of received packets before");
+	  unsigned int addr_read_nrx_pckt_d = addr_read_nrx_pckt | (0x00F0&((dcfeb+1)<<4));
+	  unsigned int addr_read_ncrcs_d = addr_read_ncrcs | (0x00F0&((dcfeb+1)<<4));
+	  VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt_d,slot,"Read number of received packets before");
 	  // Number of good CRCs before
-	  VMEresult = vme_wrapper_->VMERead(addr_read_ncrcs,slot,"Read number of good CRCs before");
+	  VMEresult = vme_wrapper_->VMERead(addr_read_ncrcs_d,slot,"Read number of good CRCs before");
 	  unsigned int nCntRst(0); // how many times we hit FFFF and restart the counter
 	  // == ============ Send N real packets ============ ==
 	  for (unsigned int p = 0; p < repeatNumber; p++) {
@@ -3147,17 +3147,17 @@ namespace emu {
 	    vme_wrapper_->VMEWrite(addr_dcfeb_ctrl_reg,cms_l1a_match,slot,"Send test L1A(_MATCH) to all DCFEBs");
 	    usleep(100);
 	    // Read number of received packets
-	    VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt,slot,"Read number of received packets");
+	    VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt_d,slot,"Read number of received packets");
 	    if (p>0&&VMEresult==0) nCntRst++; // keep track of how many times the counter resets
 	  }
 	  // == ============ Status summary ============ ==
 	  out << "DCFEB " << dcfeb+1 << ": " << endl;
 	  // Number of received packets
-	  VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt,slot,"Read number of received packets");
+	  VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt_d,slot,"Read number of received packets");
 	  unsigned int nRxPckt(VMEresult+nCntRst*65536);
 	  out << "Received " << nRxPckt << " out of " << repeatNumber << " packets, ";
 	  // Number of good CRCs
-	  VMEresult = vme_wrapper_->VMERead(addr_read_ncrcs,slot,"Read number of good CRCs");
+	  VMEresult = vme_wrapper_->VMERead(addr_read_ncrcs_d,slot,"Read number of good CRCs");
 	  unsigned int nGoodCRCs(VMEresult+nCntRst*65536);
 	  out << nGoodCRCs << " good CRCs.";
 	  if (nGoodCRCs==nRxPckt&&nRxPckt==repeatNumber) out << " No bit flips." << endl;
