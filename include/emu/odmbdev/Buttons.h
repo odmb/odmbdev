@@ -400,7 +400,21 @@ namespace emu { namespace odmbdev {
     public:
       LVMBtest(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out);
-    };   
+    };
+
+    
+    /**************************************************************************
+     * LVMBtest_dos
+     *
+     * A small class to print the 112 histgrams from the low voltage monitoring test
+     * --updated 12/05 (JB-F)
+     **************************************************************************/
+    class LVMBtest_dos : public ParameterTextBoxAction {
+    public:
+      LVMBtest_dos(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
+    };
+   
     
     /**************************************************************************
      * DCFEBJTAGcontrol
@@ -434,26 +448,26 @@ namespace emu { namespace odmbdev {
       CCBReg(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out);
     }; 
-
+    
     /**************************************************************************
-     * PRBSTest
+     * OTMBPRBSTest
      *
-     * A small class to perform high statistics test of PRBS
+     * A small class to perform high statistics PRBS test of OTMB communication and firmware
 	 **************************************************************************/
-    class PRBSTest : public RepeatTextBoxAction {
+    class OTMBPRBSTest : public RepeatTextBoxAction {
     public:
-      PRBSTest(Crate * crate, emu::odmbdev::Manager* manager);
+      OTMBPRBSTest(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out);
     }; 
     
     /**************************************************************************
-     * OTMBTest
+     * DiscreteLogicTest
      *
-     * A small class to perform high statistics test of OTMB communication and firmware
+     * A small class to test programming the VME via discrete logic
 	 **************************************************************************/
-    class OTMBTest : public RepeatTextBoxAction {
+    class DiscreteLogicTest : public RepeatTextBoxAction {
     public:
-      OTMBTest(Crate * crate, emu::odmbdev::Manager* manager);
+      DiscreteLogicTest(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out);
     }; 
        
@@ -479,6 +493,18 @@ namespace emu { namespace odmbdev {
       void respond(xgi::Input * in, ostringstream & out);
     }; 
        
+    /**************************************************************************
+     * MCSBackAndForthBPI
+     *
+     * A class to write mcs files to PROM back and forth some number of times
+     **************************************************************************/
+
+    class MCSBackAndForthBPI : public RepeatTextBoxAction {
+    public:
+      MCSBackAndForthBPI(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input *in, ostringstream & out);
+    };
+
     /**************************************************************************
      * Log Buttons
      *

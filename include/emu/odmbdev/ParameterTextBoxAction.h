@@ -9,7 +9,7 @@ using namespace emu::pc;
 namespace emu { namespace odmbdev {
     class ParameterTextBoxAction : public Action {
     public:
-      ParameterTextBoxAction(Crate * crate, Manager * manager, string buttonLabel, string parameter);
+      ParameterTextBoxAction(Crate * crate, Manager * manager, string buttonLabel, string parameter, unsigned int default_val=1);
 
       void display(xgi::Output * out);
       void respond(xgi::Input * in, ostringstream & out);
