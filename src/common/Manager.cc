@@ -152,16 +152,18 @@ namespace emu { namespace odmbdev {
       addLogActionByTypename<CreateTestLog>(crate, this);
       addActionByTypename<ChangeSlotNumber>(crate, this);
       addActionByTypename<LVMBtest>(crate, this);
-      addActionByTypename<LVMBtest_dos>(crate, this);
       addActionByTypename<DCFEBJTAGcontrol>(crate, this);
       addActionByTypename<DCFEBFiber>(crate, this);
       addActionByTypename<CCBReg>(crate, this);
-      addActionByTypename<DDUFIFOTest>(crate, this);
-      addActionByTypename<PCFIFOTest>(crate, this);
+      //addActionByTypename<DDUFIFOTest>(crate, this);
+      //addActionByTypename<PCFIFOTest>(crate, this);
       addActionByTypename<OTMBPRBSTest>(crate, this);
-      addActionByTypename<MCSBackAndForthBPI>(crate, this);     
       addActionByTypename<DiscreteLogicTest>(crate, this);
+      addActionByTypename<DDUPRBSTest>(crate,this);
+      addActionByTypename<PCPRBSTest>(crate,this);
+      addActionByTypename<MCSBackAndForthBPI>(crate, this);     
       addActionByTypename<HardReset>(crate);
+      addActionByTypename<LVMBtest_dos>(crate, this);
       
       // putButtonsInGroup( "Routine Tests" );
       // addActionByTypename<RoutineTest_ShortCosmicsRun>(crate, this);

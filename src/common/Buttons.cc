@@ -2699,6 +2699,48 @@ namespace emu {
       else out << "LVMB Test Failed!" << endl;
     }
 
+    PCPRBSTest::PCPRBSTest(Crate* crate, emu::odmbdev::Manager* manager):
+      ParameterTextBoxAction(crate, manager, "PC PRBS Test", "sequences", 6){
+    }
+
+    void PCPRBSTest::respond(xgi::Input* in, ostringstream& out){
+      const unsigned int slot_v2(19);
+
+      ParameterTextBoxAction::respond(in, out);
+      out << "********** PC PRBS Test ********************" << endl;
+      const unsigned int slot(Manager::getSlotNumber());
+      unsigned int num_sequences(atoi(this->textBoxContent.c_str()));
+
+      vme_wrapper_->VMEWrite(0x9300, 1, slot, "Set PRBS-7 mode");
+      vme_wrapper_->VMEWrite(0x9300, 1, slot_v2, "Set PRBS-7 mode");
+      vme_wrapper_->VMEWrite(0x9100, 1, slot, "Activate PC TX PRBS");
+      vme_wrapper_->VMEWrite(0x9100, num_sequences, slot_v2, "Activate PC RX PRBS");
+      usleep(500*num_sequences);
+      const unsigned short num_errors(vme_wrapper_->VMERead(0x910C, slot_v2, "Read number of errors"));
+      out << num_errors << " errors found in " << num_sequences << " sequences." << endl;
+    }
+
+    DDUPRBSTest::DDUPRBSTest(Crate* crate, emu::odmbdev::Manager* manager):
+      ParameterTextBoxAction(crate, manager, "DDU PRBS Test", "sequences", 6){
+    }
+
+    void DDUPRBSTest::respond(xgi::Input* in, ostringstream& out){
+      const unsigned int slot_v2(19);
+
+      ParameterTextBoxAction::respond(in, out);
+      out << "********** DDU PRBS Test *******************" << endl;
+      const unsigned int slot(Manager::getSlotNumber());
+      unsigned int num_sequences(atoi(this->textBoxContent.c_str()));
+
+      vme_wrapper_->VMEWrite(0x9300, 1, slot, "Set PRBS-7 mode");
+      vme_wrapper_->VMEWrite(0x9300, 1, slot_v2, "Set PRBS-7 mode");
+      vme_wrapper_->VMEWrite(0x9000, 1, slot, "Activate PC TX PRBS");
+      vme_wrapper_->VMEWrite(0x9000, num_sequences, slot_v2, "Activate PC RX PRBS");
+      usleep(500*num_sequences);
+      const unsigned short num_errors(vme_wrapper_->VMERead(0x900C, slot_v2, "Read number of errors"));
+      out << num_errors << " errors found in " << num_sequences << " sequences." << endl;
+    }
+
     LVMBtest_dos::LVMBtest_dos(Crate * crate, emu::odmbdev::Manager* manager) 
       : ParameterTextBoxAction(crate, manager, "LVMB histogram","sequences",100) 
     { 

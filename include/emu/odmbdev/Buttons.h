@@ -391,6 +391,20 @@ namespace emu { namespace odmbdev {
       void respond(xgi::Input * in, xgi::Output * out, std::ostringstream & ssout, std::ostringstream & log);
     }; 
     
+    //Performs PRBS test of PC TX on a V3 ODMB using a V2 ODMB in slot 19
+    class PCPRBSTest : public ParameterTextBoxAction {
+    public:
+      PCPRBSTest(Crate* crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input* in, ostringstream& out);
+    };
+
+    //Performs PRBS test of DDU TX on a V3 ODMB using a V2 ODMB in slot 19
+    class DDUPRBSTest : public ParameterTextBoxAction {
+    public:
+      DDUPRBSTest(Crate* crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input* in, ostringstream& out);
+    };
+    
     /**************************************************************************
      * LVMBtest
      *
