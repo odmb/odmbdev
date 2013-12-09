@@ -2449,7 +2449,7 @@ namespace emu {
       cout << "Tester: " << initials << endl;
       // create log file
       //string file_name("logfiles/odmb_#_fw_v");
-      string file_name("logfiles/odmb");
+      string file_name("/data/odmb/logfiles/production_tests/odmb");
       file_name += unique_id + string("_fwv") + fwv;
       file_name += string("_") + emu::utils::getDateTime(true) + string("_") + initials + string(".log");
       ofstream ofs(file_name.c_str(),ios::app);
@@ -2475,9 +2475,11 @@ namespace emu {
     void LVMBtest::respond(xgi::Input * in, ostringstream & out) { // TD
       ThreeTextBoxAction::respond(in, out);
       out << "********** Low Voltage Monitoring **********" << endl;
+      unsigned int slot(Manager::getSlotNumber());
+      unsigned short int VMEresult;
+      //unsigned short int data;
+
       string textBoxContent = this->textBoxContent;
-      string textBoxContent2 = this->textBoxContent2;
-      string textBoxContent3 = this->textBoxContent3;
       istringstream textBoxContent1(textBoxContent);
       string volt1_string, volt2_string;
       textBoxContent1 >> volt2_string;
@@ -2489,20 +2491,15 @@ namespace emu {
       if (!(volt1 > 0 && volt1 < 10)) volt1 = 0;
       if (!(volt2 > 0 && volt2 < 10)) volt2 = 0;
       float expectedV[7] = {volt1, volt1, volt2, volt1, volt2, volt2, volt2};
-      float tol = atof(textBoxContent2.c_str());
-      int slot = Manager::getSlotNumber();
-      unsigned int shiftedSlot = slot << 19;
-      char rcv[2];
-      unsigned short int data;
+      float tol = atof((this->textBoxContent2).c_str());
+
       //addresses
-      unsigned short int VMEresult = 0;
-      int addr_sel_adc = (0x008020 & 0x07ffff) | shiftedSlot;
-      int addr_cntl_byte = (0x008000 & 0x07ffff) | shiftedSlot;
-      int addr_read_adc = (0x008004 & 0x07ffff) | shiftedSlot;
-      int addr_turn_on = (0x008010 & 0x07ffff) | shiftedSlot;
-      int addr_verify_on = (0x008014 & 0x07ffff) | shiftedSlot;
+      unsigned short int addr_sel_adc = 0x008020;
+      unsigned short int addr_cntl_byte = 0x008000;
+      unsigned short int addr_read_adc = 0x008004;
+      unsigned short int addr_turn_on = 0x008010;
+      unsigned short int addr_verify_on = 0x008014;
       int notConnected = 0;
-      int nReps = atoi(textBoxContent3.c_str());
       int fail_turn_off = 0;
       int fail_turn_on = 0;
       unsigned short int ctrl_byte_vec[7] =       {0x89, 0xB9, 0xA9, 0xD9, 0x99, 0xE9, 0xD9};
@@ -2513,33 +2510,29 @@ namespace emu {
       unsigned short int on_off_ctrl_byte[2] =    {0x00, 0xFF};
       int pass = 0;
       int fail = 0;
+
+      int nReps = atoi(this->textBoxContent3.c_str());
+
       //1) Test on-off 
       //unsigned short int ctrl_byte = 0xFF;
       for (int mode = 0; mode < 2; mode++){
-        unsigned short int ctrl_byte = on_off_ctrl_byte[mode];
-        crate_->vmeController()->vme_controller(3, addr_turn_on, &ctrl_byte, rcv);
+	vme_wrapper_->VMEWrite(addr_turn_on, on_off_ctrl_byte[mode], slot, "Select ADC to power on" );
         usleep(10);
         //Read from ADC
-        data = on_off_ctrl_byte[mode];
-        crate_->vmeController()->vme_controller(2, addr_verify_on, &data, rcv);
+	VMEresult = vme_wrapper_->VMERead(addr_verify_on, slot, "Read ADCs powered on" );
         usleep(10);
-        //Format result
-        VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
         for (int i = 0; i < 7; i++){
           //Write ADC to be read 
-          unsigned short int ADC_number = ADC_number_vec[i];
-          crate_->vmeController()->vme_controller(3, addr_sel_adc, &ADC_number, rcv);
+          vme_wrapper_->VMEWrite(addr_sel_adc, ADC_number_vec[i], slot, "Select ADC to be read");
           usleep(30);
           //Send control byte to ADC
-          ctrl_byte = ctrl_byte_vec_onoff[i];
-          crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
+          vme_wrapper_->VMEWrite(addr_cntl_byte, ctrl_byte_vec_onoff[i], slot, "Send control byte to ADC");
           usleep(30);
           //Read from ADC
-          crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv); //often returns -100, maybe fixed by introducing sleeps?
+	  VMEresult = vme_wrapper_->VMERead(addr_read_adc, slot, "Read ADC" );
+          //crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv); //often returns -100, maybe fixed by introducing sleeps?
           usleep(10);
           //Format result
-          VMEresult = 0;
-          VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
           float voltage_result_1 = float(VMEresult)*10.0/float(0xfff);
           if (VMEresult == 65535 && i == 0){ 
             VMEresult = 0;
@@ -2561,34 +2554,24 @@ namespace emu {
       for (int j = 0; j < nReps; j++){
         for (int i = 0; i < 7; i++){
           //Write ADC to be read 
-          unsigned short int ADC_number = ADC_number_vec[i];
-          crate_->vmeController()->vme_controller(3, addr_sel_adc, &ADC_number, rcv);
+          vme_wrapper_->VMEWrite(addr_sel_adc, ADC_number_vec[i], slot, "Select ADC to be read");
           usleep(10);
           //Send control byte to ADC
-          unsigned short int ctrl_byte = ctrl_byte_vec[i];
-          crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
+          vme_wrapper_->VMEWrite(addr_cntl_byte, ctrl_byte_vec[i], slot, "Send control byte to ADC -- 5V scale");
           usleep(100);
           //Read from ADC
-          crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv); //often returns -100, maybe fixed by introducing sleeps?
+	  VMEresult = vme_wrapper_->VMERead(addr_read_adc, slot, "Read ADC" );
           usleep(10);
-          //Format result
-          VMEresult = 0;
-          VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-          unsigned int hex_1 = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+          unsigned int hex_1 = VMEresult;
           float voltage_result_1 = float(VMEresult*10.0)/float(0xfff);
-          if (voltage_result_1 > 9) cout << "BAD.  received:  " << std::hex << (rcv[1] & 0xff) << " " << std::hex << (rcv[0] & 0xff) << " VME result: " << VMEresult << " voltage " << voltage_result_1 << endl;
+          //if (voltage_result_1 > 9) cout << "BAD.  received:  " << std::hex << (rcv[1] & 0xff) << " " << std::hex << (rcv[0] & 0xff) << " VME result: " << VMEresult << " voltage " << voltage_result_1 << endl;
 
           //Send control byte to ADC -- method 2
-          ctrl_byte = ctrl_byte_vec2[i];
-          crate_->vmeController()->vme_controller(3, addr_cntl_byte, &ctrl_byte, rcv);
+          vme_wrapper_->VMEWrite(addr_cntl_byte, ctrl_byte_vec2[i], slot, "Send control byte to ADC -- 10V scale");
           usleep(100);
           //Read from ADC
-          crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv);
-          usleep(10);
-          //Format result
-          VMEresult = 0;
-          VMEresult = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-          int hex_2 = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+          VMEresult = vme_wrapper_->VMERead(addr_read_adc, slot, "Read ADC" );
+          int hex_2 = VMEresult;
           if (VMEresult == 65535 && i == 0){ 
             VMEresult = 0;
             notConnected++;
@@ -2664,14 +2647,14 @@ namespace emu {
         std::sort( v2_vec[ADC_number_vec[i]].begin(), v2_vec[ADC_number_vec[i]].end(), myfunction );
 
         cout <<endl<< "Printing everything for ADC " << ADC_number_vec[i] << ": Expected voltage " << expectedV[ADC_number_vec[i]] << endl;
-	cout << "Histrogram for 10V range"<<endl;
+	cout << "Histogram for 10V range"<<endl;
         for (unsigned int l = 0; l < v1_vec[ADC_number_vec[i]].size(); l++){
           printf("%6.4f   %5d \n", v1_vec[ADC_number_vec[i]][l].first, v1_vec[ADC_number_vec[i]][l].second);
           if ( fabs(v1_vec[ADC_number_vec[i]][l].first - expectedV[ADC_number_vec[i]]) > tol ) fail += v1_vec[ADC_number_vec[i]][l].second;
           else pass += v1_vec[ADC_number_vec[i]][l].second;
         }
        
-	cout << "Histrogram for 5V range"<<endl;
+	cout << "Histogram for 5V range"<<endl;
 	for (unsigned int l = 0; l < v2_vec[ADC_number_vec[i]].size(); l++){
           printf("%6.4f   %5d \n", v2_vec[ADC_number_vec[i]][l].first, v2_vec[ADC_number_vec[i]][l].second);
           if ( fabs(v2_vec[ADC_number_vec[i]][l].first - expectedV[ADC_number_vec[i]]) > tol ) fail += v2_vec[ADC_number_vec[i]][l].second;
@@ -2814,14 +2797,14 @@ namespace emu {
 	  std::sort( v2_vec[ADC][channel].begin(), v2_vec[ADC][channel].end(), myfunction );
 
 	  out <<endl<< "Printing everything for ADC " << ADC << ", channel " << channel << endl;
-	  out << "Histrogram for 5V range"<<endl;
+	  out << "Histogram for 5V range"<<endl;
 	  for (unsigned int l = 0; l < v1_vec[ADC][channel].size(); l++){
 	    char line[100];
 	    sprintf(line,"%6.4f   %5d \n", v1_vec[ADC][channel][l].first, v1_vec[ADC][channel][l].second);
 	    out << line;
 	  }
        
-	  out << "Histrogram for 10V range"<<endl;
+	  out << "Histogram for 10V range"<<endl;
 	  for (unsigned int l = 0; l < v2_vec[ADC][channel].size(); l++){
 	    char line[100];
 	    sprintf(line,"%6.4f   %5d \n", v2_vec[ADC][channel][l].first, v2_vec[ADC][channel][l].second);
@@ -3194,7 +3177,7 @@ namespace emu {
 	    if (p>0&&VMEresult==0) nCntRst++; // keep track of how many times the counter resets
 	  }
 	  // == ============ Status summary ============ ==
-	  out << "DCFEB " << dcfeb+1 << ": " << endl;
+	  out << "DCFEB " << dcfeb+1 << ": ";
 	  // Number of received packets
 	  VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt_d,slot,"Read number of received packets");
 	  unsigned int nRxPckt(VMEresult+nCntRst*65536);
@@ -5301,16 +5284,18 @@ namespace emu {
       getline(countertext,line,'\n');
       const unsigned long testReps=strtoul(line.c_str(),NULL,0);
       unsigned short int fw_ver_returned;
-      const unsigned short int fw_ver1 = 0xf200;
-      const unsigned short int fw_ver2 = 0x0200;
+      const unsigned short int fw_ver1 = 0xf201;
+      const unsigned short int fw_ver2 = 0x0201;
       unsigned int raddr = 0x004024;
 
       int counter_pass = 0;
       int counter_fail = 0;
       bool corruptLoad = false;
 
-      std::string filename1("/data/Dropbox/odmb/Temp/mcs_Nov18/VF2-00_temp_odmb_ucsb.mcs");
-      std::string filename2("/data/Dropbox/odmb/Temp/mcs_Nov18/V02-00_temp_odmb_ucsb.mcs");
+      std::string filename1("/data/Dropbox/odmb/Temp/mcs_Dec5/VF2-01_odmb_ucsb.mcs");
+      std::string filename2("/data/Dropbox/odmb/Temp/mcs_Dec5/V02-01_odmb_ucsb.mcs");
+
+
 
       if (filename1.empty() || filename2.empty())
 	{
