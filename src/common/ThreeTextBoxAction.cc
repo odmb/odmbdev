@@ -1,36 +1,35 @@
 #include "emu/odmbdev/ThreeTextBoxAction.h"
 #include "emu/odmbdev/Manager.h"
 
-namespace emu { namespace odmbdev {
-  ThreeTextBoxAction::ThreeTextBoxAction(Crate * crate, emu::odmbdev::Manager * manager, string buttonLabel)
-    : Action(crate, manager)
-  {
-    this->buttonLabel = buttonLabel;
-    this->textBoxContent = string("4.00 0");
-    this->textBoxContent2 = string(".05");
-    this->textBoxContent3 = string("100");
-  }
+namespace emu{
+  namespace odmbdev {
+    ThreeTextBoxAction::ThreeTextBoxAction(Crate* crate,
+					   emu::odmbdev::Manager* manager,
+					   string buttonLabel_in):
+      Action(crate, manager),
+      buttonLabel(buttonLabel_in),
+      textBoxContent("4.00 0"),
+      textBoxContent2(".05"),
+      textBoxContent3("100"){
+    }
 
-  void ThreeTextBoxAction::display(xgi::Output * out){
-    addButtonWithThreeTextBoxesLVMB(out,
-				this->buttonLabel,
-				"textbox",
-				this->textBoxContent,
-                                "textbox2",
-                                this->textBoxContent2,
-                                "textbox3",
-                                this->textBoxContent3,
-                                "width: 250px;",
-                                "width: 60px;",
-                                "width: 35px;"
-                                "width: 20px;");
+    void ThreeTextBoxAction::display(xgi::Output * out){
+      addButtonWithThreeTextBoxesLVMB(out, buttonLabel, "textbox", textBoxContent,
+				      "textbox2", textBoxContent2, "textbox3",
+				      textBoxContent3, "width: 250px;", "width: 60px;",
+				      "width: 35px;", "width: 20px;");
+    }
+
+    void ThreeTextBoxAction::respond(xgi::Input* in, ostringstream& out){
+      textBoxContent = getFormValueString("textbox", in);
+      textBoxContent2 = getFormValueString("textbox2", in);
+      textBoxContent3 = getFormValueString("textbox3", in);
+      respond(in, out, textBoxContent3);
+    }
+
+    void ThreeTextBoxAction::respond(xgi::Input* in, ostringstream& out,
+					     const string& textBoxContent3_in){
+      textBoxContent3=textBoxContent3_in;
+    }
   }
-  // remember to call this base method with you override it, otherwise
-  // textBoxContents will be empty!
-  void ThreeTextBoxAction::respond(xgi::Input * in, ostringstream & out){
-   this->textBoxContent = getFormValueString("textbox", in);
-   this->textBoxContent2 = getFormValueString("textbox2", in);
-   this->textBoxContent3 = getFormValueString("textbox3", in);
-  }
-}
 }

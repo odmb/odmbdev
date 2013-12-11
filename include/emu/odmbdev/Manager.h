@@ -46,7 +46,7 @@ namespace odmbdev {
 
     class Manager : public virtual xdaq::WebApplication
     {
-
+      friend class MasterTest;
     public:
       /// define factory method for the instantion of AFEBTeststand applications
       XDAQ_INSTANTIATOR();

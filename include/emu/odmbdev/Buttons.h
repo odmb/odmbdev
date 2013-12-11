@@ -17,7 +17,6 @@
 #include "emu/odmbdev/OneTextBoxAction.h"
 #include "emu/odmbdev/ThreeTextBoxAction.h"
 #include "emu/odmbdev/RepeatTextBoxAction.h"
-#include "emu/odmbdev/ParameterTextBoxAction.h"
 #include "emu/odmbdev/SignatureTextBoxAction.h"
 
 /******************************************************************************
@@ -390,19 +389,28 @@ namespace emu { namespace odmbdev {
       CreateTestLog(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, xgi::Output * out, std::ostringstream & ssout, std::ostringstream & log);
     }; 
+
+    //Does (almost) all the tests
+    class MasterTest: public ButtonAction{
+    public:
+      MasterTest(Crate* crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input* in, ostringstream& out);
+    };
     
     //Performs PRBS test of PC TX on a V3 ODMB using a V2 ODMB in slot 19
-    class PCPRBSTest : public ParameterTextBoxAction {
+    class PCPRBSTest : public RepeatTextBoxAction {
     public:
       PCPRBSTest(Crate* crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input* in, ostringstream& out);
+      void respond(xgi::Input* in, ostringstream& out,
+		   const string& textBoxContent_in);
     };
 
     //Performs PRBS test of DDU TX on a V3 ODMB using a V2 ODMB in slot 19
-    class DDUPRBSTest : public ParameterTextBoxAction {
+    class DDUPRBSTest : public RepeatTextBoxAction {
     public:
       DDUPRBSTest(Crate* crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input* in, ostringstream& out);
+      void respond(xgi::Input* in, ostringstream& out,
+		   const string& textBoxContent_in);
     };
     
     /**************************************************************************
@@ -413,7 +421,7 @@ namespace emu { namespace odmbdev {
     class LVMBtest : public ThreeTextBoxAction {
     public:
       LVMBtest(Crate * crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input * in, ostringstream & out);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     };
 
     
@@ -423,10 +431,10 @@ namespace emu { namespace odmbdev {
      * A small class to print the 112 histgrams from the low voltage monitoring test
      * --updated 12/05 (JB-F)
      **************************************************************************/
-    class LVMBtest_dos : public ParameterTextBoxAction {
+    class LVMBtest_dos : public RepeatTextBoxAction {
     public:
       LVMBtest_dos(Crate * crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input * in, ostringstream & out);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     };
    
     
@@ -438,7 +446,7 @@ namespace emu { namespace odmbdev {
     class DCFEBJTAGcontrol : public RepeatTextBoxAction {
     public:
       DCFEBJTAGcontrol(Crate * crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input * in, ostringstream & out);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     };     
     
     /**************************************************************************
@@ -446,10 +454,10 @@ namespace emu { namespace odmbdev {
      *
      * A small class to perform high statistics test of DCFEB fibers (trigger, send/receive packets)
 	 **************************************************************************/
-    class DCFEBFiber : public ParameterTextBoxAction {
+    class DCFEBFiber : public RepeatTextBoxAction {
     public:
       DCFEBFiber(Crate * crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input * in, ostringstream & out);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     }; 
     
     /**************************************************************************
@@ -460,7 +468,7 @@ namespace emu { namespace odmbdev {
     class CCBReg : public RepeatTextBoxAction {
     public:
       CCBReg(Crate * crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input * in, ostringstream & out);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     }; 
     
     /**************************************************************************
@@ -471,7 +479,7 @@ namespace emu { namespace odmbdev {
     class OTMBPRBSTest : public RepeatTextBoxAction {
     public:
       OTMBPRBSTest(Crate * crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input * in, ostringstream & out);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     }; 
     
     /**************************************************************************
@@ -482,7 +490,7 @@ namespace emu { namespace odmbdev {
     class DiscreteLogicTest : public RepeatTextBoxAction {
     public:
       DiscreteLogicTest(Crate * crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input * in, ostringstream & out);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     }; 
        
     /**************************************************************************
@@ -493,7 +501,7 @@ namespace emu { namespace odmbdev {
     class DDUFIFOTest : public RepeatTextBoxAction {
     public:
       DDUFIFOTest(Crate * crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input * in, ostringstream & out);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     }; 
        
     /**************************************************************************
@@ -504,7 +512,7 @@ namespace emu { namespace odmbdev {
     class PCFIFOTest : public RepeatTextBoxAction {
     public:
       PCFIFOTest(Crate * crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input * in, ostringstream & out);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     }; 
        
     /**************************************************************************
@@ -516,7 +524,7 @@ namespace emu { namespace odmbdev {
     class MCSBackAndForthBPI : public RepeatTextBoxAction {
     public:
       MCSBackAndForthBPI(Crate * crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input *in, ostringstream & out);
+      void respond(xgi::Input *in, ostringstream & out, const string& textBoxContent_in);
     };
 
     /**************************************************************************

@@ -151,6 +151,7 @@ namespace emu { namespace odmbdev {
       putButtonsInGroup("Production Tests");
       addLogActionByTypename<CreateTestLog>(crate, this);
       addActionByTypename<ChangeSlotNumber>(crate, this);
+      addActionByTypename<MasterTest>(crate, this);
       addActionByTypename<LVMBtest>(crate, this);
       addActionByTypename<DCFEBJTAGcontrol>(crate, this);
       addActionByTypename<DCFEBFiber>(crate, this);

@@ -35,7 +35,6 @@ Sources = \
         OneTextBoxAction.cc \
         ThreeTextBoxAction.cc \
         RepeatTextBoxAction.cc \
-        ParameterTextBoxAction.cc \
         SignatureTextBoxAction.cc \
         VMEWrapper.cc
 #	Spy.cc
