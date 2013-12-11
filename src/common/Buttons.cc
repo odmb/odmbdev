@@ -2654,8 +2654,7 @@ namespace emu {
 	  short_arg="0";
 	  long_arg="0";
 	}
-	short_arg="0";
-	long_arg="1";
+
 	RepeatTextBoxAction* const rtba_ptr(dynamic_cast<RepeatTextBoxAction*>(button->get()));
 	ThreeTextBoxAction* const ttba_ptr(dynamic_cast<ThreeTextBoxAction*>(button->get()));
 	if(good_button){
