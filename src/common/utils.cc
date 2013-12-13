@@ -139,11 +139,16 @@ namespace emu{ namespace odmbdev{
     string unique_id = FixLength(vme_wrapper->VMERead(addr_unique_id,slot,"Read unique ID"),4,true);
     string fwv =  FixLength(vme_wrapper->VMERead(addr_fwv,slot,"Read FW version"),4,true);
     string fwb =  FixLength(vme_wrapper->VMERead(addr_fwb,slot,"Read FW version"),4,true);
+    time_t rawtime;
+    time (&rawtime);
+    char time_stamp[100];
+    sprintf(time_stamp,"%s",ctime(&rawtime));
+    
     // locate log file
     string filename("/data/odmb/logfiles/new/odmb_"+unique_id+".log");
     //std::cout << "Wrote to: " << filename << std::endl;
     ofstream logfile(filename.c_str(), std::ofstream::app);
-    logfile << "ODMB: " << unique_id << " -- FW version " << fwv << ", build " << fwb << endl;
+    logfile << "FW version " << fwv << ", build " << fwb << " -- " << time_stamp;
     logfile << out_local.str();
     logfile.close();
   }

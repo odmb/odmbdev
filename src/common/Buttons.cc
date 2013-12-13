@@ -2172,7 +2172,7 @@ namespace emu {
             if((addr >= 0x321C && addr <= 0x337C) || (addr >= 0x33FC && addr < 0x35AC)  || 
 	       (addr > 0x35DC && addr <= 0x3FFF) || addr == 0x500C || addr == 0x510C ||
 	       addr == 0x520C || addr == 0x530C || addr == 0x540C   || addr == 0x550C || addr == 0x560C 
-               || addr == 0x8004 ||  (addr == 0x5000 && VMEresult < 0x1000)) {
+               || addr == 0x8004 ||  (addr == 0x5000 && VMEresult < 0x1000) || (addr >= 0x9400 && addr <= 0x940C)) {
 	      readHex = false;
 	      label = "_d";
 	    }
@@ -3081,7 +3081,7 @@ namespace emu {
       vector<unsigned int> v_nShiftReads(7,0); // number of times we successfully read shifted bits on ADC mask
       vector<string> v_firmwareVersion(7,""); // store the firmware version
       vector<unsigned int> v_nJTAGshifts(7,0); // number of JTAG shifts commands issued
-      unsigned short int data;
+      unsigned short int data(0x0);
       unsigned short int reg_user_code = 0x3C8;
       unsigned short int reg_dev_sel = 0x3C2;
       unsigned short int reg_dev_val = 0xC;
@@ -3089,7 +3089,6 @@ namespace emu {
       unsigned short int VMEresult;
       //addresses
       unsigned int addr_sel_dcfeb = (0x001020);
-      unsigned int addr_read_dcfeb = (0x001024);
       unsigned int addr_set_int_reg = (0x00191C);
       unsigned int addr_read_hdr = (0x001F04);
       unsigned int addr_read_tlr = (0x001F08);
@@ -3098,14 +3097,14 @@ namespace emu {
       unsigned int addr_read_tdo = (0x001F14);
       unsigned short int DCFEB_number[7] = {0x1, 0x2, 0x4, 0x08, 0x10, 0x20,0x40};
       unsigned int nConnected(0);
-      unsigned short int start(0x111), end(0xFFF);
+      unsigned short int start(0x0), end(0xFFF);
       int slot = Manager::getSlotNumber();
 
       for (int d = 0; d < 7; d++){ // Loop over all DCFEBs
 	// Select DCFEB (one bit per DCFEB)
 	vme_wrapper_->VMEWrite(addr_sel_dcfeb,DCFEB_number[d],slot,"Select DCFEB (one bit per DCFEB)");
 	// Read selected DCFEB
-	VMEresult = vme_wrapper_->VMERead(addr_read_dcfeb,slot,"Read selected DCFEB");
+	//VMEresult = vme_wrapper_->VMERead(addr_read_dcfeb,slot,"Read selected DCFEB");
 	// Set instruction register to *Read UserCode*
 	vme_wrapper_->VMEWrite(addr_set_int_reg,reg_user_code,slot,"Set instruction register to *Read UserCode*");
 	// Shift 16 lower bits
@@ -3133,9 +3132,11 @@ namespace emu {
 	    // Set IR to *Value select*
 	    vme_wrapper_->VMEWrite(addr_set_int_reg,reg_val_sel,slot,"Set IR to *Value select*");
 	    vector<string> tdi;
-	    vector<string> tdo;
+	    vector<string> tdo;	     
+	    vme_wrapper_->VMEWrite(addr_shift_dr_12,0x0,slot,"Set DR, shift 12 bits");
+	    usleep(100);
 	    for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
-	      if (reg_val_shft>start) v_nJTAGshifts[d]++;
+	      v_nJTAGshifts[d]++;
 	      // Set DR, shift 12 bits
 	      vme_wrapper_->VMEWrite(addr_shift_dr_12,reg_val_shft,slot,"Set DR, shift 12 bits");
 	      usleep(100);
@@ -3145,7 +3146,7 @@ namespace emu {
 	      usleep(100);
 	      tdo.push_back(FixLength(VMEresult, 4, true));
 	      if (reg_val_shft == start) continue;
-	      if (tdo[reg_val_shft-0x111].substr(0,3) == tdi[reg_val_shft-1-0x111]) v_nShiftReads[d]++;
+	      if (tdo[reg_val_shft].substr(0,3) == tdi[reg_val_shft-1]) v_nShiftReads[d]++;
 	    } // loop over words to shift
 	  } // repeat the test repNum times per DCFEB
 	} // if DCFEB is connected
@@ -3369,8 +3370,9 @@ namespace emu {
 	    nBAADs_other_reg++;
 	  }
 	  else {
-	    nBitFlips_other[p]+=GetBitFlips((VMEresult^VMEresult_prev)&(0xFF7),(other_bits.at(p) & 0xffff));
-	    nBitFlips_other_reg++;
+	    unsigned int bit_flips = GetBitFlips((VMEresult^VMEresult_prev)&(0xFF7),(other_bits.at(p) & 0xffff));
+	    nBitFlips_other[p]+=bit_flips;
+	    nBitFlips_other_reg+=bit_flips;
 	  }
 	}
 	
@@ -3408,7 +3410,6 @@ namespace emu {
 	  nBitFlips_cmd+=GetBitFlips(cmd_result_after,0x0003);
 	}
       }
-
       if ((nBAADs_other_reg+nBitFlips_other_reg+nBAADs_data+nBitFlips_data+nBAADs_cmd+nBitFlips_cmd)==0) {
 	out_local << "PASSED" << endl;
 	out_local << "Repeated test " << repeatNumber << " times. ";
@@ -3446,11 +3447,10 @@ namespace emu {
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
 
       unsigned int odmb_slot(Manager::getSlotNumber()), otmb_slot(6);
-      unsigned int addr_otmb_cnt_rst(0x009410), addr_tp_sel_reg(0x003020);
-      unsigned int addr_otmb_mode(0x0001EE), addr_otmb_prbs_start(0x0031EE);
-      unsigned int addr_read_prbs_matches(0x009408), addr_read_prbs_errors(0x00940C);
+      unsigned int addr_otmb_cnt_rst(0x9410), addr_tp_sel_reg(0x3020);
+      unsigned int addr_otmb_mode(0x1EE), addr_otmb_prbs_start(0x31EE);
+      unsigned int addr_read_prbs_matches(0x9408), addr_read_prbs_errors(0x940C);
       unsigned short int reset_command(0x0), odmb_mode(0x1), otmb_prbs_sig(0x20);
-      unsigned short int VMEresult;
 
       vme_wrapper_->VMEWrite(addr_otmb_cnt_rst,reset_command,odmb_slot,"Reset OTMB PRBS count");
       vme_wrapper_->VMEWrite(addr_otmb_mode,odmb_mode,otmb_slot,"Set OTMB in ODMB mode");
@@ -3465,8 +3465,8 @@ namespace emu {
       if (num_errors==100&&num_matches==(n_prbs_sequences-1)) out_local << "PASSED" << endl;
       else out_local << "NOT PASSED" << endl;
       out_local << "Number of PRBS sequences: " << n_prbs_sequences << " (10,000 bits each)" << endl;
-      out_local << "PRBS sequences matched: " << VMEresult << " (expected " << n_prbs_sequences-1 << ")" << endl;
-      out_local << "PRBS bit errors: " << VMEresult << " (expected 100)" << endl;
+      out_local << "PRBS sequences matched: " << num_matches << " (expected " << n_prbs_sequences-1 << ")" << endl;
+      out_local << "PRBS bit errors: " << num_errors << " (expected 100)" << endl;
       out_local << endl;
 
       out << out_local.str();
