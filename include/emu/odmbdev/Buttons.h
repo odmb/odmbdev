@@ -424,6 +424,16 @@ namespace emu { namespace odmbdev {
       void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     };
 
+    /**************************************************************************
+     * ReadODMBVitals
+     *
+     * Print unique ID and firmware info
+     **************************************************************************/
+    class ReadODMBVitals : public ButtonAction {
+    public:
+      ReadODMBVitals(Crate * crate);
+      void respond(xgi::Input * in, ostringstream & out);
+    };
     
     /**************************************************************************
      * LVMBtest_dos

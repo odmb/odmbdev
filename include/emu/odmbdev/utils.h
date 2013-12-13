@@ -6,6 +6,8 @@
 #include <sstream>
 #include <time.h>
 
+#include "emu/odmbdev/VMEWrapper.h"
+
 namespace emu{ 
   namespace odmbdev{
 
@@ -24,7 +26,11 @@ namespace emu{
       convert << number;
       return convert.str();
     }
-	std::string GetLogFileName(unsigned int port_number);
+    
+    std::string GetLogFileName(unsigned int port_number);
+    std::string FixLength(unsigned int Number, unsigned int Length, bool isHex);
+    void UpdateLog(VMEWrapper* vme_wrapper, unsigned int slot, std::ostringstream& out_local);
+
   }
 }
 

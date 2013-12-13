@@ -136,6 +136,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<ChangeSlotNumber>(crate, this);
       cout<<"Adding button"<<endl;
       addActionByTypename<ExecuteVMEDSL>(crate,this);
+      addActionByTypename<ReadODMBVitals>(crate);
       cout << "Adding test reset button" << endl;
       addActionByTypename<ResetRegisters>(crate);
       cout << "Adding reprogram DCFEB button" << endl;
