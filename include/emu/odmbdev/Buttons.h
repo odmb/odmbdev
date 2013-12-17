@@ -54,7 +54,7 @@ namespace emu { namespace odmbdev {
     class HardReset : public Action {
     public:
       HardReset(emu::pc::Crate * crate) : Action(crate) {}
-      void display(xgi::Output * out) { addButton(out, "Hard Reset", "width: 250px "); }
+      void display(xgi::Output * out) { addButton(out, "Hard reset (crate)", "width: 230px "); }
       void respond(xgi::Input * in, std::ostringstream & out);
     };
     

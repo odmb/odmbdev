@@ -134,12 +134,9 @@ namespace emu { namespace odmbdev {
        ***********************************************************************/
 
       addActionByTypename<ChangeSlotNumber>(crate, this);
-      cout<<"Adding button"<<endl;
       addActionByTypename<ExecuteVMEDSL>(crate,this);
       addActionByTypename<ReadODMBVitals>(crate);
-      cout << "Adding test reset button" << endl;
       addActionByTypename<ResetRegisters>(crate);
-      cout << "Adding reprogram DCFEB button" << endl;
       addActionByTypename<ReprogramDCFEB>(crate);
       addActionByTypename<SYSMON>(crate);
       addActionByTypename<HardReset>(crate);
@@ -291,13 +288,17 @@ namespace emu { namespace odmbdev {
 	if (g>0) continue;
 	t_actionvector av=groupActions_[groups_[g]];
 	for(unsigned int i = 0; i <av.size(); ++i) {
+	  //cout<<"i "<<i<<", g "<<g<<endl;
 
 	  // this multi-line statement sets up a form for the action,
 	  // which will create buttons, etc. The __action_to_call hidden
 	  // form element tells the Manager which action to use when
 	  // this form is submitted.
-	  *out << p()
-	       << cgicc::form()
+
+	  if(i==2) *out<<"<div style=\"width:250px; float:left;\">"<<endl;
+	  if(((av.size()-3)/2)==(i-2) && i%2==1)
+	    *out<<"</div>"<<endl<<"<div style=\"width:250px; float:left;\">"<<endl;
+	  *out <<p()<< cgicc::form()
 	    .set("method","GET")
 	    .set("action", "groupActions")
 	       << cgicc::input()
@@ -309,9 +310,8 @@ namespace emu { namespace odmbdev {
 	  av[i]->display(out);
 
 	  // and here we close the form
-	  *out << cgicc::form()
-	       << p()
-	       << endl;
+	  *out << cgicc::form()<<p() << endl;
+	  if(i==av.size()-2) *out<<"</div>"<<endl;
 	}
       }
 

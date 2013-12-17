@@ -73,7 +73,7 @@ namespace emu {
 
     void ReadBackUserCodes::display(xgi::Output * out)
     {
-      addButton(out, "Read back usercodes","width: 250px; ");
+      addButton(out, "Read back usercodes","width: 230px; ");
     }
 
     void ReadBackUserCodes::respond(xgi::Input * in, ostringstream & out)
@@ -1837,9 +1837,9 @@ namespace emu {
       for(vector <DAQMB*>::iterator dmb = dmbs_.begin(); dmb != dmbs_.end(); ++dmb) 
         (*dmb)->start();
       nCommand = 0;
-      cout<<"Creating DAQ folder"<<endl;
-      manager_->setDAQOutSubdir( "" );
-      cout<<"Created DAQ folder"<<endl;
+      //cout<<"Creating DAQ folder"<<endl;
+      //manager_->setDAQOutSubdir( "" );
+      //cout<<"Created DAQ folder"<<endl;
     }
     
     void ExecuteVMEDSL::respond(xgi::Input * in, ostringstream & out) {
@@ -2282,7 +2282,7 @@ namespace emu {
      * A small class to print the SYSMON
      **************************************************************************/
     SYSMON::SYSMON(Crate * crate) 
-      : ButtonAction(crate,"Check ODMB Volt & Temp") 
+      : ButtonAction(crate,"ODMB Voltages/Temperatures") 
     { /* The choices here are really a blank constructor vs duplicating the ExecuteVMEDSL constructor.
 	 I've tried the former -- TD
       */
@@ -2610,7 +2610,7 @@ namespace emu {
     }
 
     ReadODMBVitals::ReadODMBVitals(Crate* crate) :
-      ButtonAction(crate, "Read ODMB Vitals"){
+      ButtonAction(crate, "ODMB Vitals"){
     }
 
     void ReadODMBVitals::respond(xgi::Input* in, ostringstream& out){
@@ -3579,7 +3579,7 @@ namespace emu {
      * A small class to implement a reset from the ODMB_CTRL bits --TD
      **************************************************************************/
     ResetRegisters::ResetRegisters(Crate * crate) 
-      : ButtonAction(crate,"Reset ODMB registers/FIFOs") 
+      : ButtonAction(crate,"Soft reset (ODMB)") 
     { /* The choices here are really a blank constructor vs duplicating the ExecuteVMEDSL constructor.
 	 I've tried the former -- TD
       */
@@ -4416,7 +4416,7 @@ namespace emu {
  
     void CommonUtilities_setupDDU_passThrough::display(xgi::Output * out)
     {
-      addButton(out, "SetUp DDU PassThrough","width: 250px; ");
+      addButton(out, "SetUp DDU PassThrough","width: 230px; ");
     } 
 
     void CommonUtilities_setupDDU_passThrough::respond(xgi::Input * in, ostringstream & out)
@@ -4448,7 +4448,7 @@ namespace emu {
  
     void CommonUtilities_setupDDU::display(xgi::Output * out)
     {
-      addButton(out, "SetUp DDU ","width: 250px; ");
+      addButton(out, "SetUp DDU ","width: 230px; ");
     } 
 
     void CommonUtilities_setupDDU::respond(xgi::Input * in, ostringstream & out)
