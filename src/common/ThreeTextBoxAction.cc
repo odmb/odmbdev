@@ -8,16 +8,16 @@ namespace emu{
 					   string buttonLabel_in):
       Action(crate, manager),
       buttonLabel(buttonLabel_in),
-      textBoxContent("4.00 0"),
-      textBoxContent2(".05"),
+      textBoxContent("4.5  3.0"),
+      textBoxContent2("0.05"),
       textBoxContent3("100"){
     }
 
     void ThreeTextBoxAction::display(xgi::Output * out){
       addButtonWithThreeTextBoxesLVMB(out, buttonLabel, "textbox", textBoxContent,
 				      "textbox2", textBoxContent2, "textbox3",
-				      textBoxContent3, "width: 250px;", "width: 60px;",
-				      "width: 35px;", "width: 20px;");
+				      textBoxContent3, "width: 120px;", "width: 100px;",
+				      "width: 35px;", "width: 80px;");
     }
 
     void ThreeTextBoxAction::respond(xgi::Input* in, ostringstream& out){
