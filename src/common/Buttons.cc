@@ -5172,7 +5172,7 @@ namespace emu {
      *************************************************************************/
 
     LoadMCSviaBPI::LoadMCSviaBPI(Crate * crate, emu::odmbdev::Manager* manager)
-      : OneTextBoxAction(crate, manager, "load MCS")
+      : MCSTextBoxAction(crate, manager, "load MCS")
     {
       //cout << "Updating the slot number box" << endl; 
     }
@@ -5181,7 +5181,7 @@ namespace emu {
     {
       cout << "Request to program PROM..." << endl;
 
-      OneTextBoxAction::respond(in, out);
+      MCSTextBoxAction::respond(in, out);
       std::string filename(textBoxContent);
       if (filename.empty()){
 	printf("No MCS file specified.  Exiting.\n");

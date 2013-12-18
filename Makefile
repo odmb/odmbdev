@@ -33,6 +33,7 @@ Sources = \
         ButtonAction.cc \
         FourTextBoxAction.cc \
         OneTextBoxAction.cc \
+	MCSTextBoxAction.cc \
         ThreeTextBoxAction.cc \
         RepeatTextBoxAction.cc \
         SignatureTextBoxAction.cc \

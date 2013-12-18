@@ -295,9 +295,9 @@ namespace emu { namespace odmbdev {
 	  // form element tells the Manager which action to use when
 	  // this form is submitted.
 
-	  if(i==2) *out<<"<div style=\"width:250px; float:left;\">"<<endl;
+	  if(i==2) *out<<"<div style=\"width:255px; float:left;\">"<<endl;
 	  if(((av.size()-3)/2)==(i-2) && i%2==1)
-	    *out<<"</div>"<<endl<<"<div style=\"width:250px; float:left;\">"<<endl;
+	    *out<<"</div>"<<endl<<"<div style=\"width:255px; float:left;\">"<<endl;
 	  *out <<p()<< cgicc::form()
 	    .set("method","GET")
 	    .set("action", "groupActions")

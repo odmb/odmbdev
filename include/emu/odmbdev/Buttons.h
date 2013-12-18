@@ -15,6 +15,7 @@
 #include "emu/odmbdev/ButtonAction.h"
 #include "emu/odmbdev/FourTextBoxAction.h"
 #include "emu/odmbdev/OneTextBoxAction.h"
+#include "emu/odmbdev/MCSTextBoxAction.h"
 #include "emu/odmbdev/ThreeTextBoxAction.h"
 #include "emu/odmbdev/RepeatTextBoxAction.h"
 #include "emu/odmbdev/SignatureTextBoxAction.h"
@@ -682,7 +683,7 @@ namespace emu { namespace odmbdev {
      *
      * Load MCS to PROM using BPI engine
      *************************************************************************/
-    class LoadMCSviaBPI : public OneTextBoxAction {
+    class LoadMCSviaBPI : public MCSTextBoxAction {
     public:
       LoadMCSviaBPI(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out);
