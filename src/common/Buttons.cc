@@ -2614,11 +2614,15 @@ namespace emu {
     }
 
     void ReadODMBVitals::respond(xgi::Input* in, ostringstream& out){
-      out << "***** Read ODMB Vitals *****" << endl;
-      int slot(Manager::getSlotNumber());
       unsigned int addr_unique_id(0x4100), addr_fwv(0x4200), addr_fwb(0x4300),
-	addr_fw_mmod(0x4400), addr_fw_ymod(0x4500);
+        addr_fw_mmod(0x4400), addr_fw_ymod(0x4500), addr_qpll_lock(0x3124);
       unsigned short int VMEresult;
+      int slot(Manager::getSlotNumber());
+
+      int qpll_lock(vme_wrapper_->VMERead(addr_qpll_lock,slot,"Read QPLL lock"));
+      if(qpll_lock == 1) out << "****** ODMB Vitals: QPLL locked ******" << endl;
+      else if(qpll_lock == 0) out << "****** ODMB Vitals:QPLL UNLOCKED ******" << endl;
+      else out << "******* Read ODMB Vitals *******" << endl;
 
       VMEresult = vme_wrapper_->VMERead(addr_unique_id,slot,"Read unique ID");
       if (FixLength(VMEresult,4,true)=="BAAD") out << "Error: ODMB not connected or FW out-of-date." << endl;
