@@ -2640,10 +2640,12 @@ namespace emu {
     }
 
     MasterTest::MasterTest(Crate* crate, emu::odmbdev::Manager* manager):
-      ButtonAction(crate, manager, "One button to rule them all."){
+      RadioButtonAction(crate, manager, "One button to rule them all."){
     }
 
     void MasterTest::respond(xgi::Input* in, ostringstream& out){
+      RadioButtonAction::respond(in, out);
+
       t_actionvector* buttons(NULL);
       if(manager_==NULL) return;
       buttons=(manager_->currentActionVector_);
@@ -2699,11 +2701,11 @@ namespace emu {
 	ThreeTextBoxAction* const ttba_ptr(dynamic_cast<ThreeTextBoxAction*>(button->get()));
 	if(good_button){
 	  if(rtba_ptr!=NULL){
-	    rtba_ptr->respond(in, out, short_arg);
-	    rtba_ptr->respond(in, out, long_arg);
+	    if (highStat) rtba_ptr->respond(in, out, long_arg);
+	    else rtba_ptr->respond(in, out, short_arg);
 	  }else if(ttba_ptr!=NULL){
-	    ttba_ptr->respond(in, out, short_arg);
-	    ttba_ptr->respond(in, out, long_arg);
+	    if (highStat) ttba_ptr->respond(in, out, long_arg);
+	    else ttba_ptr->respond(in, out, short_arg);
 	  }
 	}
       }
@@ -2715,20 +2717,24 @@ namespace emu {
 
     void PCPRBSTest::respond(xgi::Input* in, ostringstream& out,
 			     const string& textBoxContent_in){
-      const unsigned int slot_v2(19);
 
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
       ostringstream out_local;
       out_local << "********** PC PRBS Test *************** ";
       const unsigned int slot(Manager::getSlotNumber());
+      const unsigned int v2_slot(slot); // easy to switch back to v3-v2 version
+      const unsigned int prbs_type_addr = 0x9300;
+      const unsigned int prbs_txen_addr = 0x9100;
+      const unsigned int prbs_rxen_addr = 0x9104;
       unsigned int num_sequences(atoi(textBoxContent.c_str()));
 
-      vme_wrapper_->VMEWrite(0x9300, 1, slot, "Set PRBS-7 mode");
-      vme_wrapper_->VMEWrite(0x9300, 1, slot_v2, "Set PRBS-7 mode");
-      vme_wrapper_->VMEWrite(0x9100, 1, slot, "Activate PC TX PRBS");
-      vme_wrapper_->VMEWrite(0x9100, num_sequences, slot_v2, "Activate PC RX PRBS");
+      vme_wrapper_->VMEWrite(prbs_type_addr, 1, slot, "Set PRBS-7 mode");
+      vme_wrapper_->VMEWrite(prbs_type_addr, 1, v2_slot, "Set PRBS-7 mode");
+      vme_wrapper_->VMEWrite(prbs_txen_addr, 1, slot, "Activate PC TX PRBS");
+      usleep(1000);
+      vme_wrapper_->VMEWrite(prbs_rxen_addr, num_sequences, v2_slot, "Activate PC RX PRBS");
       usleep(500*num_sequences);
-      const unsigned short num_errors(vme_wrapper_->VMERead(0x910C, slot_v2, "Read number of errors"));
+      unsigned short num_errors(vme_wrapper_->VMERead(0x910C, v2_slot, "Read number of errors"));
       if (num_errors==0) out_local << "PASSED" << endl;
       else out_local << "NOT PASSED" << endl;     
       out_local << "Number of PRBS sequences: " << num_sequences << " (10,000 bits each)" << endl;
@@ -2746,20 +2752,24 @@ namespace emu {
 
     void DDUPRBSTest::respond(xgi::Input* in, ostringstream& out,
 			      const string& textBoxContent_in){
-      const unsigned int slot_v2(19);
 
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
       ostringstream out_local;
       out_local << "********** DDU PRBS Test ******************* ";
       const unsigned int slot(Manager::getSlotNumber());
+      const unsigned int v2_slot(slot); // easy to switch back to v3-v2 version
+      const unsigned int prbs_type_addr = 0x9300;
+      const unsigned int prbs_txen_addr = 0x9000;
+      const unsigned int prbs_rxen_addr = 0x9004;
       unsigned int num_sequences(atoi(textBoxContent.c_str()));
 
-      vme_wrapper_->VMEWrite(0x9300, 1, slot, "Set PRBS-7 mode");
-      vme_wrapper_->VMEWrite(0x9300, 1, slot_v2, "Set PRBS-7 mode");
-      vme_wrapper_->VMEWrite(0x9000, 1, slot, "Activate PC TX PRBS");
-      vme_wrapper_->VMEWrite(0x9000, num_sequences, slot_v2, "Activate PC RX PRBS");
+      vme_wrapper_->VMEWrite(prbs_type_addr, 1, slot, "Set PRBS-7 mode");
+      vme_wrapper_->VMEWrite(prbs_type_addr, 1, v2_slot, "Set PRBS-7 mode");
+      vme_wrapper_->VMEWrite(prbs_txen_addr, 1, slot, "Activate PC TX PRBS");
+      usleep(1000);
+      vme_wrapper_->VMEWrite(prbs_rxen_addr, num_sequences, v2_slot, "Activate PC RX PRBS");
       usleep(500*num_sequences);
-      const unsigned short num_errors(vme_wrapper_->VMERead(0x900C, slot_v2, "Read number of errors"));
+      unsigned short num_errors(vme_wrapper_->VMERead(0x900C, v2_slot, "Read number of errors"));
       if (num_errors==0) out_local << "PASSED" << endl;
       else out_local << "NOT PASSED" << endl;
       out_local << "Number of PRBS sequences: " << num_sequences << " (10,000 bits each)" << endl;
@@ -3070,7 +3080,7 @@ namespace emu {
     }
     
     DCFEBJTAGcontrol::DCFEBJTAGcontrol(Crate* crate, emu::odmbdev::Manager* manager):
-      RepeatTextBoxAction(crate, manager, "DCFEB JTAG Control",1){ 
+      RepeatTextBoxAction(crate, manager, "DCFEB JTAG Control",0){ 
       // Has a "repeat n times" textbox.
     }
     
@@ -3128,48 +3138,58 @@ namespace emu {
 	  if (v_firmwareVersion[d].empty()) v_firmwareVersion[d] = firmwareVersion;
 	  v_UCRead[d]=true;
 	  nConnected++;
-	  for(unsigned int repNum=0; repNum<repeatNumber; ++repNum){ // repeat the test repNum times
-	    // Set instruction register to *Device select*
-	    vme_wrapper_->VMEWrite(addr_set_int_reg,reg_dev_sel,slot,"Set instruction register to *Device select*");
-	    // Set device register to *ADC mask*
-	    vme_wrapper_->VMEWrite(addr_shift_ht,reg_dev_val,slot,"Set device register to *ADC mask*");
-	    // Set IR to *Value select*
-	    vme_wrapper_->VMEWrite(addr_set_int_reg,reg_val_sel,slot,"Set IR to *Value select*");
-	    vector<string> tdi;
-	    vector<string> tdo;	     
-	    vme_wrapper_->VMEWrite(addr_shift_dr_12,0x0,slot,"Set DR, shift 12 bits");
+	}
+	if (repeatNumber==0) continue; // default: just read UserCodes
+	for(unsigned int repNum=0; repNum<repeatNumber; ++repNum){ // repeat the test repNum times
+	  // Set instruction register to *Device select*
+	  vme_wrapper_->VMEWrite(addr_set_int_reg,reg_dev_sel,slot,"Set instruction register to *Device select*");
+	  // Set device register to *ADC mask*
+	  vme_wrapper_->VMEWrite(addr_shift_ht,reg_dev_val,slot,"Set device register to *ADC mask*");
+	  // Set IR to *Value select*
+	  vme_wrapper_->VMEWrite(addr_set_int_reg,reg_val_sel,slot,"Set IR to *Value select*");
+	  vector<string> tdi;
+	  vector<string> tdo;	     
+	  vme_wrapper_->VMEWrite(addr_shift_dr_12,0x0,slot,"Set DR, shift 12 bits");
+	  usleep(100);
+	  for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
+	    v_nJTAGshifts[d]++;
+	    // Set DR, shift 12 bits
+	    vme_wrapper_->VMEWrite(addr_shift_dr_12,reg_val_shft,slot,"Set DR, shift 12 bits");
 	    usleep(100);
-	    for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
-	      v_nJTAGshifts[d]++;
-	      // Set DR, shift 12 bits
-	      vme_wrapper_->VMEWrite(addr_shift_dr_12,reg_val_shft,slot,"Set DR, shift 12 bits");
-	      usleep(100);
-	      tdi.push_back(FixLength(reg_val_shft, 3, true));
-	      // Read TDO
-	      VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read TDO");
-	      usleep(100);
-	      tdo.push_back(FixLength(VMEresult, 4, true));
-	      if (reg_val_shft == start) continue;
-	      if (tdo[reg_val_shft].substr(0,3) == tdi[reg_val_shft-1]) v_nShiftReads[d]++;
-	    } // loop over words to shift
-	  } // repeat the test repNum times per DCFEB
-	} // if DCFEB is connected
+	    tdi.push_back(FixLength(reg_val_shft, 3, true));
+	    // Read TDO
+	    VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read TDO");
+	    usleep(100);
+	    tdo.push_back(FixLength(VMEresult, 4, true));
+	    if (reg_val_shft == start) continue;
+	    if (tdo[reg_val_shft].substr(0,3) == tdi[reg_val_shft-1]) v_nShiftReads[d]++;
+	  } // loop over words to shift
+	} // repeat the test repNum times per DCFEB
       } // Loop over all DCFEBs
       if (nConnected==0) {
 	out_local << "NOT PASSED" << endl;
 	out_local << "Error: could not find DCFEBs. Please check connections." << endl;
       }
       else {
-	// Now loop over DCFEBs again to display summary
+	unsigned int nFailedDCFEBs(0);
+	// Now loop over DCFEBs again to count failed reads
 	for (int d = 0; d < 7; d++){ 
 	  if (v_UCRead[d]==false) continue;
-	  if ((2*repeatNumber*(end-start)-v_nJTAGshifts[d]-v_nShiftReads[d])==0) out_local << "PASSED" << endl;
-	  else out_local << "NOT PASSED" << endl;
+	  if ((2*repeatNumber*(end-start)-v_nJTAGshifts[d]-v_nShiftReads[d])!=0) nFailedDCFEBs++;
+	}
+	// Now loop one more time to display results
+	if (nFailedDCFEBs==0)  out_local << "PASSED" << endl;
+	else out_local << "NOT PASSED" << endl;
+	for (int d = 0; d < 7; d++){ 
+	  if (v_UCRead[d]==false) continue;
 	  out_local << "DCFEB " << d+1 << ": ";
-          out_local << "read UserCode.";
+	  out_local << "read UserCode.";
 	  out_local << " Firmware version " << v_firmwareVersion[d] << ".";
-	  out_local << " Sent " << 2*repeatNumber*(end-start) << " shift+read commands.";
-	  out_local << " Errors: " << 2*repeatNumber*(end-start)-v_nJTAGshifts[d]-v_nShiftReads[d] << "." << endl;
+	  if (repeatNumber==0) out_local << endl;
+	  else {
+	    out_local << " Sent " << 2*repeatNumber*(end-start) << " shift+read commands.";
+	    out_local << " Errors: " << 2*repeatNumber*(end-start)-v_nJTAGshifts[d]-v_nShiftReads[d] << "." << endl;
+	  }
 	}
       }
       out_local << endl;
@@ -3453,7 +3473,7 @@ namespace emu {
       unsigned int odmb_slot(Manager::getSlotNumber()), otmb_slot(6);
       unsigned int addr_otmb_cnt_rst(0x9410), addr_tp_sel_reg(0x3020);
       unsigned int addr_otmb_mode(0x1EE), addr_otmb_prbs_start(0x31EE);
-      unsigned int addr_read_prbs_matches(0x9408), addr_read_prbs_errors(0x940C);
+      unsigned int /*addr_otmb_prbs_en(0x9400),*/ addr_read_prbs_matches(0x9408), addr_read_prbs_errors(0x940C);
       unsigned short int reset_command(0x0), odmb_mode(0x1), otmb_prbs_sig(0x20);
 
       vme_wrapper_->VMEWrite(addr_otmb_cnt_rst,reset_command,odmb_slot,"Reset OTMB PRBS count");
@@ -3464,6 +3484,7 @@ namespace emu {
       vme_wrapper_->VMEWrite(addr_otmb_prbs_start,(unsigned short int)n_prbs_sequences,otmb_slot,"Start OTMB PRBS sequence");
       usleep(n_prbs_sequences*500); // 50 ns sleep per bit
       // Read matches and errors
+      //      vme_wrapper_->VMEWrite(addr_otmb_prbs_en,(unsigned short int)n_prbs_sequences,odmb_slot,"Enable PRBS readout on ODMB");
       unsigned int num_matches = vme_wrapper_->VMERead(addr_read_prbs_matches,odmb_slot,"Read number of PRBS matches");
       unsigned int num_errors = vme_wrapper_->VMERead(addr_read_prbs_errors,odmb_slot,"Read number of PRBS errors");
       if (num_errors==100&&num_matches==(n_prbs_sequences-1)) out_local << "PASSED" << endl;
@@ -4388,7 +4409,7 @@ namespace emu {
 	} //       for ( int idcfeb = 1; idcfeb <= 5; ++idcfeb ) {
 
 
-	  //////////
+	//////////
 
 	usleep(100);
 	_counted++;
@@ -5227,22 +5248,26 @@ namespace emu {
 				     const string& textBoxContent_in){
       out << "********** Test PROM Programming via BPI *********" << endl;
 
+      //       printf("setting vmeController to debug.\n");
+      //       crate_->vmeController()->Debug(10);
+
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
       istringstream countertext(textBoxContent);
       string line; 
       getline(countertext,line,'\n');
       const unsigned long testReps=strtoul(line.c_str(),NULL,0);
-      unsigned short int fw_ver_returned;
-      const unsigned short int fw_ver1 = 0xf201;
-      const unsigned short int fw_ver2 = 0x0201;
-      unsigned int raddr = 0x004024;
+      //unsigned short int fw_ver_returned;
+      const unsigned short int fw_ver1 = 0x0203;
+      const unsigned short int fw_ver2 = 0xf203;
+      //unsigned int raddr = 0x004200;
 
-      int counter_pass = 0;
-      int counter_fail = 0;
-      bool corruptLoad = false;
+      //int counter_pass = 0;
+      //int counter_fail = 0;
+      //bool corruptLoad = false;
+      int singleLoadFailCount = 0;
 
-      std::string filename1("/data/Dropbox/odmb/Temp/mcs_Dec5/VF2-01_odmb_ucsb.mcs");
-      std::string filename2("/data/Dropbox/odmb/Temp/mcs_Dec5/V02-01_odmb_ucsb.mcs");
+      std::string filename1("/data/Dropbox/odmb/Temp/mcs_Jan22/V02-03_odmb_ucsb.mcs");
+      std::string filename2("/data/Dropbox/odmb/Temp/mcs_Jan22/VF2-03_odmb_ucsb.mcs");
 
       if (filename1.empty() || filename2.empty()) {
 	printf("No MCS file specified.  Exiting.\n");
@@ -5255,6 +5280,7 @@ namespace emu {
 	  for (vector <DAQMB*>::iterator dmb = dmbs_.begin();
 	       dmb != dmbs_.end();
 	       ++dmb){
+	    //	    (*dmb)->set_odmb_eprom_debug(true);
 	    int slot = (*dmb)->slot();
 	    if (slot != manager_slot){
 	      cout << "skipping ODMB in slot " << slot << " which is not in requested slot " << manager_slot << endl;
@@ -5269,57 +5295,115 @@ namespace emu {
 	    // 		      printf("DO NOT PROGAM OLD DMB!!! Skipping.\n");
 	    // 		      continue; // only program ODMB
 	    // 		    }
-
 	    for (unsigned int iTest = 0; iTest < testReps; iTest++) {
-	      if (corruptLoad) {
-		cout << "no sense in trying to talk to a dead board." << endl;
-		continue; 
+
+	      // check number of words in read back FIFO, expect to be 0
+	      unsigned short int addr = 0x6034;
+	      unsigned short int VMEresult = vme_wrapper_->VMERead(addr,slot,"number of words in BPI read-back FIFO");	      
+
+	      // get current firmware version	      
+	      std::ostringstream convert;
+	      int current_fw = (*dmb)->odmb_firmware_version();
+	      int new_fw = current_fw;
+	      convert << hex << new_fw;
+	      std::string current_fw_name = convert.str();
+
+	      if (current_fw == 0xBAAD) {
+		cout << "STOP! Check your system and retry." << endl;
+		break;
 	      }
-	      // Begin with loading FW 1 to PROM
+
 	      printf("loading MCS file %s...\n", filename1.c_str());
-	      (*dmb)->odmb_program_eprom(filename1.c_str());
-		    
-	      // Issue the hard reset (and remember to add the sleep!)
+	      while (!(*dmb)->odmb_program_eprom(filename1.c_str())) {
+		singleLoadFailCount++;
+		if (singleLoadFailCount > 2) {std::cout << "3 consecutive fails!  bailing!" << std::endl; break;}
+	      }
+	      singleLoadFailCount = 0;
+
+	      // store number of words in BPI read-back FIFO before hard reset
+	      VMEresult = vme_wrapper_->VMERead(addr,slot,"number of words in BPI read-back FIFO");	      
+
+	      // Issue the hard reset (and remember to add the sleep!)	      
+	      if(ccb_->GetCCBmode() != CCB::VMEFPGA) ccb_->setCCBMode(CCB::VMEFPGA); // we want the CCB in this mode for out test stand
 	      ccb_->HardReset_crate();
-	      usleep(1500000);
+	      usleep(3000000);
 
 	      // Check the fw version against ver1
-	      fw_ver_returned = vme_wrapper_->VMERead(raddr,slot,"Read firmware version");
-	      if (fw_ver_returned == fw_ver1) { // YAY!
-		counter_pass++;
+	      new_fw = (*dmb)->odmb_firmware_version();
+	      if (new_fw == fw_ver1) { // YAY!
+		counter[current_fw_name]++;
+		convert << hex << new_fw;
+		current_fw_name = convert.str();
+
+		printf("\n");
+		for (std::map<std::string, unsigned int>::iterator iter = counter.begin(); iter != counter.end(); iter++)
+		  {
+		    cout << "counter first = " << iter->first << endl;
+		    cout << "counter second = " << iter->second << endl;
+		    printf("\tFW version %s successfully programmed PROM %d times\n", iter->first.c_str(), iter->second);
+		  }
+		printf("Found %d words in BPI read-back FIFO.\n", VMEresult);
+		printf("\n");
 	      } else { // BOO!
-		counter_fail++;
-		corruptLoad = true;
-		continue;
+		out << "FW version " << current_fw_name << " failed to program PROM" << endl;
+		for (std::map<std::string, unsigned int>::iterator iter = counter.begin(); iter != counter.end(); iter++)
+		  {
+		    out << "FW version " <<  iter->first.c_str() << " successfully programmed PROM " << iter->second << " times" << endl;
+		  }
+		out << "Found " << VMEresult << " words in BPI read-back FIFO" << endl;
+		break;
 	      }
 		    
 	      // Now we load the other FW .mcs file
 	      printf("loading MCS file %s...\n", filename2.c_str());
-	      (*dmb)->odmb_program_eprom(filename2.c_str());
+	      while (!(*dmb)->odmb_program_eprom(filename2.c_str())) {
+		singleLoadFailCount++;
+		if (singleLoadFailCount > 2) {std::cout << "3 consecutive fails!  bailing!" << std::endl; break;}
+	      }
+	      singleLoadFailCount = 0;
+	      //	      (*dmb)->odmb_program_eprom(filename2.c_str());
+
+	      // store number of words in BPI read-back FIFO before hard reset
+	      VMEresult = vme_wrapper_->VMERead(addr,slot,"number of words in BPI read-back FIFO");	      
 
 	      // Issue the hard reset (and remember to add the sleep!)
+	      if(ccb_->GetCCBmode() != CCB::VMEFPGA) ccb_->setCCBMode(CCB::VMEFPGA); // we want the CCB in this mode for out test stand
 	      ccb_->HardReset_crate();
-	      usleep(1500000);
+	      usleep(3000000);
 
 	      // Check the fw version against ver2
-	      fw_ver_returned = vme_wrapper_->VMERead(raddr,slot,"Read firmware version");
-	      if (fw_ver_returned == fw_ver2) { // YAY!
-		counter_pass++;
+	      new_fw = (*dmb)->odmb_firmware_version();
+	      if (new_fw == fw_ver2) { // YAY!
+		counter[current_fw_name]++;
+		convert << hex << new_fw;
+		current_fw_name = convert.str();
+
+		printf("\n");
+		for (std::map<std::string, unsigned int>::iterator iter = counter.begin(); iter != counter.end(); iter++)
+		  {
+		    printf("\tFW version %s successfully programmed PROM %d times\n", iter->first.c_str(), iter->second);
+		  }
+		printf("Found %d words in BPI read-back FIFO.\n", VMEresult);
+		printf("\n");
 	      } else { // BOO!
-		counter_fail++;
-		corruptLoad = true;
-		continue;
+		out << "FW version " << current_fw_name << " failed to program PROM" << endl;
+		for (std::map<std::string, unsigned int>::iterator iter = counter.begin(); iter != counter.end(); iter++)
+		  {
+		    out << "FW version " <<  iter->first.c_str() << " successfully programmed PROM " << iter->second << " times" << endl;
+		  }
+		out << "Found " << VMEresult << " words in BPI read-back FIFO" << endl;
+		break;
 	      }
-		    
-	    }// loop over test reps
-	    out << "Successfully loaded " << counter_pass << " times" << endl;
-	    out << "Failed to load " << counter_fail << " times." << endl;
-	  }
-	}
-      }
-    } // end LoadMCSviaBPI::respond    
 
-
+	      for (std::map<std::string, unsigned int>::iterator iter = counter.begin(); iter != counter.end(); iter++)
+		{
+		  out << "FW version " <<  iter->first.c_str() << " successfully programmed PROM " << iter->second << " times" << endl;
+		}
+	    } // end test loop
+	  } // end loop over DMBs
+	} 
+      } 
+    } // end MCSBackAndForthBPI::respond
   } // namespace odmbdev
 } // namespace emu
 

@@ -19,6 +19,7 @@
 #include "emu/odmbdev/ThreeTextBoxAction.h"
 #include "emu/odmbdev/RepeatTextBoxAction.h"
 #include "emu/odmbdev/SignatureTextBoxAction.h"
+#include "emu/odmbdev/RadioButtonAction.h"
 
 /******************************************************************************
  * The Buttons
@@ -55,22 +56,22 @@ namespace emu { namespace odmbdev {
     class HardReset : public Action {
     public:
       HardReset(emu::pc::Crate * crate) : Action(crate) {}
-      void display(xgi::Output * out) { addButton(out, "Hard reset (crate)", "width: 230px "); }
-      void respond(xgi::Input * in, std::ostringstream & out);
+	void display(xgi::Output * out) { addButton(out, "Hard reset (crate)", "width: 230px "); }
+	void respond(xgi::Input * in, std::ostringstream & out);
     };
     
     class L1Reset : public Action {
     public:
       L1Reset(emu::pc::Crate * crate) : Action(crate) {}
-      void display(xgi::Output * out) { addButton(out, "L1 Reset (Resync)", "width: 100%; "); }
-      void respond(xgi::Input * in, std::ostringstream & out);
+	void display(xgi::Output * out) { addButton(out, "L1 Reset (Resync)", "width: 100%; "); }
+	void respond(xgi::Input * in, std::ostringstream & out);
     };
 
     class BC0 : public Action {
     public:
       BC0(emu::pc::Crate * crate) : Action(crate) {}
-      void display(xgi::Output * out) { addButton(out, "BC0", "width: 250px; "); }
-      void respond(xgi::Input * in, std::ostringstream & out);
+	void display(xgi::Output * out) { addButton(out, "BC0", "width: 250px; "); }
+	void respond(xgi::Input * in, std::ostringstream & out);
     };
 
 
@@ -251,9 +252,9 @@ namespace emu { namespace odmbdev {
     };
 
 
-  class BuckShiftTestDebug : public Action, public ActionValue<int> {
+    class BuckShiftTestDebug : public Action, public ActionValue<int> {
     public:
-     BuckShiftTestDebug(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
+      BuckShiftTestDebug(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
       void display(xgi::Output * out);
       void respond(xgi::Input * in, std::ostringstream & out);
     };
@@ -281,19 +282,19 @@ namespace emu { namespace odmbdev {
       void respond(xgi::Input * in, std::ostringstream & out);
     };
 
-   class TMBEnableCLCTInput : public Action, public ActionValue<int> {
+    class TMBEnableCLCTInput : public Action, public ActionValue<int> {
     public:
       TMBEnableCLCTInput(emu::pc::Crate * crate);
       void display(xgi::Output * out);
       void respond(xgi::Input * in, std::ostringstream & out);
-   };
+    };
  
-   class TMBDisableCLCTInput : public Action, public ActionValue<int> {
+    class TMBDisableCLCTInput : public Action, public ActionValue<int> {
     public:
       TMBDisableCLCTInput(emu::pc::Crate * crate);
       void display(xgi::Output * out);
       void respond(xgi::Input * in, std::ostringstream & out);
-   };  
+    };  
 
     class PipelineDepthScan_Pulses : public Action, public Action2Values<int, int> {
     public:
@@ -379,12 +380,12 @@ namespace emu { namespace odmbdev {
       void respond(xgi::Input * in, ostringstream & out);
     };      
 
-	/**************************************************************************
+    /**************************************************************************
      * CreateTestLog
      *
      * A small class to save a log of completed production tests
      * Saves the board number, firmware version, and tester intials
-	 **************************************************************************/
+     **************************************************************************/
     class CreateTestLog : public SignatureTextBoxAction {
     public:
       CreateTestLog(Crate * crate, emu::odmbdev::Manager* manager);
@@ -392,7 +393,7 @@ namespace emu { namespace odmbdev {
     }; 
 
     //Does (almost) all the tests
-    class MasterTest: public ButtonAction{
+    class MasterTest: public RadioButtonAction{
     public:
       MasterTest(Crate* crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input* in, ostringstream& out);
@@ -453,7 +454,7 @@ namespace emu { namespace odmbdev {
      * DCFEBJTAGcontrol
      *
      * A small class to read DCFEB UserCode and print the results
-	 **************************************************************************/
+     **************************************************************************/
     class DCFEBJTAGcontrol : public RepeatTextBoxAction {
     public:
       DCFEBJTAGcontrol(Crate * crate, emu::odmbdev::Manager* manager);
@@ -464,7 +465,7 @@ namespace emu { namespace odmbdev {
      * DCFEBFiber
      *
      * A small class to perform high statistics test of DCFEB fibers (trigger, send/receive packets)
-	 **************************************************************************/
+     **************************************************************************/
     class DCFEBFiber : public RepeatTextBoxAction {
     public:
       DCFEBFiber(Crate * crate, emu::odmbdev::Manager* manager);
@@ -475,7 +476,7 @@ namespace emu { namespace odmbdev {
      * CCBReg
      *
      * A small class to perform high statistics test of CCB firmware and communication
-	 **************************************************************************/
+     **************************************************************************/
     class CCBReg : public RepeatTextBoxAction {
     public:
       CCBReg(Crate * crate, emu::odmbdev::Manager* manager);
@@ -486,7 +487,7 @@ namespace emu { namespace odmbdev {
      * OTMBPRBSTest
      *
      * A small class to perform high statistics PRBS test of OTMB communication and firmware
-	 **************************************************************************/
+     **************************************************************************/
     class OTMBPRBSTest : public RepeatTextBoxAction {
     public:
       OTMBPRBSTest(Crate * crate, emu::odmbdev::Manager* manager);
@@ -497,7 +498,7 @@ namespace emu { namespace odmbdev {
      * DiscreteLogicTest
      *
      * A small class to test programming the VME via discrete logic
-	 **************************************************************************/
+     **************************************************************************/
     class DiscreteLogicTest : public RepeatTextBoxAction {
     public:
       DiscreteLogicTest(Crate * crate, emu::odmbdev::Manager* manager);
@@ -508,7 +509,7 @@ namespace emu { namespace odmbdev {
      * DDUFIFOTest
      *
      * A small class to perform high statistics test of DDU FIFO
-	 **************************************************************************/
+     **************************************************************************/
     class DDUFIFOTest : public RepeatTextBoxAction {
     public:
       DDUFIFOTest(Crate * crate, emu::odmbdev::Manager* manager);
@@ -519,7 +520,7 @@ namespace emu { namespace odmbdev {
      * PCFIFOTest
      *
      * A small class to perform high statistics test of DDU FIFO
-	 **************************************************************************/
+     **************************************************************************/
     class PCFIFOTest : public RepeatTextBoxAction {
     public:
       PCFIFOTest(Crate * crate, emu::odmbdev::Manager* manager);
@@ -536,6 +537,7 @@ namespace emu { namespace odmbdev {
     public:
       MCSBackAndForthBPI(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input *in, ostringstream & out, const string& textBoxContent_in);
+      std::map<std::string, unsigned int> counter;
     };
 
     /**************************************************************************
@@ -547,34 +549,34 @@ namespace emu { namespace odmbdev {
     class ClearLog : public LogAction {
     public:
       ClearLog(emu::pc::Crate * crate) : LogAction(crate) { }
-      void display(xgi::Output * out) { addButton(out, "Clear Log"); }
-      void respond(xgi::Input * in, xgi::Output * out, std::ostringstream & ssout, std::ostringstream & log) {
-	log.clear(); // remove any error flags
-	log.str(""); // empty the log
-      }
+	void display(xgi::Output * out) { addButton(out, "Clear Log"); }
+	void respond(xgi::Input * in, xgi::Output * out, std::ostringstream & ssout, std::ostringstream & log) {
+	  log.clear(); // remove any error flags
+	  log.str(""); // empty the log
+	}
     };
 
     class SaveLogAsFile : public LogAction {
     public:
       SaveLogAsFile(emu::pc::Crate * crate) : LogAction(crate) { }
-      void display(xgi::Output * out) { addButton(out, "Save Log as..."); }
-      void respond(xgi::Input * in, xgi::Output * out, std::ostringstream & ssout, std::ostringstream & log) {
-        std::string file_name = "odmbdev_" + emu::utils::getDateTime(true) + ".log";
-        emu::utils::saveAsFileDialog(out, log.str(), file_name);
-        ssout.str("*** Contents above was saved to a log file ***");
-      }
+	void display(xgi::Output * out) { addButton(out, "Save Log as..."); }
+	void respond(xgi::Input * in, xgi::Output * out, std::ostringstream & ssout, std::ostringstream & log) {
+	  std::string file_name = "odmbdev_" + emu::utils::getDateTime(true) + ".log";
+	  emu::utils::saveAsFileDialog(out, log.str(), file_name);
+	  ssout.str("*** Contents above was saved to a log file ***");
+	}
     };
 
     class DumpLog : public LogAction {
     public:
       DumpLog(emu::pc::Crate * crate) : LogAction(crate) { }
-      void display(xgi::Output * out) { addButton(out, "Dump Log to stdout"); }
-      void respond(xgi::Input * in, xgi::Output * out, std::ostringstream & ssout, std::ostringstream & log) {
-        std::cout<<"----- "<<emu::utils::getDateTime(false)<<": Log Dump -----"<<std::endl<<std::endl;
-        std::cout<<log.str()<<std::endl;
-        std::cout<<"----- End of Log Dump -----"<<std::endl;
-        ssout.str("*** Contents above was dumped to stdout ***");
-      }
+	void display(xgi::Output * out) { addButton(out, "Dump Log to stdout"); }
+	void respond(xgi::Input * in, xgi::Output * out, std::ostringstream & ssout, std::ostringstream & log) {
+	  std::cout<<"----- "<<emu::utils::getDateTime(false)<<": Log Dump -----"<<std::endl<<std::endl;
+	  std::cout<<log.str()<<std::endl;
+	  std::cout<<"----- End of Log Dump -----"<<std::endl;
+	  ssout.str("*** Contents above was dumped to stdout ***");
+	}
     };
 
     class dcfebDebugDump : public Action {
@@ -593,59 +595,59 @@ namespace emu { namespace odmbdev {
     };
 
 
-   class CommonUtilities_setupDDU_passThrough : public Action {
-   public:
+    class CommonUtilities_setupDDU_passThrough : public Action {
+    public:
       CommonUtilities_setupDDU_passThrough(emu::pc::Crate * crate);
       void display(xgi::Output * out);
       void respond(xgi::Input * in, std::ostringstream & out);
-   };
+    };
 
 
-   class CommonUtilities_setupDDU : public Action {
-   public:
+    class CommonUtilities_setupDDU : public Action {
+    public:
       CommonUtilities_setupDDU(emu::pc::Crate * crate);
       void display(xgi::Output * out);
       void respond(xgi::Input * in, std::ostringstream & out);
-   };
+    };
 
 
-   class CommonUtilities_restoreCFEBIdle : public Action {
-   public:
+    class CommonUtilities_restoreCFEBIdle : public Action {
+    public:
       CommonUtilities_restoreCFEBIdle(emu::pc::Crate * crate);
       void display(xgi::Output * out);
       void respond(xgi::Input * in, std::ostringstream & out);
-   };
+    };
 
 
 
 
- class ODMB_OTMB_LCT_Testing : public Action, public ActionValue<int> {
+    class ODMB_OTMB_LCT_Testing : public Action, public ActionValue<int> {
     public:
-     ODMB_OTMB_LCT_Testing(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
+      ODMB_OTMB_LCT_Testing(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
       void display(xgi::Output * out);
       void respond(xgi::Input * in, std::ostringstream & out);
     };
   
 
 
-  class Investigate_MissingEvents : public Action, public ActionValue<int> {
+    class Investigate_MissingEvents : public Action, public ActionValue<int> {
     public:
-     Investigate_MissingEvents(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
+      Investigate_MissingEvents(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
       void display(xgi::Output * out);
       void respond(xgi::Input * in, std::ostringstream & out);
     };
 
 
-  class ODMB_L1A_Testing : public Action, public ActionValue<int> {
+    class ODMB_L1A_Testing : public Action, public ActionValue<int> {
     public:
-     ODMB_L1A_Testing(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
+      ODMB_L1A_Testing(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
       void display(xgi::Output * out);
       void respond(xgi::Input * in, std::ostringstream & out);
     };
 
 
 
-  class RoutineTest_ShortCosmicsRun : public Action, public ActionValue<int> {
+    class RoutineTest_ShortCosmicsRun : public Action, public ActionValue<int> {
     public:
       RoutineTest_ShortCosmicsRun(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
       void display(xgi::Output * out);

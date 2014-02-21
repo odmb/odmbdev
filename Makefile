@@ -37,6 +37,7 @@ Sources = \
         ThreeTextBoxAction.cc \
         RepeatTextBoxAction.cc \
         SignatureTextBoxAction.cc \
+        RadioButtonAction.cc \
         VMEWrapper.cc
 #	Spy.cc
 TestSources =

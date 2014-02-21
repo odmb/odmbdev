@@ -310,6 +310,33 @@ namespace emu { namespace odmbdev {
     //         << cgicc::div();
   }
 
+  void Action::addButtonWithRadio(xgi::Output *out,
+				  const string& button_name,
+				  const string& opt1,
+				  const string& opt2
+				  //const string& textbox_default_value,
+				  )
+  {
+    *out << cgicc::input()
+      .set("type","submit")
+      .set("style", "width: 230px; ")
+      .set("value",button_name)
+	 << " "
+	 << cgicc::input()
+      .set("type","radio")
+      .set("name","mode")
+      .set("id",opt1)
+      .set("checked","checked")
+	 << "Low Stat "
+	 << cgicc::input()
+      .set("type","radio")
+      .set("name","mode")
+      .set("id",opt2)
+	 << "High Stat"
+	 << endl
+	 << endl;
+  }
+
 }
 }
 

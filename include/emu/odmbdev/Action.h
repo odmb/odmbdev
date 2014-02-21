@@ -23,25 +23,25 @@
 
 namespace emu { 
 
-// forward declarations:
-namespace pc {
-class Crate;
-class CFEB;
-class DAQMB;
-class CCB;
-class DDU;
-class TMB;
-class ALCTController;
-}
+  // forward declarations:
+  namespace pc {
+    class Crate;
+    class CFEB;
+    class DAQMB;
+    class CCB;
+    class DDU;
+    class TMB;
+    class ALCTController;
+  }
 
-namespace odmbdev {
+  namespace odmbdev {
 
 
-  const std::string default_button_style;//="min-width: 25em; width: 25%; ";
-  const std::string default_textbox_style="min-width: 4em; width: 8%; ";
-  //long_textbox_style="width: 100%; margin-top: 1em; height: 10em; ";
+    const std::string default_button_style;//="min-width: 25em; width: 25%; ";
+    const std::string default_textbox_style="min-width: 4em; width: 8%; ";
+    //long_textbox_style="width: 100%; margin-top: 1em; height: 10em; ";
 
-  class Manager;
+    class Manager;
 
 
     class Action
@@ -125,30 +125,30 @@ namespace odmbdev {
 				       const std::string& button_style=default_button_style,
 				       const std::string& textbox_style=default_textbox_style);
       static void addButtonWithMCSBox(xgi::Output *out,
+				      const std::string& button_name,
+				      const std::string& textbox_name,
+				      const std::string& textbox_default_value,
+				      const std::string& button_style=default_button_style,
+				      const std::string& textbox_style=default_textbox_style);
+      static void addButtonWithNameBox(xgi::Output *out,
 				       const std::string& button_name,
 				       const std::string& textbox_name,
 				       const std::string& textbox_default_value,
 				       const std::string& button_style=default_button_style,
 				       const std::string& textbox_style=default_textbox_style);
-	  static void addButtonWithNameBox(xgi::Output *out,
-				       const std::string& button_name,
-				       const std::string& textbox_name,
-				       const std::string& textbox_default_value,
-				       const std::string& button_style=default_button_style,
-				       const std::string& textbox_style=default_textbox_style);
-	  static void addButtonWithRepeatOpt(xgi::Output *out,
-				       const std::string& button_name,
-				       const std::string& textbox_name,
-				       const std::string& textbox_default_value,
-				       const std::string& button_style=default_button_style,
-				       const std::string& textbox_style=default_textbox_style);
-	  static void addButtonWithParameter(xgi::Output *out,
-				       const std::string& parameter,
-				       const std::string& button_name,
-				       const std::string& textbox_name,
-				       const std::string& textbox_default_value,
-				       const std::string& button_style=default_button_style,
-				       const std::string& textbox_style=default_textbox_style);
+      static void addButtonWithRepeatOpt(xgi::Output *out,
+					 const std::string& button_name,
+					 const std::string& textbox_name,
+					 const std::string& textbox_default_value,
+					 const std::string& button_style=default_button_style,
+					 const std::string& textbox_style=default_textbox_style);
+      static void addButtonWithParameter(xgi::Output *out,
+					 const std::string& parameter,
+					 const std::string& button_name,
+					 const std::string& textbox_name,
+					 const std::string& textbox_default_value,
+					 const std::string& button_style=default_button_style,
+					 const std::string& textbox_style=default_textbox_style);
       static void addButtonWithTwoTextBoxes(xgi::Output *out,
 					    const std::string& button_name,
 					    const std::string& textbox_name1,
@@ -169,28 +169,34 @@ namespace odmbdev {
 					      const std::string& textbox_default_value3);
 
       static void addButtonWithThreeTextBoxesLVMB(xgi::Output *out,
-					      const std::string& button_name,
-					      const std::string& textboxname1,
-					      const std::string& textbox_default_value1,
-					      const std::string& textboxname2,
-					      const std::string& textbox_default_value2,
-					      const std::string& textboxname3,
-					      const std::string& textbox_default_value3,
-					      const std::string& button_style=default_button_style,
-					      const std::string& textbox_style1=default_textbox_style,
-					      const std::string& textbox_style2=default_textbox_style,
-					      const std::string& textbox_style3=default_textbox_style);
+						  const std::string& button_name,
+						  const std::string& textboxname1,
+						  const std::string& textbox_default_value1,
+						  const std::string& textboxname2,
+						  const std::string& textbox_default_value2,
+						  const std::string& textboxname3,
+						  const std::string& textbox_default_value3,
+						  const std::string& button_style=default_button_style,
+						  const std::string& textbox_style1=default_textbox_style,
+						  const std::string& textbox_style2=default_textbox_style,
+						  const std::string& textbox_style3=default_textbox_style);
 
       static void addButtonWithFourTextBoxes(xgi::Output *out,
-					      const std::string& button_name,
-					      const std::string& textboxname1,
-					      const std::string& textbox_default_value1,
-					      const std::string& textboxname2,
-					      const std::string& textbox_default_value2,
-					      const std::string& textboxname3,
-					      const std::string& textbox_default_value3,
-					      const std::string& textboxname4,
-					      const std::string& textbox_default_value4);
+					     const std::string& button_name,
+					     const std::string& textboxname1,
+					     const std::string& textbox_default_value1,
+					     const std::string& textboxname2,
+					     const std::string& textbox_default_value2,
+					     const std::string& textboxname3,
+					     const std::string& textbox_default_value3,
+					     const std::string& textboxname4,
+					     const std::string& textbox_default_value4);
+
+      static void addButtonWithRadio(xgi::Output *out,
+				     const string& button_name,
+				     const string& opt1,
+				     const string& opt2
+				     );
 
 
     };
