@@ -13,7 +13,7 @@ namespace emu {
 
     void OneTextBoxAction::display(xgi::Output * out)
     {
-      addButtonWithTextBox(out,
+      addButtonWithSlotTextBox(out,
 			   this->buttonLabel,
 			   "textbox",
 			   "");

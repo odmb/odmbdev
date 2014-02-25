@@ -19,6 +19,7 @@
 #include "emu/odmbdev/ThreeTextBoxAction.h"
 #include "emu/odmbdev/RepeatTextBoxAction.h"
 #include "emu/odmbdev/SignatureTextBoxAction.h"
+#include "emu/odmbdev/TextBoxAction.h"
 #include "emu/odmbdev/RadioButtonAction.h"
 
 /******************************************************************************
@@ -393,7 +394,7 @@ namespace emu { namespace odmbdev {
     }; 
 
     //Does (almost) all the tests
-    class MasterTest: public RadioButtonAction{
+    class MasterTest: public TextBoxAction{
     public:
       MasterTest(Crate* crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input* in, ostringstream& out);
@@ -449,6 +450,16 @@ namespace emu { namespace odmbdev {
       void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     };
    
+    /**************************************************************************
+     * DCFEBPulses
+     *
+     * A small class to check the remaining DCFEB signals via JTAG
+     **************************************************************************/
+    class DCFEBPulses : public RepeatTextBoxAction {
+    public:
+      DCFEBPulses(Crate * crate, Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
+    };  
     
     /**************************************************************************
      * DCFEBJTAGcontrol

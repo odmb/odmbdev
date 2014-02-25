@@ -1811,7 +1811,7 @@ namespace emu {
     void ChangeSlotNumber::display(xgi::Output * out)
     {
       string str = static_cast<ostringstream*>( &(ostringstream() << Manager::getSlotNumber() ))->str();
-      addButtonWithTextBox(out, buttonLabel, "textbox", str.c_str());
+      addButtonWithSlotTextBox(out, buttonLabel, "textbox", str.c_str());
     }
 
     void ChangeSlotNumber::respond(xgi::Input * in, ostringstream & out) {
@@ -2364,6 +2364,10 @@ namespace emu {
       
     }
 
+    /*unsigned short JTAGWrapper(unsigned short IR, unsigned short DR, unsigned int nbits) {
+      
+    }*/
+
     LVMBtest::LVMBtest(Crate * crate, emu::odmbdev::Manager* manager) 
       : ThreeTextBoxAction(crate, manager, "LVMB test") 
     { 
@@ -2640,11 +2644,11 @@ namespace emu {
     }
 
     MasterTest::MasterTest(Crate* crate, emu::odmbdev::Manager* manager):
-      RadioButtonAction(crate, manager, "One button to rule them all."){
+      TextBoxAction(crate, manager, "One button to rule them all."){
     }
 
     void MasterTest::respond(xgi::Input* in, ostringstream& out){
-      RadioButtonAction::respond(in, out);
+      TextBoxAction::respond(in, out);
 
       t_actionvector* buttons(NULL);
       if(manager_==NULL) return;
@@ -2661,7 +2665,7 @@ namespace emu {
 	  long_arg="5000";
 	  good_button=true;
 	}else if(typeid(button_ref)==typeid(DCFEBJTAGcontrol)){
-	  short_arg="1";
+	  short_arg="0";
 	  long_arg="10";
 	  good_button=true;
 	}else if(typeid(button_ref)==typeid(DCFEBFiber)){
@@ -2699,6 +2703,9 @@ namespace emu {
 
 	RepeatTextBoxAction* const rtba_ptr(dynamic_cast<RepeatTextBoxAction*>(button->get()));
 	ThreeTextBoxAction* const ttba_ptr(dynamic_cast<ThreeTextBoxAction*>(button->get()));
+	// High-stats mode?
+	size_t found = textBoxContent.find("h");
+	bool highStat(found!=::string::npos);
 	if(good_button){
 	  if(rtba_ptr!=NULL){
 	    if (highStat) rtba_ptr->respond(in, out, long_arg);
@@ -3079,6 +3086,101 @@ namespace emu {
       usleep(1);
     }
     
+    DCFEBPulses::DCFEBPulses(Crate* crate, Manager* manager):
+      RepeatTextBoxAction(crate, manager, "DCFEB Pulses", 1){
+    }
+
+    void DCFEBPulses::respond(xgi::Input* in, ostringstream& out) {
+      RepeatTextBoxAction::respond(in, out);
+      const unsigned long repeatNumber=atoi(textBoxContent.c_str());
+      
+      int slot = Manager::getSlotNumber();
+      ostringstream out_local;      
+      
+      unsigned int addr_odmb_reg(0x3000), addr_dcfeb_reg(0x3010);
+      unsigned int addr_sel_dcfeb(0x1020), addr_done_dcfeb(0x3120);
+      unsigned int addr_set_kill(0x401C);
+      unsigned short dr_injpls(59), dr_extpls(60), dr_l1a_match(58);
+      // unsigned short dr_bc0(61);
+      unsigned short injpls(0x4), extpls(0x8), l1a_match(0x10);
+      // unsigned short  bc0(0x0);
+      unsigned short int VMEresult;
+      vector<unsigned int> n_injpls_reads(7,0), n_etxpls_reads(7,0), n_l1a_match_reads(7,0);
+      // vector<unsigned int> n_bc0_reads(7,0);
+      vector<bool> dcfeb_connected(7,false);
+      unsigned int nConnected(0);
+      
+      
+      vme_wrapper_->VMEWrite(addr_odmb_reg, 0x3F, slot, "Set calibration mode");      
+      vme_wrapper_->VMEWrite(addr_dcfeb_reg, injpls, slot, "Send INJPLS signal");
+      usleep(100);
+      vme_wrapper_->VMEWrite(addr_dcfeb_reg, extpls, slot, "Send EXTPLS signal");	  
+      
+      return;
+
+      out_local << "********** DCFEB Pulses ********** "; 
+      //  Set-up DCFEBs
+      vme_wrapper_->VMEWrite(addr_odmb_reg, 0x3F, slot, "Set calibration mode");      
+      vme_wrapper_->VMEWrite(addr_set_kill,0,slot,"Set KILL");  
+      vme_wrapper_->VMEWrite(addr_dcfeb_reg, 0x2, slot, "DCFEB resync--reset all counters");
+      // Read which DCFEBs are connected
+      VMEresult = vme_wrapper_->VMERead(addr_done_dcfeb,slot,"Read DCFEB done bits");
+      if (VMEresult==0x0) {
+	out_local << "NOT PASSED" << endl;
+	out_local << "Error: could not find DCFEBs. Please check connections." << endl << endl;
+	out << out_local.str();
+	UpdateLog(vme_wrapper_, slot, out_local);
+	return;
+      }   
+      unsigned short int done_bits(VMEresult);
+      // loop over dcfebs
+      // Send pulses repeatNumber times, read the result via JTAG
+      for (unsigned int n(0); n<repeatNumber; n++) {
+	vme_wrapper_->VMEWrite(addr_odmb_reg, 0x3F, slot, "Set calibration mode");      
+	vme_wrapper_->VMEWrite(addr_dcfeb_reg, injpls, slot, "Send INJPLS signal");
+	usleep(100);
+	vme_wrapper_->VMEWrite(addr_dcfeb_reg, extpls, slot, "Send EXTPLS signal");	  
+	usleep(100);
+	vme_wrapper_->VMEWrite(addr_odmb_reg, 0x0, slot, "Set calibration mode");      
+	vme_wrapper_->VMEWrite(addr_dcfeb_reg, l1a_match, slot, "Send L1A_MATCH signal");
+      }
+      for (unsigned short dcfeb(0); dcfeb<7; dcfeb++) {
+	unsigned short dcfeb_bit(1<<dcfeb);
+	// Is this DCFEB connected?
+	if (!(dcfeb_bit&done_bits)) continue;
+	dcfeb_connected[dcfeb]=true;
+	nConnected++;
+	vme_wrapper_->VMEWrite(addr_sel_dcfeb, dcfeb_bit, slot, "Select DCFEB");
+	n_injpls_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_injpls,12,slot);
+	n_etxpls_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_extpls,12,slot);
+	n_l1a_match_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_l1a_match,12,slot);
+      } // end first loop over dcfebs
+      // Analyze the results
+      unsigned int nFails(0);
+      for (unsigned short dcfeb(0); dcfeb<7; dcfeb++) {
+	if (!dcfeb_connected[dcfeb]) continue;
+	if (n_injpls_reads[dcfeb]!=repeatNumber) nFails++; 
+	if (n_etxpls_reads[dcfeb]!=repeatNumber) nFails++;
+	// if(n_bc0_reads[dcfeb]!=repeatNumber) nFails++;
+      }
+      if (nFails==0) out_local << "PASSED" << endl;
+      else out_local << "NOT PASSED" << endl;
+      // Print the results
+      for (unsigned short dcfeb(0); dcfeb<7; dcfeb++) {
+	if (!dcfeb_connected[dcfeb]) continue;
+	out_local << "DCFEB " << dcfeb+1 << ": successfully received "; 
+	out_local << "INJPLS " << n_injpls_reads[dcfeb] << "/" << repeatNumber << " times, "
+		  << "EXTPLS: " << n_etxpls_reads[dcfeb] << "/" << repeatNumber << " times, "
+		  << "L1A_MATCH: " << n_l1a_match_reads[dcfeb] << "/" << repeatNumber << " times." << endl;      
+	// out_local << "BC0 Result: " << n_bc0_reads << endl;      
+      }
+      out_local << endl;
+      //vme_wrapper_->VMEWrite(addr_dcfeb_reg, 0x2, slot, "Reset counters");
+      //out_local << "PASSED" << endl << endl;
+      out << out_local.str();
+      UpdateLog(vme_wrapper_, slot, out_local);
+    }
+
     DCFEBJTAGcontrol::DCFEBJTAGcontrol(Crate* crate, emu::odmbdev::Manager* manager):
       RepeatTextBoxAction(crate, manager, "DCFEB JTAG Control",0){ 
       // Has a "repeat n times" textbox.
@@ -3215,14 +3317,17 @@ namespace emu {
       unsigned int addr_odmb_ctrl_reg(0x003000), addr_dcfeb_ctrl_reg(0x003010);
       unsigned int addr_set_kill(0x00401C), addr_read_done_bits(0x003120);
       unsigned int addr_read_nrx_pckt(0x00340C), addr_read_ncrcs(0x00360C);
+      unsigned int addr_sel_dcfeb_fifo(0x005010), addr_reset_fifo(0x005020);
+      unsigned int addr_read_word(0x005000);
       // Commands
       //unsigned short int data;
       unsigned short int cmd_rst(0x300), cmd_dreal_tint(0x200);
-      unsigned short int dcfeb_done_bits[7] = {0x1,0x2,0x4,0x8,0x10,0x20,0x40};
+      // unsigned short int dcfeb_done_bits[7] = {0x1,0x2,0x4,0x8,0x10,0x20,0x40};
       unsigned short int cms_l1a_match(0x10);
       vector<bool> dcfeb_isConnected(7,false);
-      unsigned int nConnected(0);
+      unsigned int notConnected(0);
       vector<unsigned int> dcfeb_nRxPckt(7,0), dcfeb_nGoodCRCs(7,0);
+      vector<unsigned int> dcfeb_L1A_MATCH_cnt(7,0), dcfeb_L1A_cnt(7,0);
       // Results
       unsigned short int VMEresult;
       // == ================ Configuration ================ ==
@@ -3231,21 +3336,24 @@ namespace emu {
       usleep(10000000);
       // Set real data and internal triggers
       vme_wrapper_->VMEWrite(addr_odmb_ctrl_reg,cmd_dreal_tint,slot,"Set real data and internal triggers");
+      // check which DCFEBs are connected
+      VMEresult = vme_wrapper_->VMERead(addr_read_done_bits,slot,"Read DCFEB done bits");
+      if (VMEresult==0x0) {
+	out_local << "NOT PASSED" << endl;
+	out_local << "Error: could not find DCFEBs. Please check connections." << endl << endl;
+	out << out_local.str();
+	UpdateLog(vme_wrapper_, slot, out_local);
+	return;
+      }
+      unsigned short int done_bits(VMEresult);
       for (unsigned short int dcfeb(0x0); dcfeb<7; dcfeb++) {
 	// Set KILL
 	unsigned int cmd_kill_d = ~(unsigned int)pow(2,dcfeb);
 	vme_wrapper_->VMEWrite(addr_set_kill,cmd_kill_d,slot,"Set KILL");
-	// check if DCFEB is connected
-	VMEresult = vme_wrapper_->VMERead(addr_read_done_bits,slot,"Read DCFEB done bits");
-	if (VMEresult==0x0) {
-	  out_local << "NOT PASSED" << endl;
-	  out_local << "Error: could not find DCFEBs. Please check connections." << endl << endl;
-	  out << out_local.str();
-	  UpdateLog(vme_wrapper_, slot, out_local);
-	  return;
-	}
-	if (VMEresult==dcfeb_done_bits[dcfeb]){
+	if ((1<<dcfeb)&done_bits) { // is this DCFEB connected?
+	  //if (VMEresult==dcfeb_done_bits[dcfeb]){
 	  dcfeb_isConnected[dcfeb]=true;
+	  vme_wrapper_->VMEWrite(addr_sel_dcfeb_fifo,dcfeb+1,slot,"Select DCFEB FIFO");
 	  // Number of received packets before
 	  unsigned int addr_read_nrx_pckt_d = addr_read_nrx_pckt | (0x00F0&((dcfeb+1)<<4));
 	  unsigned int addr_read_ncrcs_d = addr_read_ncrcs | (0x00F0&((dcfeb+1)<<4));
@@ -3261,8 +3369,14 @@ namespace emu {
 	    // Read number of received packets
 	    VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt_d,slot,"Read number of received packets");
 	    if (p>0&&VMEresult==0) nCntRst++; // keep track of how many times the counter resets
+	    // Reset for L1A_MATCH counter, and L1A counter
+	    vme_wrapper_->VMEWrite(addr_reset_fifo,done_bits,slot,"Reset FIFOs");
+
 	  }
 	  // == ============ Status summary ============ ==
+	  // Read L1A_MATCH counter, and L1A counter
+	  dcfeb_L1A_MATCH_cnt[dcfeb] = vme_wrapper_->VMERead(addr_read_word,slot,"Read first word (L1A_MATCH counter)"); 
+	  dcfeb_L1A_cnt[dcfeb] = vme_wrapper_->VMERead(addr_read_word,slot,"Read second word (L1A counter)");
 	  // Number of received packets
 	  VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt_d,slot,"Read number of received packets");
 	  unsigned int nRxPckt(VMEresult+nCntRst*65536);
@@ -3271,9 +3385,9 @@ namespace emu {
 	  VMEresult = vme_wrapper_->VMERead(addr_read_ncrcs_d,slot,"Read number of good CRCs");
 	  unsigned int nGoodCRCs(VMEresult+nCntRst*65536);
 	  dcfeb_nGoodCRCs[dcfeb]=nGoodCRCs;
-	} else {// if DCFEB is connected
-	  nConnected++;
-	  if (nConnected==7) {
+	} else {// if DCFEB is not connected
+	  notConnected++;
+	  if (notConnected==7) {
 	    out_local << "NOT PASSED" << endl;
 	    out_local << "Error: could not find DCFEBs. Please check connections." << endl << endl;
 	    out << out_local.str();
@@ -3283,19 +3397,25 @@ namespace emu {
 	}
       } // loop over DCFEBs
       // output results
+      unsigned int nFailedDCFEBs(0);
+      for (unsigned short int dcfeb(0x0); dcfeb<7; dcfeb++) { // count how many DCFEBs failed
+	if (!dcfeb_isConnected[dcfeb]) continue;
+	if (dcfeb_nGoodCRCs[dcfeb]!=dcfeb_nRxPckt[dcfeb]||dcfeb_nRxPckt[dcfeb]!=repeatNumber) nFailedDCFEBs++;
+	if (dcfeb_L1A_MATCH_cnt[dcfeb]!=repeatNumber||dcfeb_L1A_cnt[dcfeb]!=repeatNumber) nFailedDCFEBs++;
+      }
+      // Pass or fail?
+      if (nFailedDCFEBs>0) out_local << "NOT PASSED" << endl;
+      else out_local << "PASSED" << endl;
       for (unsigned short int dcfeb(0x0); dcfeb<7; dcfeb++) {
 	if (!dcfeb_isConnected[dcfeb]) continue;
+	out_local << "DCFEB " << dcfeb+1 << ": ";
+	out_local << "Received " << dcfeb_nRxPckt[dcfeb] << " out of " << repeatNumber << " packets, "
+		  << dcfeb_nGoodCRCs[dcfeb] << " good CRCs. L1A_MATCH count: " << dcfeb_L1A_MATCH_cnt[dcfeb] 
+		  << ", L1A count: " << dcfeb_L1A_cnt[dcfeb] << ".";
 	if (dcfeb_nGoodCRCs[dcfeb]==dcfeb_nRxPckt[dcfeb]&&dcfeb_nRxPckt[dcfeb]==repeatNumber) {
-	  out_local << "PASSED" << endl;
-	  out_local << "DCFEB " << dcfeb+1 << ": ";
-	  out_local << "Received " << dcfeb_nRxPckt[dcfeb] << " out of " << repeatNumber << " packets, " 
-		    << dcfeb_nGoodCRCs[dcfeb] << " good CRCs. No bit flips." << endl;
-	} else {
-	  out_local << "NOT PASSED" << endl;
-	  out_local << "DCFEB " << dcfeb+1 << ": ";
-	  out_local << "Received " << dcfeb_nRxPckt[dcfeb] << " out of " << repeatNumber << " packets, "
-		    << dcfeb_nGoodCRCs[dcfeb] << " good CRCs." << endl;
+	  out_local << " No bit flips." << endl;
 	}
+	else out_local << endl;
       }
       out_local << endl;
 
@@ -5246,19 +5366,18 @@ namespace emu {
     
     void MCSBackAndForthBPI::respond(xgi::Input* in, ostringstream& out,
 				     const string& textBoxContent_in){
+      RepeatTextBoxAction::respond(in, out, textBoxContent_in);
+      const unsigned long testReps=strtoul(textBoxContent.c_str(),NULL,0);
+      if(testReps<=0) return;
+
       out << "********** Test PROM Programming via BPI *********" << endl;
 
       //       printf("setting vmeController to debug.\n");
       //       crate_->vmeController()->Debug(10);
 
-      RepeatTextBoxAction::respond(in, out, textBoxContent_in);
-      istringstream countertext(textBoxContent);
-      string line; 
-      getline(countertext,line,'\n');
-      const unsigned long testReps=strtoul(line.c_str(),NULL,0);
       //unsigned short int fw_ver_returned;
-      const unsigned short int fw_ver1 = 0x0203;
-      const unsigned short int fw_ver2 = 0xf203;
+      const unsigned short int fw_ver1 = 0xf205;
+      const unsigned short int fw_ver2 = 0x0205;
       //unsigned int raddr = 0x004200;
 
       //int counter_pass = 0;
@@ -5266,8 +5385,8 @@ namespace emu {
       //bool corruptLoad = false;
       int singleLoadFailCount = 0;
 
-      std::string filename1("/data/Dropbox/odmb/Temp/mcs_Jan22/V02-03_odmb_ucsb.mcs");
-      std::string filename2("/data/Dropbox/odmb/Temp/mcs_Jan22/VF2-03_odmb_ucsb.mcs");
+      std::string filename1("/data/Dropbox/odmb/Temp/mcs_v4ProdTest/VF2-05_odmb_ucsb.mcs");
+      std::string filename2("/data/Dropbox/odmb/Temp/mcs_v4ProdTest/V02-05_odmb_ucsb.mcs");
 
       if (filename1.empty() || filename2.empty()) {
 	printf("No MCS file specified.  Exiting.\n");

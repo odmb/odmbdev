@@ -49,7 +49,7 @@ print
 
 OPTIONS="\
  -h emume11.cern.ch \
- -p 9991 \
+ -p 9997 \
  -c ${BUILD_HOME}/emu/odmbdev/xml/EmuME21Dev.xml \
  -e ${BUILD_HOME}/emu/odmbdev/xml/EmuME11Dev.profile"
 

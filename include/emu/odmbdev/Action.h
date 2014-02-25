@@ -9,6 +9,7 @@
 #include <sstream>
 #include <vector>
 #include "VMEWrapper.h"
+#include "JTAGWrapper.h"
 
 /******************************************************************************
  * The Action Class
@@ -113,11 +114,17 @@ namespace emu {
       emu::pc::ALCTController* alct_;
       emu::odmbdev::Manager* manager_;
       emu::odmbdev::VMEWrapper* vme_wrapper_;
+      emu::odmbdev::JTAGWrapper* jtag_wrapper_;
 
       static void addButton(xgi::Output *out,
 			    const std::string& button_name,
 			    const std::string& button_style=default_button_style);
-
+      static void addButtonWithSlotTextBox(xgi::Output *out,
+				       const std::string& button_name,
+				       const std::string& textbox_name,
+				       const std::string& textbox_default_value,
+				       const std::string& button_style=default_button_style,
+				       const std::string& textbox_style=default_textbox_style);
       static void addButtonWithTextBox(xgi::Output *out,
 				       const std::string& button_name,
 				       const std::string& textbox_name,

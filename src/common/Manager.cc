@@ -153,6 +153,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<LVMBtest>(crate, this);
       addActionByTypename<DCFEBJTAGcontrol>(crate, this);
       addActionByTypename<DCFEBFiber>(crate, this);
+      addActionByTypename<DCFEBPulses>(crate, this);
       addActionByTypename<CCBReg>(crate, this);
       //addActionByTypename<DDUFIFOTest>(crate, this);
       //addActionByTypename<PCFIFOTest>(crate, this);

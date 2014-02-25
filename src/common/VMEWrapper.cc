@@ -4,73 +4,96 @@
 #include <iomanip>
  
 namespace emu { namespace odmbdev {
-    VMEWrapper::VMEWrapper(Crate * crate) : 
+  VMEWrapper::VMEWrapper(Crate * crate) : 
     crate_(crate),
     port_number_(Manager::getPortNumber()),
     logFile_(GetLogFileName(port_number_))
-    {
-      logger_.open(logFile_.c_str(), std::ofstream::out | std::ofstream::app );
-    }
+  {
+    logger_.open(logFile_.c_str(), std::ofstream::out | std::ofstream::app );
+  }
     
-    VMEWrapper::VMEWrapper( const VMEWrapper& other ) : 
+  VMEWrapper::VMEWrapper( const VMEWrapper& other ) : 
     crate_(other.crate_),
     port_number_(other.port_number_),
     logFile_(other.logFile_)
-    {
-      // copy constructor
-      logger_.open(logFile_.c_str(), std::ofstream::out | std::ofstream::app );
-    }
-    
-    void VMEWrapper::VMEWrite (unsigned short int address, unsigned short int command, unsigned int slot, string comment) {
-    	unsigned int shiftedSlot = slot << 19;
-    	int addr = (address & 0x07ffff) | shiftedSlot;
-        char rcv[2];
-        crate_->vmeController()->vme_controller(3,addr,&command,rcv);
-        // Get timestamp
-        time_t rawtime;
-        struct tm * timeinfo;
-        time ( &rawtime );
-        timeinfo = localtime ( &rawtime );
-        char timestamp[30];
-        strftime (timestamp,30,"%D %X",timeinfo);
-        // Write to log
-        logger_ << "W" << std::setw(7) << FixLength(address,4,true)
-        		<< std::setw(7) << FixLength(command,4,true)
-        		<< std::setw(15) << dec << slot 
-        		<< "   " << timestamp
-        	    << "    " << comment.c_str() << endl;
-    }
-    unsigned short int VMEWrapper::VMERead (unsigned short int address, unsigned int slot, string comment) {
-    	unsigned int shiftedSlot = slot << 19;
-    	int addr = (address & 0x07ffff) | shiftedSlot;
-        unsigned short int data;
-        char rcv[2];
-        crate_->vmeController()->vme_controller(2,addr,&data,rcv);
-        unsigned short int result = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
-        
-        // Get timestamp
-        time_t rawtime;
-        struct tm * timeinfo;
-        time ( &rawtime );
-        timeinfo = localtime ( &rawtime );
-        char timestamp[30];
-        strftime (timestamp,30,"%D %X",timeinfo);
-        // Get formatting
-        bool readHex = true;
-        if((address >= 0x321C && address <= 0x337C) || (address >= 0x33FC && address < 0x35AC)  || 
-	       (address > 0x35DC && address <= 0x3FFF) || address == 0x500C || address == 0x510C ||
-	       address == 0x520C || address == 0x530C || address == 0x540C   || address == 0x550C || address == 0x560C 
-           || address == 0x8004 ||  (address == 0x5000 && result < 0x1000)) {
-	      		readHex = false;
-	      }
-	    // Write to log
-        logger_ << "R" << std::setw(7) << FixLength(address,4,true);
-        if (readHex) logger_<< std::setw(14) << FixLength(result,4,true);
-        else logger_<< std::setw(12) << dec << result << "_d";
-        logger_ << std::setw(8) << dec << slot 
-        	    << "   " << timestamp
-        	    << "    " << comment.c_str() << endl;
-        return result;
-    }
+  {
+    // copy constructor
+    logger_.open(logFile_.c_str(), std::ofstream::out | std::ofstream::app );
   }
+    
+  void VMEWrapper::VMEWrite (unsigned short int address, unsigned short int command, unsigned int slot, string comment) {
+    unsigned int shiftedSlot = slot << 19;
+    int addr = (address & 0x07ffff) | shiftedSlot;
+    char rcv[2];
+    crate_->vmeController()->vme_controller(3,addr,&command,rcv);
+    // Get timestamp
+    time_t rawtime;
+    struct tm * timeinfo;
+    time ( &rawtime );
+    timeinfo = localtime ( &rawtime );
+    char timestamp[30];
+    strftime (timestamp,30,"%D %X",timeinfo);
+    // Write to log
+    logger_ << "W" << std::setw(7) << FixLength(address,4,true)
+	    << std::setw(7) << FixLength(command,4,true)
+	    << std::setw(15) << dec << slot 
+	    << "   " << timestamp
+	    << "    " << comment.c_str() << endl;
+  }
+  unsigned short int VMEWrapper::VMERead (unsigned short int address, unsigned int slot, string comment) {
+    unsigned int shiftedSlot = slot << 19;
+    int addr = (address & 0x07ffff) | shiftedSlot;
+    unsigned short int data;
+    char rcv[2];
+    crate_->vmeController()->vme_controller(2,addr,&data,rcv);
+    unsigned short int result = (rcv[1] & 0xff) * 0x100 + (rcv[0] & 0xff);
+        
+    // Get timestamp
+    time_t rawtime;
+    struct tm * timeinfo;
+    time ( &rawtime );
+    timeinfo = localtime ( &rawtime );
+    char timestamp[30];
+    strftime (timestamp,30,"%D %X",timeinfo);
+    // Get formatting
+    bool readHex = true;
+    if((address >= 0x321C && address <= 0x337C) || (address >= 0x33FC && address < 0x35AC)  || 
+       (address > 0x35DC && address <= 0x3FFF) || address == 0x500C || address == 0x510C ||
+       address == 0x520C || address == 0x530C || address == 0x540C   || address == 0x550C || address == 0x560C 
+       || address == 0x8004 ||  (address == 0x5000 && result < 0x1000)) {
+      readHex = false;
+    }
+    // Write to log
+    logger_ << "R" << std::setw(7) << FixLength(address,4,true);
+    if (readHex) logger_<< std::setw(14) << FixLength(result,4,true);
+    else logger_<< std::setw(12) << dec << result << "_d";
+    logger_ << std::setw(8) << dec << slot 
+	    << "   " << timestamp
+	    << "    " << comment.c_str() << endl;
+    return result;
+  }
+  unsigned int VMEWrapper::JTAGShift(unsigned short int IR, unsigned short int DR, unsigned int nBits, unsigned short int hdr_tlr_code, unsigned int slot) {
+    this->VMEWrite(0x191C, IR, slot, "Set instruction register");
+    unsigned int addr_data_shift(0x1);
+    addr_data_shift = (addr_data_shift<<4)|(nBits-1);
+    addr_data_shift = (addr_data_shift<<8)|hdr_tlr_code; // hdr_tlr_code is 4, 8, or C,
+                                                         // depending on nBits to shift
+    this->VMEWrite(addr_data_shift, DR, slot, "Shift data");
+    usleep(100);
+    unsigned short int VMEresult;
+    VMEresult = this->VMERead(0x1014, slot, "Read TDO register");
+    usleep(100);
+    unsigned int formatted_result(VMEresult>>(16-nBits));
+    return formatted_result;
+  }
+  unsigned int VMEWrapper::JTAGRead (unsigned short int DR, unsigned int nBits, unsigned int slot) {
+    unsigned int result;
+    result = this->JTAGShift(0x3C2, DR, 8, 0xC, slot);
+    result = this->JTAGShift(0x3C3, 0, nBits, 0xC, slot);
+    /*unsigned short int VMEresult;
+    VMEresult = this->VMERead(0x1014, slot, "Read TDO register");*/
+    unsigned int formatted_result(result);
+    return formatted_result;
+  }
+}
 }

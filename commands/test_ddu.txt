@@ -2,7 +2,7 @@
 #W  3000  300    Reset
 #SLEEP 10000
 W  3000  280	Set dummy data and triggers
-W  3100  1	Set internal loopback
+W  3100  0	Set internal loopback
 W  3110  7	Set TXDIFFCTRL
 W  401C  19F	Set KILL
 DDU_BEG
