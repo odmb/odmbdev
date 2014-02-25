@@ -3022,34 +3022,32 @@ namespace emu {
       int slot = Manager::getSlotNumber();
       ostringstream out_local;      
       
-      unsigned int addr_odmb_reg(0x3000), addr_dcfeb_reg(0x3200);
+      unsigned int addr_odmb_reg(0x3000), addr_dcfeb_reg(0x3200), addr_dcfeb_resync(0x3014);
       unsigned int addr_sel_dcfeb(0x1020), addr_done_dcfeb(0x3120);
       unsigned int addr_set_kill(0x401C);
-      unsigned short dr_injpls(59), dr_extpls(60), dr_l1a_match(58);
+      unsigned short dr_injpls(59), dr_extpls(60), dr_l1a_match(58), dr_bc0(61);
       // unsigned short dr_bc0(61);
       unsigned short injpls(0x1), extpls(0x2), l1a_match(0x4), bc0(0x20);
-      // unsigned short  bc0(0x0);
       unsigned short int VMEresult;
-      vector<unsigned int> n_injpls_reads(7,0), n_etxpls_reads(7,0), n_l1a_match_reads(7,0);
+      vector<unsigned int> n_injpls_reads(7,0), n_etxpls_reads(7,0), n_l1a_match_reads(7,0), n_bc0_reads(7,0);
       // vector<unsigned int> n_bc0_reads(7,0);
       vector<bool> dcfeb_connected(7,false);
       unsigned int nConnected(0);
       
       
-      vme_wrapper_->VMEWrite(addr_odmb_reg, 0x3F, slot, "Set calibration mode");      
-      vme_wrapper_->VMEWrite(addr_dcfeb_reg, injpls, slot, "Send INJPLS signal");
-      usleep(100);
-      vme_wrapper_->VMEWrite(addr_dcfeb_reg, extpls, slot, "Send EXTPLS signal");	  
-      usleep(100);
-      vme_wrapper_->VMEWrite(addr_dcfeb_reg, bc0, slot, "Send BC0");	  
+//       vme_wrapper_->VMEWrite(addr_odmb_reg, 0x3F, slot, "Set calibration mode");      
+//       vme_wrapper_->VMEWrite(addr_dcfeb_reg, injpls, slot, "Send INJPLS signal");
+//       usleep(100);
+//       vme_wrapper_->VMEWrite(addr_dcfeb_reg, extpls, slot, "Send EXTPLS signal");	  
+//       usleep(100);
+//       vme_wrapper_->VMEWrite(addr_dcfeb_reg, bc0, slot, "Send BC0");	  
       
-      return;
+//       return;
 
       out_local << "********** DCFEB Pulses ********** "; 
       //  Set-up DCFEBs
-      vme_wrapper_->VMEWrite(addr_odmb_reg, 0x3F, slot, "Set calibration mode");      
       vme_wrapper_->VMEWrite(addr_set_kill,0,slot,"Set KILL");  
-      vme_wrapper_->VMEWrite(addr_dcfeb_reg, 0x1, slot, "DCFEB resync--reset all counters");
+      vme_wrapper_->VMEWrite(addr_dcfeb_resync, 0x1, slot, "DCFEB resync--reset all counters");
       // Read which DCFEBs are connected
       VMEresult = vme_wrapper_->VMERead(addr_done_dcfeb,slot,"Read DCFEB done bits");
       if (VMEresult==0x0) {
@@ -3083,6 +3081,7 @@ namespace emu {
 	n_injpls_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_injpls,12,slot);
 	n_etxpls_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_extpls,12,slot);
 	n_l1a_match_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_l1a_match,12,slot);
+	n_bc0_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_bc0,12,slot);
       } // end first loop over dcfebs
       // Analyze the results
       unsigned int nFails(0);
@@ -3090,7 +3089,8 @@ namespace emu {
 	if (!dcfeb_connected[dcfeb]) continue;
 	if (n_injpls_reads[dcfeb]!=repeatNumber) nFails++; 
 	if (n_etxpls_reads[dcfeb]!=repeatNumber) nFails++;
-	// if(n_bc0_reads[dcfeb]!=repeatNumber) nFails++;
+	if(n_bc0_reads[dcfeb]!=repeatNumber) nFails++;
+	if(n_l1a_match_reads[dcfeb]!=repeatNumber) nFails++;
       }
       if (nFails==0) out_local << "PASSED" << endl;
       else out_local << "NOT PASSED" << endl;
@@ -3100,6 +3100,7 @@ namespace emu {
 	out_local << "DCFEB " << dcfeb+1 << ": successfully received "; 
 	out_local << "INJPLS " << n_injpls_reads[dcfeb] << "/" << repeatNumber << " times, "
 		  << "EXTPLS: " << n_etxpls_reads[dcfeb] << "/" << repeatNumber << " times, "
+		  << "BC0: " << n_bc0_reads[dcfeb] << "/" << repeatNumber << " times, "
 		  << "L1A_MATCH: " << n_l1a_match_reads[dcfeb] << "/" << repeatNumber << " times." << endl;      
 	// out_local << "BC0 Result: " << n_bc0_reads << endl;      
       }
@@ -3251,13 +3252,13 @@ namespace emu {
       unsigned int addr_read_word(0x005000), addr_sel_dcfeb(0x1020);
       // Commands
       //unsigned short int data;
-      unsigned short dr_l1a_match(58);
+      unsigned short dr_l1a(57);
       // unsigned short int dcfeb_done_bits[7] = {0x1,0x2,0x4,0x8,0x10,0x20,0x40};
       unsigned short int cms_l1a_match(0x4);
       vector<bool> dcfeb_isConnected(7,false);
       unsigned int notConnected(0), n_l1a_match_before, n_l1a_match_after;
       vector<unsigned int> dcfeb_nRxPckt(7,0), dcfeb_nGoodCRCs(7,0);
-      vector<unsigned int> dcfeb_L1A_MATCH_cnt(7,0), dcfeb_L1A_cnt(7,0);
+      vector<unsigned int> dcfeb_L1A_cnt(7,0);
       // Results
       unsigned short int VMEresult;
       // == ================ Configuration ================ ==
@@ -3301,17 +3302,20 @@ namespace emu {
 	    VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt_d,slot,"Read number of received packets");
 	    if (p>0&&VMEresult==0) nCntRst++; // keep track of how many times the counter resets
 	    // Reset for L1A_MATCH counter, and L1A counter
-	    vme_wrapper_->VMEWrite(addr_reset_fifo,done_bits,slot,"Reset FIFOs");
+	    if(p==repeatNumber-2) vme_wrapper_->VMEWrite(addr_reset_fifo,done_bits,slot,"Reset FIFOs");
 
 	  }
 	  // == ============ Status summary ============ ==
-	  // Read L1A_MATCH counter, and L1A counter
-	  dcfeb_L1A_MATCH_cnt[dcfeb] = vme_wrapper_->VMERead(addr_read_word,slot,"Read first word (L1A_MATCH counter)"); 
-	  dcfeb_L1A_cnt[dcfeb] = vme_wrapper_->VMERead(addr_read_word,slot,"Read second word (L1A counter)");
+	  // Read L1A counter
+	  VMEresult = vme_wrapper_->VMERead(addr_read_word,slot,"Read first word (L1A counter MSB)"); 
+	  unsigned int l1ac_MSB(VMEresult&0x0FFF);
+	  VMEresult = vme_wrapper_->VMERead(addr_read_word,slot,"Read second word (L1A counter LSB)");
+	  unsigned int l1ac_LSB(VMEresult&0x0FFF);
+	  dcfeb_L1A_cnt[dcfeb] = (l1ac_MSB<<12)|l1ac_LSB;
 	  vme_wrapper_->VMEWrite(addr_sel_dcfeb, 1<<dcfeb, slot, "Select DCFEB");
-	  n_l1a_match_before=vme_wrapper_->JTAGRead(dr_l1a_match,12,slot);
+	  n_l1a_match_before=vme_wrapper_->JTAGRead(dr_l1a,16,slot);
 	  vme_wrapper_->VMEWrite(addr_dcfeb_resync, 0x1, slot, "DCFEB resync--reset all counters");
-	  n_l1a_match_after=vme_wrapper_->JTAGRead(dr_l1a_match,12,slot);
+	  n_l1a_match_after=vme_wrapper_->JTAGRead(dr_l1a,16,slot);
 	  // Number of received packets
 	  VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt_d,slot,"Read number of received packets");
 	  unsigned int nRxPckt(VMEresult+nCntRst*65536);
@@ -3336,7 +3340,7 @@ namespace emu {
       for (unsigned short int dcfeb(0x0); dcfeb<7; dcfeb++) { // count how many DCFEBs failed
 	if (!dcfeb_isConnected[dcfeb]) continue;
 	if (dcfeb_nGoodCRCs[dcfeb]!=dcfeb_nRxPckt[dcfeb]||dcfeb_nRxPckt[dcfeb]!=repeatNumber) nFailedDCFEBs++;
-	if (dcfeb_L1A_MATCH_cnt[dcfeb]!=repeatNumber||dcfeb_L1A_cnt[dcfeb]!=repeatNumber) nFailedDCFEBs++;
+	if (dcfeb_L1A_cnt[dcfeb]!=repeatNumber) nFailedDCFEBs++;
       }
       // Pass or fail?
       if (nFailedDCFEBs>0) out_local << "NOT PASSED" << endl;
@@ -3345,8 +3349,7 @@ namespace emu {
 	if (!dcfeb_isConnected[dcfeb]) continue;
 	out_local << "DCFEB " << dcfeb+1 << ": ";
 	out_local << "Received " << dcfeb_nRxPckt[dcfeb] << "/" << repeatNumber << " packets, "
-		  << dcfeb_nGoodCRCs[dcfeb] << " good CRCs, "<< dcfeb_L1A_MATCH_cnt[dcfeb]<<" L1A_MATCH, " 
-		  << dcfeb_L1A_cnt[dcfeb] << " L1A. ";
+		  << dcfeb_nGoodCRCs[dcfeb] << " good CRCs, "<< dcfeb_L1A_cnt[dcfeb] << " L1A. ";
 	if (dcfeb_L1A_cnt[dcfeb]==n_l1a_match_before && n_l1a_match_after==0) out_local << "RESYNC worked.";
 	else out_local << "RESYNC failed.";
 	if (dcfeb_nGoodCRCs[dcfeb]==dcfeb_nRxPckt[dcfeb]&&dcfeb_nRxPckt[dcfeb]==repeatNumber) 
