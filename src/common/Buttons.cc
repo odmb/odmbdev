@@ -2899,65 +2899,28 @@ namespace emu {
       const unsigned int shiftedSlot(slot << 19);
       const unsigned int addr_tx = (0x005300 & 0x07ffff) | shiftedSlot;
       const unsigned int addr_rx = (0x005400 & 0x07ffff) | shiftedSlot;
-      unsigned int addr(0);
       unsigned short arg(0);
-      usleep(1);
-      addr=(0x003000 & 0x07ffff) | shiftedSlot;
-      arg=0x300;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      vme_wrapper_->VMEWrite(0x3004, 0x1, slot, "Reset");
       usleep(1000000);
-      usleep(1);
-      addr=(0x005320 & 0x07ffff) | shiftedSlot;
-      arg=1;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
-      usleep(1);
-      addr=(0x005420 & 0x07ffff) | shiftedSlot;
-      arg=1;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
-      usleep(1);
-      addr=(0x003000 & 0x07ffff) | shiftedSlot;
-      arg=0x680;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      vme_wrapper_->VMEWrite(0x5320, 0x1, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x5420, 0x1, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x3300, 0x1, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x3304, 0x1, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x3308, 0x1, slot, "Reset");
       usleep(1000000);
-      usleep(1);
-      addr=(0x00401C & 0x07ffff) | shiftedSlot;
-      arg=0;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
-      usleep(1);
-      addr=(0x003100 & 0x07ffff) | shiftedSlot;
-      arg=0;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
-      usleep(1);
-      addr=(0x00400C & 0x07ffff) | shiftedSlot;
-      arg=5;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
-      usleep(1);
-      addr=(0x004004 & 0x07ffff) | shiftedSlot;
-      arg=2;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      vme_wrapper_->VMEWrite(0x401C, 0x0, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x3100, 0x0, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x400C, 0x5, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x4004, 0x2, slot, "Reset");
       for(unsigned int j(0); j<testReps; ++j){
-	usleep(1);
-	addr=(0x005320 & 0x07ffff) | shiftedSlot;
-	arg=1;
-	crate_->vmeController()->vme_controller(3, addr, &arg, junk); //Clear TX FIFO 
-	usleep(1);
-	addr=(0x005420 & 0x07ffff) | shiftedSlot;
-	arg=1;
-	crate_->vmeController()->vme_controller(3, addr, &arg, junk); //Clear RX FIFO
-	usleep(1);
-	addr=(0x003010 & 0x07ffff) | shiftedSlot;
-	arg=0x10;
-	crate_->vmeController()->vme_controller(3, addr, &arg, junk);
-	usleep(1);
-	addr=(0x00530C & 0x07ffff) | shiftedSlot;
-	arg=0;
-	crate_->vmeController()->vme_controller(2, addr, &arg, junk);
+	vme_wrapper_->VMEWrite(0x5320, 0x1, slot, "Reset");
+	vme_wrapper_->VMEWrite(0x5420, 0x1, slot, "Reset");
+	vme_wrapper_->VMEWrite(0x3200, 0x4, slot, "Reset");
+	vme_wrapper_->VMERead(0x530C, slot, "Reset");
 	unsigned int word_count((junk[1]*0x100) + junk[0]);
-	usleep(1);
-	addr=(0x004024 & 0x07ffff) | shiftedSlot;
-	arg=0;
-	crate_->vmeController()->vme_controller(2, addr, &arg, junk);
+	vme_wrapper_->VMERead(0x4024, slot, "Reset");
 	for(unsigned int word(0); word<word_count; ++word){
+	  vme_wrapper_->VMERead(addr_tx, slot, "Reset");
 	  usleep(1);
 	  crate_->vmeController()->vme_controller(2, addr_tx, &arg, rcv_tx); //Read TX
 	  usleep(1);
@@ -3002,64 +2965,26 @@ namespace emu {
       const unsigned int shiftedSlot(slot << 19);
       const unsigned int addr_tx = (0x005100 & 0x07ffff) | shiftedSlot;
       const unsigned int addr_rx = (0x005200 & 0x07ffff) | shiftedSlot;
-      unsigned int addr(0);
       unsigned short arg(0);
-      usleep(1);
-      addr=(0x003000 & 0x07ffff) | shiftedSlot;
-      arg=0x300;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      vme_wrapper_->VMEWrite(0x3004, 0x1, slot, "Reset");
       usleep(1000000);
-      usleep(1);
-      addr=(0x005120 & 0x07ffff) | shiftedSlot;
-      arg=1;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
-      usleep(1);
-      addr=(0x005220 & 0x07ffff) | shiftedSlot;
-      arg=1;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
-      usleep(1);
-      addr=(0x003000 & 0x07ffff) | shiftedSlot;
-      arg=0x680;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      vme_wrapper_->VMEWrite(0x5120, 0x1, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x5220, 0x1, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x3300, 0x1, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x3304, 0x1, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x3308, 0x1, slot, "Reset");
       usleep(1000000);
-      usleep(1);
-      addr=(0x00401C & 0x07ffff) | shiftedSlot;
-      arg=0;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
-      usleep(1);
-      addr=(0x003100 & 0x07ffff) | shiftedSlot;
-      arg=0;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
-      usleep(1);
-      addr=(0x00400C & 0x07ffff) | shiftedSlot;
-      arg=5;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
-      usleep(1);
-      addr=(0x004004 & 0x07ffff) | shiftedSlot;
-      arg=2;
-      crate_->vmeController()->vme_controller(3, addr, &arg, junk);
+      vme_wrapper_->VMEWrite(0x410C, 0x0, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x3100, 0x0, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x400C, 0x5, slot, "Reset");
+      vme_wrapper_->VMEWrite(0x4004, 0x2, slot, "Reset");
       for(unsigned int j(0); j<testReps; ++j){
-	usleep(1);
-	addr=(0x005120 & 0x07ffff) | shiftedSlot;
-	arg=1;
-	crate_->vmeController()->vme_controller(3, addr, &arg, junk); //Clear TX FIFO 
-	usleep(1);
-	addr=(0x005220 & 0x07ffff) | shiftedSlot;
-	arg=1;
-	crate_->vmeController()->vme_controller(3, addr, &arg, junk); //Clear RX FIFO
-	usleep(1);
-	addr=(0x003010 & 0x07ffff) | shiftedSlot;
-	arg=0x10;
-	crate_->vmeController()->vme_controller(3, addr, &arg, junk);
-	usleep(1);
-	addr=(0x00510C & 0x07ffff) | shiftedSlot;
-	arg=0;
-	crate_->vmeController()->vme_controller(2, addr, &arg, junk);
+	vme_wrapper_->VMEWrite(0x5120, 0x1, slot, "Reset");
+	vme_wrapper_->VMEWrite(0x5220, 0x1, slot, "Reset");
+	vme_wrapper_->VMEWrite(0x3200, 0x4, slot, "Reset");
+	vme_wrapper_->VMEWrite(0x510C, 0x0, slot, "Reset");
 	unsigned int word_count((junk[1]*0x100) + junk[0]);
-	usleep(1);
-	addr=(0x004024 & 0x07ffff) | shiftedSlot;
-	arg=0;
-	crate_->vmeController()->vme_controller(2, addr, &arg, junk);
+	vme_wrapper_->VMERead(0x4024, slot, "Reset");
 
 	for(unsigned int word(0); word<word_count; ++word){
 	  usleep(1);
@@ -3097,12 +3022,12 @@ namespace emu {
       int slot = Manager::getSlotNumber();
       ostringstream out_local;      
       
-      unsigned int addr_odmb_reg(0x3000), addr_dcfeb_reg(0x3010);
+      unsigned int addr_odmb_reg(0x3000), addr_dcfeb_reg(0x3200);
       unsigned int addr_sel_dcfeb(0x1020), addr_done_dcfeb(0x3120);
       unsigned int addr_set_kill(0x401C);
       unsigned short dr_injpls(59), dr_extpls(60), dr_l1a_match(58);
       // unsigned short dr_bc0(61);
-      unsigned short injpls(0x4), extpls(0x8), l1a_match(0x10);
+      unsigned short injpls(0x1), extpls(0x2), l1a_match(0x4), bc0(0x20);
       // unsigned short  bc0(0x0);
       unsigned short int VMEresult;
       vector<unsigned int> n_injpls_reads(7,0), n_etxpls_reads(7,0), n_l1a_match_reads(7,0);
@@ -3115,6 +3040,8 @@ namespace emu {
       vme_wrapper_->VMEWrite(addr_dcfeb_reg, injpls, slot, "Send INJPLS signal");
       usleep(100);
       vme_wrapper_->VMEWrite(addr_dcfeb_reg, extpls, slot, "Send EXTPLS signal");	  
+      usleep(100);
+      vme_wrapper_->VMEWrite(addr_dcfeb_reg, bc0, slot, "Send BC0");	  
       
       return;
 
@@ -3122,7 +3049,7 @@ namespace emu {
       //  Set-up DCFEBs
       vme_wrapper_->VMEWrite(addr_odmb_reg, 0x3F, slot, "Set calibration mode");      
       vme_wrapper_->VMEWrite(addr_set_kill,0,slot,"Set KILL");  
-      vme_wrapper_->VMEWrite(addr_dcfeb_reg, 0x2, slot, "DCFEB resync--reset all counters");
+      vme_wrapper_->VMEWrite(addr_dcfeb_reg, 0x1, slot, "DCFEB resync--reset all counters");
       // Read which DCFEBs are connected
       VMEresult = vme_wrapper_->VMERead(addr_done_dcfeb,slot,"Read DCFEB done bits");
       if (VMEresult==0x0) {
@@ -3140,6 +3067,8 @@ namespace emu {
 	vme_wrapper_->VMEWrite(addr_dcfeb_reg, injpls, slot, "Send INJPLS signal");
 	usleep(100);
 	vme_wrapper_->VMEWrite(addr_dcfeb_reg, extpls, slot, "Send EXTPLS signal");	  
+	usleep(100);
+	vme_wrapper_->VMEWrite(addr_dcfeb_reg, bc0, slot, "Send BC0");	  
 	usleep(100);
 	vme_wrapper_->VMEWrite(addr_odmb_reg, 0x0, slot, "Set calibration mode");      
 	vme_wrapper_->VMEWrite(addr_dcfeb_reg, l1a_match, slot, "Send L1A_MATCH signal");
@@ -3314,7 +3243,8 @@ namespace emu {
       const unsigned long repeatNumber=atoi(textBoxContent.c_str());
       // repeatNumber is currently the number of packets to send
       int slot = Manager::getSlotNumber();
-      unsigned int addr_odmb_ctrl_reg(0x003000), addr_dcfeb_ctrl_reg(0x003010);
+      unsigned int addr_odmb_rst(0x003004), addr_dcfeb_ctrl_reg(0x3200);
+      unsigned int addr_dcfeb_resync(0x3014);
       unsigned int addr_set_kill(0x00401C), addr_read_done_bits(0x003120);
       unsigned int addr_read_nrx_pckt(0x00340C), addr_read_ncrcs(0x00360C);
       unsigned int addr_sel_dcfeb_fifo(0x005010), addr_reset_fifo(0x005020);
@@ -3322,9 +3252,8 @@ namespace emu {
       // Commands
       //unsigned short int data;
       unsigned short dr_l1a_match(58);
-      unsigned short int cmd_rst(0x300), cmd_dreal_tint(0x200);
       // unsigned short int dcfeb_done_bits[7] = {0x1,0x2,0x4,0x8,0x10,0x20,0x40};
-      unsigned short int cms_l1a_match(0x10);
+      unsigned short int cms_l1a_match(0x4);
       vector<bool> dcfeb_isConnected(7,false);
       unsigned int notConnected(0), n_l1a_match_before, n_l1a_match_after;
       vector<unsigned int> dcfeb_nRxPckt(7,0), dcfeb_nGoodCRCs(7,0);
@@ -3333,10 +3262,11 @@ namespace emu {
       unsigned short int VMEresult;
       // == ================ Configuration ================ ==
       // Reset!
-      vme_wrapper_->VMEWrite(addr_odmb_ctrl_reg,cmd_rst,slot,"Reset");
+      vme_wrapper_->VMEWrite(addr_odmb_rst,0x1,slot,"Reset");
       usleep(10000000);
       // Set real data and internal triggers
-      vme_wrapper_->VMEWrite(addr_odmb_ctrl_reg,cmd_dreal_tint,slot,"Set real data and internal triggers");
+      vme_wrapper_->VMEWrite(0x3300, 0x0, slot, "Set real data.");
+      vme_wrapper_->VMEWrite(0x3304, 0x1, slot, "Set internal trigger.");
       // check which DCFEBs are connected
       VMEresult = vme_wrapper_->VMERead(addr_read_done_bits,slot,"Read DCFEB done bits");
       if (VMEresult==0x0) {
@@ -3380,7 +3310,7 @@ namespace emu {
 	  dcfeb_L1A_cnt[dcfeb] = vme_wrapper_->VMERead(addr_read_word,slot,"Read second word (L1A counter)");
 	  vme_wrapper_->VMEWrite(addr_sel_dcfeb, 1<<dcfeb, slot, "Select DCFEB");
 	  n_l1a_match_before=vme_wrapper_->JTAGRead(dr_l1a_match,12,slot);
-	  vme_wrapper_->VMEWrite(addr_dcfeb_ctrl_reg, 0x2, slot, "DCFEB resync--reset all counters");
+	  vme_wrapper_->VMEWrite(addr_dcfeb_resync, 0x1, slot, "DCFEB resync--reset all counters");
 	  n_l1a_match_after=vme_wrapper_->JTAGRead(dr_l1a_match,12,slot);
 	  // Number of received packets
 	  VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt_d,slot,"Read number of received packets");
@@ -3597,14 +3527,13 @@ namespace emu {
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
 
       unsigned int odmb_slot(Manager::getSlotNumber()), otmb_slot(6);
-      unsigned int addr_otmb_cnt_rst(0x9410), addr_tp_sel_reg(0x3020);
+      unsigned int addr_otmb_cnt_rst(0x9410);
       unsigned int addr_otmb_mode(0x1EE), addr_otmb_prbs_start(0x31EE);
       unsigned int /*addr_otmb_prbs_en(0x9400),*/ addr_read_prbs_matches(0x9408), addr_read_prbs_errors(0x940C);
-      unsigned short int reset_command(0x0), odmb_mode(0x1), otmb_prbs_sig(0x20);
+      unsigned short int reset_command(0x0), odmb_mode(0x1);
 
       vme_wrapper_->VMEWrite(addr_otmb_cnt_rst,reset_command,odmb_slot,"Reset OTMB PRBS count");
       vme_wrapper_->VMEWrite(addr_otmb_mode,odmb_mode,otmb_slot,"Set OTMB in ODMB mode");
-      vme_wrapper_->VMEWrite(addr_tp_sel_reg,otmb_prbs_sig,odmb_slot, "Set test points to OTMB PRBS signals");
       
       unsigned int n_prbs_sequences = atoi(textBoxContent.c_str());
       vme_wrapper_->VMEWrite(addr_otmb_prbs_start,(unsigned short int)n_prbs_sequences,otmb_slot,"Start OTMB PRBS sequence");
