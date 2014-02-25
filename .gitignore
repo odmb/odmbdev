@@ -4,6 +4,7 @@ core.*
 *.root
 *#
 *.raw
+.#*
 
 # Compiled Object files
 *.slo

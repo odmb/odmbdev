@@ -49,7 +49,7 @@ namespace emu {
   namespace odmbdev {
     
     int Manager::slot_number = 7;
-    unsigned int Manager::port_ = 9997; // This doesn't affect the xdaq app;
+    unsigned int Manager::port_ = 9991; // This doesn't affect the xdaq app;
     // I just needed to initialize this
     // static member variable.
 
@@ -2644,7 +2644,7 @@ namespace emu {
     }
 
     MasterTest::MasterTest(Crate* crate, emu::odmbdev::Manager* manager):
-      TextBoxAction(crate, manager, "One button to rule them all."){
+      TextBoxAction(crate, manager, "One button to rule them all"){
     }
 
     void MasterTest::respond(xgi::Input* in, ostringstream& out){
@@ -3286,7 +3286,7 @@ namespace emu {
 	  if (v_UCRead[d]==false) continue;
 	  out_local << "DCFEB " << d+1 << ": ";
 	  out_local << "read UserCode.";
-	  out_local << " Firmware version " << v_firmwareVersion[d] << ".";
+	  out_local << " Firmware version " << v_firmwareVersion[d];
 	  if (repeatNumber==0) out_local << endl;
 	  else {
 	    out_local << " Sent " << 2*repeatNumber*(end-start) << " shift+read commands.";
@@ -3318,14 +3318,15 @@ namespace emu {
       unsigned int addr_set_kill(0x00401C), addr_read_done_bits(0x003120);
       unsigned int addr_read_nrx_pckt(0x00340C), addr_read_ncrcs(0x00360C);
       unsigned int addr_sel_dcfeb_fifo(0x005010), addr_reset_fifo(0x005020);
-      unsigned int addr_read_word(0x005000);
+      unsigned int addr_read_word(0x005000), addr_sel_dcfeb(0x1020);
       // Commands
       //unsigned short int data;
+      unsigned short dr_l1a_match(58);
       unsigned short int cmd_rst(0x300), cmd_dreal_tint(0x200);
       // unsigned short int dcfeb_done_bits[7] = {0x1,0x2,0x4,0x8,0x10,0x20,0x40};
       unsigned short int cms_l1a_match(0x10);
       vector<bool> dcfeb_isConnected(7,false);
-      unsigned int notConnected(0);
+      unsigned int notConnected(0), n_l1a_match_before, n_l1a_match_after;
       vector<unsigned int> dcfeb_nRxPckt(7,0), dcfeb_nGoodCRCs(7,0);
       vector<unsigned int> dcfeb_L1A_MATCH_cnt(7,0), dcfeb_L1A_cnt(7,0);
       // Results
@@ -3377,6 +3378,10 @@ namespace emu {
 	  // Read L1A_MATCH counter, and L1A counter
 	  dcfeb_L1A_MATCH_cnt[dcfeb] = vme_wrapper_->VMERead(addr_read_word,slot,"Read first word (L1A_MATCH counter)"); 
 	  dcfeb_L1A_cnt[dcfeb] = vme_wrapper_->VMERead(addr_read_word,slot,"Read second word (L1A counter)");
+	  vme_wrapper_->VMEWrite(addr_sel_dcfeb, 1<<dcfeb, slot, "Select DCFEB");
+	  n_l1a_match_before=vme_wrapper_->JTAGRead(dr_l1a_match,12,slot);
+	  vme_wrapper_->VMEWrite(addr_dcfeb_ctrl_reg, 0x2, slot, "DCFEB resync--reset all counters");
+	  n_l1a_match_after=vme_wrapper_->JTAGRead(dr_l1a_match,12,slot);
 	  // Number of received packets
 	  VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt_d,slot,"Read number of received packets");
 	  unsigned int nRxPckt(VMEresult+nCntRst*65536);
@@ -3409,12 +3414,13 @@ namespace emu {
       for (unsigned short int dcfeb(0x0); dcfeb<7; dcfeb++) {
 	if (!dcfeb_isConnected[dcfeb]) continue;
 	out_local << "DCFEB " << dcfeb+1 << ": ";
-	out_local << "Received " << dcfeb_nRxPckt[dcfeb] << " out of " << repeatNumber << " packets, "
-		  << dcfeb_nGoodCRCs[dcfeb] << " good CRCs. L1A_MATCH count: " << dcfeb_L1A_MATCH_cnt[dcfeb] 
-		  << ", L1A count: " << dcfeb_L1A_cnt[dcfeb] << ".";
-	if (dcfeb_nGoodCRCs[dcfeb]==dcfeb_nRxPckt[dcfeb]&&dcfeb_nRxPckt[dcfeb]==repeatNumber) {
+	out_local << "Received " << dcfeb_nRxPckt[dcfeb] << "/" << repeatNumber << " packets, "
+		  << dcfeb_nGoodCRCs[dcfeb] << " good CRCs, "<< dcfeb_L1A_MATCH_cnt[dcfeb]<<" L1A_MATCH, " 
+		  << dcfeb_L1A_cnt[dcfeb] << " L1A. ";
+	if (dcfeb_L1A_cnt[dcfeb]==n_l1a_match_before && n_l1a_match_after==0) out_local << "RESYNC worked.";
+	else out_local << "RESYNC failed.";
+	if (dcfeb_nGoodCRCs[dcfeb]==dcfeb_nRxPckt[dcfeb]&&dcfeb_nRxPckt[dcfeb]==repeatNumber) 
 	  out_local << " No bit flips." << endl;
-	}
 	else out_local << endl;
       }
       out_local << endl;

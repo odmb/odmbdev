@@ -163,6 +163,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<PCPRBSTest>(crate,this);
       addActionByTypename<MCSBackAndForthBPI>(crate, this);     
       addActionByTypename<HardReset>(crate);
+      addActionByTypename<ReprogramDCFEB>(crate);
       addActionByTypename<LVMBtest_dos>(crate, this);
       
       // putButtonsInGroup( "Routine Tests" );
