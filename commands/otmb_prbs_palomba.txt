@@ -5,6 +5,8 @@ sleep 2000000
 R   4024          10C           Read ODMB FW version
 RS     2         1004     6	Read OTMB FW version
 WS   1EE     1            6	Set OTMB in ODMB mode
+WS   1EE     1            6	Set OTMB in ODMB mode
+Sleep 1000000
 RS   1EE            1     6	Read OTMB mode
 
 W   3020    20			Set test points to OTMB PRBS signals
