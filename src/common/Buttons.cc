@@ -49,7 +49,7 @@ namespace emu {
   namespace odmbdev {
     
     int Manager::slot_number = 7;
-    unsigned int Manager::port_ = 9991; // This doesn't affect the xdaq app;
+    unsigned int Manager::port_ = 9997; // This doesn't affect the xdaq app;
     // I just needed to initialize this
     // static member variable.
 
@@ -2378,7 +2378,9 @@ namespace emu {
 			   const string& textBoxContent_in) { // TD
       ThreeTextBoxAction::respond(in, out, textBoxContent_in);
       ostringstream out_local;
-      out_local << "********** LVMB ********** ";
+      string hdr("********** LVMB **********");
+      JustifyHdr(hdr);
+      out_local << hdr;
       unsigned int slot(Manager::getSlotNumber());
       unsigned short int VMEresult;
       //unsigned short int data;
@@ -2443,7 +2445,7 @@ namespace emu {
 	    ADC_not_connected[i] = true;
             notConnected++;
             if (notConnected == 3) {
-	      out_local << "NOT PASSED" << endl;
+	      out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
 	      out_local << "LVMB not connected." << endl; 
 	      out << out_local.str();
 	      UpdateLog(vme_wrapper_, slot, out_local);
@@ -2466,7 +2468,7 @@ namespace emu {
       }
       // ouput of test
       if (notConnected>=1) {
-	out_local << "NOT PASSED" << endl;
+	out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
 	out_local << "ADCs not connected: ";
 	for (int ADC = 0; ADC < 7; ADC++){
 	  if (ADC_not_connected[ADC]) out_local << ADC_number_vec[ADC] << " ";
@@ -2476,7 +2478,7 @@ namespace emu {
 	UpdateLog(vme_wrapper_, slot, out_local);
 	return;
       } else if (n_p_on_off_fails>=1) {
-	out_local << "NOT PASSED" << endl;
+	out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
 	out_local << "ADCs failing power-on/off test: ";
 	for (int ADC = 0; ADC < 7; ADC++){
 	  if (ADC_fail_pon_test[ADC]==true||ADC_fail_poff_test[ADC]==true) out_local << ADC_number_vec[ADC] << " ";
@@ -2602,11 +2604,11 @@ namespace emu {
 
       }
       //out << "Voltage reading failure rate: " << fail << " out of " << nReps*7  << ". " << endl;
-      if (fail < nReps*7*.02) out_local << "PASSED" << endl;
-      else out_local << "NOT PASSED" << endl;
-      out_local << "Ran power on/off test on 7 devices. All 7 passed.";  
+      if (fail < nReps*7*.02) out_local << "\t\t\t\t\t\tPASSED" << endl;
+      else out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
+      out_local << "Power on/off test on 7/7.";  
       out_local << "Read 200 voltages per device. ";
-      out_local << "Voltage reading pass rate: " << pass << " out of " << 2*nReps*7 << "." << endl; 
+      out_local << "Voltage reading: " << pass << "/" << 2*nReps*7 << "." << endl; 
       out_local << endl;
 
       out << out_local.str();
@@ -2672,6 +2674,10 @@ namespace emu {
 	  short_arg="100";
 	  long_arg="10000";
 	  good_button=true;
+	}else if(typeid(button_ref)==typeid(DCFEBPulses)){
+	  short_arg="1000";
+	  long_arg="10000";
+	  good_button=true;
 	}else if(typeid(button_ref)==typeid(CCBReg)){
 	  short_arg="100";
 	  long_arg="5000";
@@ -2701,18 +2707,33 @@ namespace emu {
 	  long_arg="0";
 	}
 
+	std::cout << typeid(button_ref).name() << std::endl;
 	RepeatTextBoxAction* const rtba_ptr(dynamic_cast<RepeatTextBoxAction*>(button->get()));
 	ThreeTextBoxAction* const ttba_ptr(dynamic_cast<ThreeTextBoxAction*>(button->get()));
 	// High-stats mode?
 	size_t found = textBoxContent.find("h");
 	bool highStat(found!=::string::npos);
+	found = textBoxContent.find("d");
+	bool dcfeb_only(found!=::string::npos);
 	if(good_button){
 	  if(rtba_ptr!=NULL){
-	    if (highStat) rtba_ptr->respond(in, out, long_arg);
-	    else rtba_ptr->respond(in, out, short_arg);
-	  }else if(ttba_ptr!=NULL){
-	    if (highStat) ttba_ptr->respond(in, out, long_arg);
-	    else ttba_ptr->respond(in, out, short_arg);
+	    if (dcfeb_only) { // swapping the cables mode -- just do dcfeb tests
+	      if (typeid(button_ref)==typeid(DCFEBJTAGcontrol) || typeid(button_ref)==typeid(DCFEBFiber)){
+		rtba_ptr->respond(in, out, long_arg);
+	      }
+	    }else { // usual mode -- do all tests
+	      if (highStat){
+		rtba_ptr->respond(in, out, long_arg);
+	      }else{
+		rtba_ptr->respond(in, out, short_arg);
+	      }
+	    }
+	  }else if(ttba_ptr!=NULL&&!dcfeb_only){ // usual mode -- do LVMB test
+	    if (highStat){
+	      ttba_ptr->respond(in, out, long_arg);
+	    }else{
+	      ttba_ptr->respond(in, out, short_arg);
+	    }
 	  }
 	}
       }
@@ -2727,7 +2748,9 @@ namespace emu {
 
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
       ostringstream out_local;
-      out_local << "********** PC PRBS Test *************** ";
+      string hdr("********** PC PRBS Test **********");
+      JustifyHdr(hdr);
+      out_local << hdr;
       const unsigned int slot(Manager::getSlotNumber());
       const unsigned int v2_slot(slot); // easy to switch back to v3-v2 version
       const unsigned int prbs_type_addr = 0x9300;
@@ -2742,8 +2765,8 @@ namespace emu {
       vme_wrapper_->VMEWrite(prbs_rxen_addr, num_sequences, v2_slot, "Activate PC RX PRBS");
       usleep(500*num_sequences);
       unsigned short num_errors(vme_wrapper_->VMERead(0x910C, v2_slot, "Read number of errors"));
-      if (num_errors==0) out_local << "PASSED" << endl;
-      else out_local << "NOT PASSED" << endl;     
+      if (num_errors==0) out_local << "\t\t\t\t\t\tPASSED" << endl;
+      else out_local << "\t\t\t\t\t\tNOT PASSED" << endl;     
       out_local << "Number of PRBS sequences: " << num_sequences << " (10,000 bits each)" << endl;
       out_local << "PRBS sequences matched: " << num_sequences-num_errors << " (expected " << num_sequences << ")" << endl;
       out_local << "PRBS bit errors: " << num_errors << " (expected 0)" << endl;
@@ -2762,7 +2785,9 @@ namespace emu {
 
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
       ostringstream out_local;
-      out_local << "********** DDU PRBS Test ******************* ";
+      string hdr("********** DDU PRBS Test **********");
+      JustifyHdr(hdr);
+      out_local << hdr;
       const unsigned int slot(Manager::getSlotNumber());
       const unsigned int v2_slot(slot); // easy to switch back to v3-v2 version
       const unsigned int prbs_type_addr = 0x9300;
@@ -2777,8 +2802,8 @@ namespace emu {
       vme_wrapper_->VMEWrite(prbs_rxen_addr, num_sequences, v2_slot, "Activate PC RX PRBS");
       usleep(500*num_sequences);
       unsigned short num_errors(vme_wrapper_->VMERead(0x900C, v2_slot, "Read number of errors"));
-      if (num_errors==0) out_local << "PASSED" << endl;
-      else out_local << "NOT PASSED" << endl;
+      if (num_errors==0) out_local << "\t\t\t\t\t\tPASSED" << endl;
+      else out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
       out_local << "Number of PRBS sequences: " << num_sequences << " (10,000 bits each)" << endl;
       out_local << "PRBS sequences matched: " << num_sequences-num_errors << " (expected " << num_sequences << ")" << endl;
       out_local << "PRBS bit errors: " << num_errors << " (expected 0)" << endl;
@@ -3015,12 +3040,16 @@ namespace emu {
       RepeatTextBoxAction(crate, manager, "DCFEB Pulses", 1){
     }
 
-    void DCFEBPulses::respond(xgi::Input* in, ostringstream& out) {
-      RepeatTextBoxAction::respond(in, out);
-      const unsigned long repeatNumber=atoi(textBoxContent.c_str());
+    void DCFEBPulses::respond(xgi::Input* in, ostringstream& out, const string& textBoxContent_in) {
+      RepeatTextBoxAction::respond(in, out, textBoxContent_in);
+      ostringstream out_local;      
+      string hdr("********** DCFEB Pulses **********");
+      JustifyHdr(hdr);
+      out_local << hdr;
+
+      const unsigned long repeatNumber=atoi(textBoxContent_in.c_str());
       
       int slot = Manager::getSlotNumber();
-      ostringstream out_local;      
       
       unsigned int addr_odmb_reg(0x3000), addr_dcfeb_reg(0x3200), addr_dcfeb_resync(0x3014);
       unsigned int addr_sel_dcfeb(0x1020), addr_done_dcfeb(0x3120);
@@ -3035,23 +3064,22 @@ namespace emu {
       unsigned int nConnected(0);
       
       
-//       vme_wrapper_->VMEWrite(addr_odmb_reg, 0x3F, slot, "Set calibration mode");      
-//       vme_wrapper_->VMEWrite(addr_dcfeb_reg, injpls, slot, "Send INJPLS signal");
-//       usleep(100);
-//       vme_wrapper_->VMEWrite(addr_dcfeb_reg, extpls, slot, "Send EXTPLS signal");	  
-//       usleep(100);
-//       vme_wrapper_->VMEWrite(addr_dcfeb_reg, bc0, slot, "Send BC0");	  
+      //       vme_wrapper_->VMEWrite(addr_odmb_reg, 0x3F, slot, "Set calibration mode");      
+      //       vme_wrapper_->VMEWrite(addr_dcfeb_reg, injpls, slot, "Send INJPLS signal");
+      //       usleep(100);
+      //       vme_wrapper_->VMEWrite(addr_dcfeb_reg, extpls, slot, "Send EXTPLS signal");	  
+      //       usleep(100);
+      //       vme_wrapper_->VMEWrite(addr_dcfeb_reg, bc0, slot, "Send BC0");	  
       
-//       return;
+      //       return;
 
-      out_local << "********** DCFEB Pulses ********** "; 
       //  Set-up DCFEBs
       vme_wrapper_->VMEWrite(addr_set_kill,0,slot,"Set KILL");  
       vme_wrapper_->VMEWrite(addr_dcfeb_resync, 0x1, slot, "DCFEB resync--reset all counters");
       // Read which DCFEBs are connected
       VMEresult = vme_wrapper_->VMERead(addr_done_dcfeb,slot,"Read DCFEB done bits");
       if (VMEresult==0x0) {
-	out_local << "NOT PASSED" << endl;
+	out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
 	out_local << "Error: could not find DCFEBs. Please check connections." << endl << endl;
 	out << out_local.str();
 	UpdateLog(vme_wrapper_, slot, out_local);
@@ -3084,29 +3112,38 @@ namespace emu {
 	n_bc0_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_bc0,12,slot);
       } // end first loop over dcfebs
       // Analyze the results
-      unsigned int nFails(0);
+      unsigned int nPassed[4] = {0,0,0,0};
       for (unsigned short dcfeb(0); dcfeb<7; dcfeb++) {
 	if (!dcfeb_connected[dcfeb]) continue;
-	if (n_injpls_reads[dcfeb]!=repeatNumber) nFails++; 
-	if (n_etxpls_reads[dcfeb]!=repeatNumber) nFails++;
-	if(n_bc0_reads[dcfeb]!=repeatNumber) nFails++;
-	if(n_l1a_match_reads[dcfeb]!=repeatNumber) nFails++;
+	/*if (n_injpls_reads[dcfeb]!=repeatNumber) nFails++; 
+	  if (n_etxpls_reads[dcfeb]!=repeatNumber) nFails++;
+	  if(n_bc0_reads[dcfeb]!=repeatNumber) nFails++;
+	  if(n_l1a_match_reads[dcfeb]!=repeatNumber) nFails++;
+	*/
+	if (n_injpls_reads[dcfeb]>repeatNumber/5*4) nPassed[0]++;
+ 	if (n_etxpls_reads[dcfeb]>repeatNumber/5*4) nPassed[1]++;
+ 	if (n_bc0_reads[dcfeb]>repeatNumber/5*4) nPassed[2]++;
+ 	if (n_l1a_match_reads[dcfeb]>repeatNumber/5*4) nPassed[3]++;
       }
-      if (nFails==0) out_local << "PASSED" << endl;
-      else out_local << "NOT PASSED" << endl;
+      unsigned int nFailedSignals(0);
+      for (unsigned int signal(0); signal<4; signal++) {
+	if (nPassed[signal]<1) nFailedSignals++;
+      }
+      if (nFailedSignals==0) out_local << "\t\t\t\t\t\tPASSED" << endl;
+      else out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
       // Print the results
       for (unsigned short dcfeb(0); dcfeb<7; dcfeb++) {
 	if (!dcfeb_connected[dcfeb]) continue;
-	out_local << "DCFEB " << dcfeb+1 << ": successfully received "; 
-	out_local << "INJPLS " << n_injpls_reads[dcfeb] << "/" << repeatNumber << " times, "
-		  << "EXTPLS: " << n_etxpls_reads[dcfeb] << "/" << repeatNumber << " times, "
-		  << "BC0: " << n_bc0_reads[dcfeb] << "/" << repeatNumber << " times, "
-		  << "L1A_MATCH: " << n_l1a_match_reads[dcfeb] << "/" << repeatNumber << " times." << endl;      
+	out_local << "DCFEB " << dcfeb+1 << ": "; 
+	out_local << "INJPLS " << n_injpls_reads[dcfeb] << "/" << repeatNumber << ", "
+		  << "EXTPLS: " << n_etxpls_reads[dcfeb] << "/" << repeatNumber << ", "
+		  << "BC0: " << n_bc0_reads[dcfeb] << "/" << repeatNumber << ", "
+		  << "L1A_MATCH: " << n_l1a_match_reads[dcfeb] << "/" << repeatNumber << "." << endl;      
 	// out_local << "BC0 Result: " << n_bc0_reads << endl;      
       }
       out_local << endl;
       //vme_wrapper_->VMEWrite(addr_dcfeb_reg, 0x2, slot, "Reset counters");
-      //out_local << "PASSED" << endl << endl;
+      //out_local << "\t\t\t\t\t\tPASSED" << endl << endl;
       out << out_local.str();
       UpdateLog(vme_wrapper_, slot, out_local);
     }
@@ -3120,7 +3157,9 @@ namespace emu {
 				   const string& textBoxContent_in) { // JB-F
       
       ostringstream out_local;
-      out_local << "********** DCFEB JTAG Control ********** ";
+      string hdr("********** DCFEB JTAG Control **********");
+      JustifyHdr(hdr);
+      out_local << hdr;
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
       const unsigned long repeatNumber=atoi(textBoxContent.c_str());
       vector<bool> v_UCRead(7,false); // tell us if we read UserCode of each DCFEB
@@ -3199,7 +3238,7 @@ namespace emu {
 	} // repeat the test repNum times per DCFEB
       } // Loop over all DCFEBs
       if (nConnected==0) {
-	out_local << "NOT PASSED" << endl;
+	out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
 	out_local << "Error: could not find DCFEBs. Please check connections." << endl;
       }
       else {
@@ -3210,8 +3249,8 @@ namespace emu {
 	  if ((2*repeatNumber*(end-start)-v_nJTAGshifts[d]-v_nShiftReads[d])!=0) nFailedDCFEBs++;
 	}
 	// Now loop one more time to display results
-	if (nFailedDCFEBs==0)  out_local << "PASSED" << endl;
-	else out_local << "NOT PASSED" << endl;
+	if (nFailedDCFEBs==0)  out_local << "\t\t\t\t\t\tPASSED" << endl;
+	else out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
 	for (int d = 0; d < 7; d++){ 
 	  if (v_UCRead[d]==false) continue;
 	  out_local << "DCFEB " << d+1 << ": ";
@@ -3239,7 +3278,9 @@ namespace emu {
     void DCFEBFiber::respond(xgi::Input* in, ostringstream& out,
 			     const string& textBoxContent_in) { // JB-F
       ostringstream out_local;
-      out_local << "********** DCFEB fiber tests ********** ";
+      string hdr("********** DCFEB fiber tests **********");
+      JustifyHdr(hdr);
+      out_local << hdr;
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
       const unsigned long repeatNumber=atoi(textBoxContent.c_str());
       // repeatNumber is currently the number of packets to send
@@ -3271,7 +3312,7 @@ namespace emu {
       // check which DCFEBs are connected
       VMEresult = vme_wrapper_->VMERead(addr_read_done_bits,slot,"Read DCFEB done bits");
       if (VMEresult==0x0) {
-	out_local << "NOT PASSED" << endl;
+	out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
 	out_local << "Error: could not find DCFEBs. Please check connections." << endl << endl;
 	out << out_local.str();
 	UpdateLog(vme_wrapper_, slot, out_local);
@@ -3327,7 +3368,7 @@ namespace emu {
 	} else {// if DCFEB is not connected
 	  notConnected++;
 	  if (notConnected==7) {
-	    out_local << "NOT PASSED" << endl;
+	    out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
 	    out_local << "Error: could not find DCFEBs. Please check connections." << endl << endl;
 	    out << out_local.str();
 	    UpdateLog(vme_wrapper_, slot, out_local);
@@ -3343,18 +3384,16 @@ namespace emu {
 	if (dcfeb_L1A_cnt[dcfeb]!=repeatNumber) nFailedDCFEBs++;
       }
       // Pass or fail?
-      if (nFailedDCFEBs>0) out_local << "NOT PASSED" << endl;
-      else out_local << "PASSED" << endl;
+      if (nFailedDCFEBs>0) out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
+      else out_local << "\t\t\t\t\t\tPASSED" << endl;
       for (unsigned short int dcfeb(0x0); dcfeb<7; dcfeb++) {
 	if (!dcfeb_isConnected[dcfeb]) continue;
 	out_local << "DCFEB " << dcfeb+1 << ": ";
 	out_local << "Received " << dcfeb_nRxPckt[dcfeb] << "/" << repeatNumber << " packets, "
-		  << dcfeb_nGoodCRCs[dcfeb] << " good CRCs, "<< dcfeb_L1A_cnt[dcfeb] << " L1A. ";
+		  << dcfeb_nGoodCRCs[dcfeb] << "/" << repeatNumber << " CRCs, "<< dcfeb_L1A_cnt[dcfeb] << " L1A. ";
 	if (dcfeb_L1A_cnt[dcfeb]==n_l1a_match_before && n_l1a_match_after==0) out_local << "RESYNC worked.";
 	else out_local << "RESYNC failed.";
-	if (dcfeb_nGoodCRCs[dcfeb]==dcfeb_nRxPckt[dcfeb]&&dcfeb_nRxPckt[dcfeb]==repeatNumber) 
-	  out_local << " No bit flips." << endl;
-	else out_local << endl;
+	out_local << endl;
       }
       out_local << endl;
 
@@ -3370,7 +3409,9 @@ namespace emu {
 			 const string& textBoxContent_in) { // JB-F
       srand(time(NULL));
       ostringstream out_local;
-      out_local << "********** CCB registers tests ********** ";
+      string hdr("********** CCB registers tests **********");
+      JustifyHdr(hdr);
+      out_local << hdr;
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
       istringstream countertext(textBoxContent);
       string line;
@@ -3494,12 +3535,12 @@ namespace emu {
 	}
       }
       if ((nBAADs_other_reg+nBitFlips_other_reg+nBAADs_data+nBitFlips_data+nBAADs_cmd+nBitFlips_cmd)==0) {
-	out_local << "PASSED" << endl;
+	out_local << "\t\t\t\t\t\tPASSED" << endl;
 	out_local << "Repeated test " << repeatNumber << " times. ";
 	out_local << "No BAAD reads or bit flips in 10 signals and registers." << endl;
       }
       else {
-	out_local << "NOT PASSED" << endl;
+	out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
 	out_local << "Repeated test " << repeatNumber << " times." <<endl;
 	for (unsigned int p(0);p<addr_pulses.size();p++) {
 	  out_local << setfill(' ');
@@ -3526,7 +3567,9 @@ namespace emu {
 			       const string& textBoxContent_in) { // JB-F
    
       ostringstream out_local;
-      out_local << "********** OTMB PRBS Test ********** ";
+      string hdr("********** OTMB PRBS Test **********");
+      JustifyHdr(hdr);
+      out_local << hdr;
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
 
       unsigned int odmb_slot(Manager::getSlotNumber()), otmb_slot(6);
@@ -3545,8 +3588,8 @@ namespace emu {
       //      vme_wrapper_->VMEWrite(addr_otmb_prbs_en,(unsigned short int)n_prbs_sequences,odmb_slot,"Enable PRBS readout on ODMB");
       unsigned int num_matches = vme_wrapper_->VMERead(addr_read_prbs_matches,odmb_slot,"Read number of PRBS matches");
       unsigned int num_errors = vme_wrapper_->VMERead(addr_read_prbs_errors,odmb_slot,"Read number of PRBS errors");
-      if (num_errors==100&&num_matches==(n_prbs_sequences-1)) out_local << "PASSED" << endl;
-      else out_local << "NOT PASSED" << endl;
+      if (num_errors==100&&num_matches==(n_prbs_sequences-1)) out_local << "\t\t\t\t\t\tPASSED" << endl;
+      else out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
       out_local << "Number of PRBS sequences: " << n_prbs_sequences << " (10,000 bits each)" << endl;
       out_local << "PRBS sequences matched: " << num_matches << " (expected " << n_prbs_sequences-1 << ")" << endl;
       out_local << "PRBS bit errors: " << num_errors << " (expected 100)" << endl;
@@ -3564,7 +3607,9 @@ namespace emu {
     void DiscreteLogicTest::respond(xgi::Input* in, ostringstream& out,
 				    const string& textBoxContent_in) { // JB-F
       ostringstream out_local;
-      out_local << "********** Discrete Logic Test ********** ";
+      string hdr("********** Discrete Logic Test **********");
+      JustifyHdr(hdr);
+      out_local << hdr;
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
       unsigned int slot(Manager::getSlotNumber());
       unsigned int addr_vme(0x00FFFC);
@@ -3646,8 +3691,8 @@ namespace emu {
 	v_UserCode.push_back(s_UserCode);
 	if (v_UserCode[rep].substr(16,16)!="1101101111011011") nFails++;
       } // nReps
-      if (nFails==0) out_local << "PASSED" << endl;
-      else out_local << "NOT PASSED" << endl;
+      if (nFails==0) out_local << "\t\t\t\t\t\tPASSED" << endl;
+      else out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
       out_local << "Successfully read UserCode " << nReps-nFails << "/" << nReps 
 		<< " times (" << FixLength(UserCode,8,true) << ")." << endl;
       out_local << endl;
@@ -5308,7 +5353,8 @@ namespace emu {
       const unsigned long testReps=strtoul(textBoxContent.c_str(),NULL,0);
       if(testReps<=0) return;
 
-      out << "********** Test PROM Programming via BPI *********" << endl;
+
+      out << "***** Test PROM Programming via BPI ****" << endl;
 
       //       printf("setting vmeController to debug.\n");
       //       crate_->vmeController()->Debug(10);

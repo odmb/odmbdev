@@ -30,7 +30,7 @@ namespace emu{
     std::string GetLogFileName(unsigned int port_number);
     std::string FixLength(unsigned int Number, unsigned int Length, bool isHex);
     void UpdateLog(VMEWrapper* vme_wrapper, unsigned int slot, std::ostringstream& out_local);
-
+    void JustifyHdr(string &hdr);
   }
 }
 
