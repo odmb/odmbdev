@@ -2736,7 +2736,30 @@ namespace emu {
 	    }
 	  }
 	}
+      } // Loop over all buttons
+
+      // Setting good default values for configuration registers
+      size_t found = textBoxContent.find("h");
+      bool highStat(found!=::string::npos);
+      if (highStat){
+	const unsigned int slot(Manager::getSlotNumber());
+	const unsigned int addr_lctl1a_dly(0x4000), addr_otmb_dly(0x4004), addr_alct_dly(0x400C);
+	const unsigned int addr_inj_dly(0x4010), addr_ext_dly(0x4014), addr_callct_dly(0x4018);
+	const unsigned int addr_kill(0x401C), addr_crateid(0x4020), addr_nwords(0x4028);
+	const unsigned int addr_bpi_write(0x6000);
+	vme_wrapper_->VMEWrite(addr_lctl1a_dly, slot, 26,  "Set LCT-L1A delay");
+	vme_wrapper_->VMEWrite(addr_otmb_dly, 	slot, 2,   "Set OTMBDAV delay");
+	vme_wrapper_->VMEWrite(addr_alct_dly, 	slot, 31,  "Set ALCTDAV delay");
+	vme_wrapper_->VMEWrite(addr_inj_dly, 	slot, 0,   "Set INJPLS delay");
+	vme_wrapper_->VMEWrite(addr_ext_dly, 	slot, 0,   "Set EXTPLS delay");
+	vme_wrapper_->VMEWrite(addr_callct_dly, slot, 0,   "Set CALLCT delay");
+	vme_wrapper_->VMEWrite(addr_kill, 	slot, 0x1FF,"Set KILL");
+	vme_wrapper_->VMEWrite(addr_crateid, 	slot, 0,   "Set crate ID");
+	vme_wrapper_->VMEWrite(addr_nwords, 	slot, 4,   "Set number of dummy words");
+	vme_wrapper_->VMEWrite(addr_bpi_write, 	slot, 0,   "Write to PROM");
+	usleep(1000000);
       }
+
     }
 
     PCPRBSTest::PCPRBSTest(Crate* crate, emu::odmbdev::Manager* manager):
@@ -3651,6 +3674,12 @@ namespace emu {
 	    if (hex_digit==0) { // 1st hex digit
 	      if (command%2>0) {
 		VMEresult = vme_wrapper_->VMERead(addr_vme,slot,"Read UserCode 0 (hex digit 1)");
+		if (VMEresult>1) {
+		  out_local << "Error: read something greater than 1" << endl << endl ;
+		  out << out_local.str();
+		  UpdateLog(vme_wrapper_, slot, out_local);
+		  return;
+		}
 		char s_result[4];
 		sprintf (s_result,"%d",VMEresult);
 		s_UserCode.insert(0,s_result);
@@ -3665,6 +3694,12 @@ namespace emu {
 	      if (command==0) vme_wrapper_->VMEWrite(addr_vme,0x2,slot,"Shifting DR");
 	      else if (command%2>0) {
 		VMEresult = vme_wrapper_->VMERead(addr_vme,slot,"Read UserCode 0 (hex digit 2)");
+		if (VMEresult>1) {
+		  out_local << "Error: read something greater than 1" << endl << endl;
+		  out << out_local.str();
+		  UpdateLog(vme_wrapper_, slot, out_local);
+		  return;
+		}
 		char s_result[4];
 		sprintf (s_result,"%d",VMEresult);
 		s_UserCode.insert(0,s_result);
@@ -3678,6 +3713,12 @@ namespace emu {
 	      sprintf(log_out,"Read UserCode 0 (hex digit %d)",hex_digit+1);
 	      if (command%2>0) {
 		VMEresult = vme_wrapper_->VMERead(addr_vme,slot,log_out);
+		if (VMEresult>1) {
+		  out_local << "Error: read something greater than 1" << endl << endl;
+		  out << out_local.str();
+		  UpdateLog(vme_wrapper_, slot, out_local);
+		  return;
+		}
 		char s_result[4];
 		sprintf (s_result,"%d",VMEresult);
 		s_UserCode.insert(0,s_result);
