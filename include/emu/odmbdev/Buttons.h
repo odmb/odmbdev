@@ -458,7 +458,7 @@ namespace emu { namespace odmbdev {
     class DCFEBPulses : public RepeatTextBoxAction {
     public:
       DCFEBPulses(Crate * crate, Manager* manager);
-      void respond(xgi::Input * in, ostringstream & out);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     };  
     
     /**************************************************************************

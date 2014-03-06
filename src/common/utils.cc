@@ -153,5 +153,13 @@ namespace emu{ namespace odmbdev{
     logfile.close();
   }
 
+  void JustifyHdr(string &hdr) { // align the PASSED/NOT PASSED messages for production tests
+    unsigned int nSpaces(45-hdr.size());
+    for (unsigned int space(0); space<nSpaces; space++) {
+      hdr+=" ";
+    }
+    return;
+  }
+
 }} // namespaces
 
