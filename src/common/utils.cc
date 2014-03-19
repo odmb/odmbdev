@@ -22,7 +22,11 @@ namespace emu{ namespace odmbdev{
     oss << number;
     std::string printed_num(oss.str());
     std::string::size_type decimal_location(printed_num.find('.'));
-    printed_num.resize((width>decimal_location)?width:(decimal_location+1u));
+    printed_num.resize((static_cast<std::string::size_type>(width)>decimal_location)?width:(decimal_location+1u));
+    if(printed_num.size()>0 && printed_num.at(printed_num.size()-1)=='.'){
+      printed_num.resize(printed_num.size()-1);
+      printed_num=" "+printed_num;
+    }
     return printed_num;
   }
 

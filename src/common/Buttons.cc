@@ -55,6 +55,7 @@ namespace emu {
 
     void HardReset::respond(xgi::Input * in, ostringstream & out) { cout<<"==>HardReset"<<endl; 
       if(ccb_->GetCCBmode() != CCB::VMEFPGA) ccb_->setCCBMode(CCB::VMEFPGA); // we want the CCB in this mode for out test stand
+      vme_wrapper_->VMEWrite(0x0, 0x0, 13, "Allow hard resets.");
       ccb_->HardReset_crate(); // send a simple hard reset without any sleeps
       usleep(150000); // need at least 150 ms after hard reset 
     }
@@ -3615,6 +3616,7 @@ namespace emu {
       unsigned short int reset_command(0x0), odmb_mode(0x1);
 
       vme_wrapper_->VMEWrite(addr_otmb_cnt_rst,reset_command,odmb_slot,"Reset OTMB PRBS count");
+      vme_wrapper_->VMEWrite(addr_otmb_mode,odmb_mode,otmb_slot,"Set OTMB in ODMB mode");
       vme_wrapper_->VMEWrite(addr_otmb_mode,odmb_mode,otmb_slot,"Set OTMB in ODMB mode");
       
       unsigned int n_prbs_sequences = atoi(textBoxContent.c_str());
