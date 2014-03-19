@@ -4,8 +4,8 @@
 
 #include <bitset>
 #include <limits>
-
-
+#include <sstream>
+#include <string>
 /*****************************************************************************
  * Utility functions
  *****************************************************************************/
@@ -13,13 +13,23 @@
 using namespace std;
 
 namespace emu{ namespace odmbdev{
-
+  std::string fix_width(const double number, const std::streamsize width){
+    std::ostringstream oss("");
+    std::ios_base::fmtflags opts(std::ios::showpoint & ~std::ios::showpos | std::ios::right | std::ios::dec | std::ios::fixed);
+    oss.fill('0');
+    oss.flags(opts);
+    oss.precision(width);
+    oss << number;
+    std::string printed_num(oss.str());
+    std::string::size_type decimal_location(printed_num.find('.'));
+    printed_num.resize((width>decimal_location)?width:(decimal_location+1u));
+    return printed_num;
+  }
 
   unsigned int binaryStringToUInt(const std::string& s)
   {
     return  static_cast<unsigned int>( bitset<numeric_limits<unsigned long>::digits>(s).to_ulong() );
   }
-
 
   std::string withoutSpecialChars(const std::string& s)
   {

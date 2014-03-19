@@ -2291,8 +2291,10 @@ namespace emu {
     void SYSMON::respond(xgi::Input * in, ostringstream & out) { // TD
       out << "********** System Monitoring **********" << endl;
       int slot = Manager::getSlotNumber();
+      unsigned int odmb_id = vme_wrapper_->VMERead(0x4100, slot, "Checking ODMB version");
+      unsigned int odmb_version = odmb_id >> 12u;
       unsigned int read_addr_vec[9] = {0x7150, 0x7120, 0x7000, 0x7160, 0x7140, 0x7100, 0x7130, 0x7110, 0x7170};
-      string description[9] = {"C\t -  Thermistor 1 temperature", "C\t -  Thermistor 2 temperature", "C\t -  FPGA temperature", 
+      string description[9] = {"C\t -  Thermistor 1 temperature", odmb_version<=3?"C\t -  Thermistor 2 temperature":"mA\t -  IPPIB: Current for PPIB", "C\t -  FPGA temperature", 
 			       "V\t -  P1V0: Voltage for FPGA", "V\t -  P2V5: Voltage for FPGA", "V\t -  LV_P3V3: Voltage for FPGA", 
 			       "V\t -  P3V3_PP: Voltage for PPIB", "V\t -  P5V: General voltage", "V\t -  P5V_LVMB: Voltage for LVMB"};
       //int precision[9] = {1, 1, 1, 2, 2, 2, 2, 2, 2};
@@ -2307,13 +2309,24 @@ namespace emu {
         // new version ...
         unsigned short int VMEresult = vme_wrapper_->VMERead(read_addr_vec[i],slot,description[i]);
         VMEresult = vme_wrapper_->VMERead(read_addr_vec[i],slot,description[i]);
-        if (i == 0 && VMEresult > 0xfff){ cout << "ERROR: bad readout from system monitoring." << endl; out << "ERROR: bad readout from system monitoring." << endl; break; }
-        if (i == 2){ result2[i] = 503.975*VMEresult/4096.0 - 273.15; }
-        else if (i > 1) result2[i] = VMEresult*2.0*voltmax[i]/4096.0;
-        else if (i == 0 || i == 1) result2[i] = 7.865766417e-10*pow(VMEresult,3) - 7.327237418e-6*pow(VMEresult,2) + 3.38189673e-2*VMEresult - 9.678340882;
+        if (i == 0 && VMEresult > 0xfff){
+	  cout << "ERROR: bad readout from system monitoring." << endl; out << "ERROR: bad readout from system monitoring." << endl;
+	  break;
+	}
+        if (i == 2){
+	  result2[i] = 503.975*VMEresult/4096.0 - 273.15;
+	}else if (i > 1){
+	  result2[i] = VMEresult*2.0*voltmax[i]/4096.0;
+	}else if (i == 0 || i == 1){
+	  if(i==1 && odmb_version>=4){
+	    result2[i] = VMEresult *5000.0/4096.0-10.0;
+	  }else{
+	    result2[i] = ((7.865766417e-10 * VMEresult - 7.327237418e-6) * VMEresult + 3.38189673e-2) * VMEresult - 9.678340882;
+	  }
+	}
 
         //out << "R  " << FixLength(read_addr & 0xffff) << "        " << description[i] << ": " << setprecision(precision[i]) << result2[i] << endl;      
-        out << setprecision(3) << result2[i] << " " << description[i]<< endl;      
+        out << fix_width(result2[i], 4) << " " << description[i]<< endl;
       }
       out<<endl;
     }

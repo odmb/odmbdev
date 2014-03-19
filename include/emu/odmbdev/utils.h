@@ -11,6 +11,8 @@
 namespace emu{ 
   namespace odmbdev{
 
+    std::string fix_width(const double number, const std::streamsize width);
+
     unsigned int binaryStringToUInt(const std::string& s);
     std::string withoutSpecialChars(const std::string& s);
     
