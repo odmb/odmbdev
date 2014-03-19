@@ -27,15 +27,17 @@ if [[ -s $tmp_file_build || -s $tmp_file_install ]] ; then
     echo "ERRORS AND WARNINGS:"
     if [[ -s $tmp_file_build ]] ; then
 	cat $tmp_file_build >&2
-	rm -rf $tmp_file_build
     fi
     if [[ -s $tmp_file_install ]] ; then
 	cat $tmp_file_install >&2
-	rm -rf $tmp_file_install
     fi
+    rm -rf $tmp_file_build
+    rm -rf $tmp_file_install
     exit 1
 else
     echo
     echo "Compiled successfully without errors or warnings!"
+    rm -rf $tmp_file_build
+    rm -rf $tmp_file_install
     exit 0
 fi
