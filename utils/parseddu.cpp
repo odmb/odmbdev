@@ -9,10 +9,10 @@ Command line options:
 -e: Sets event number to parse and process. Setting this to zero or leaving it unset produces a     diagnostic report for all events in the file.
 -w: Sets the number of words to print per line. Default is 20.
 
-If only one comman line option is given (without a "-"), it is used as a file name and a diagnostic report is produced.
+If only one command line option is given (without a "-"), it is used as a file name and a diagnostic report is produced.
 
 Author: Adam Dishaw (ald77@physics.ucsb.edu)
-Last modified: 2013-09-19
+Last modified: 2014-03-21
 */
 
 #include <cstdlib>
@@ -33,7 +33,7 @@ using Packet::svust;
 using Packet::InRange;
 
 int main(int argc, char *argv[]){
-  unsigned int words_per_line(20);
+  unsigned int words_per_line(40);
   std::string filename("");
   unsigned int entry_to_find(0);
 
@@ -130,8 +130,7 @@ bool FindStartOfPacket(std::ifstream &ifs, svu &header){
        && InRange(header.at(3), 0x9000, 0x9FFF)
        && InRange(header.at(4), 0xA000, 0xAFFF)
        && InRange(header.at(5), 0xA000, 0xAFFF)
-       && InRange(header.at(6), 0xA000, 0xAFFF)
-       && InRange(header.at(7), 0xA000, 0xAFFF)) return true;
+       && InRange(header.at(6), 0xA000, 0xAFFF)) return true;
   }
   return false;
 }
@@ -158,8 +157,7 @@ void GetRestOfPCPacket(std::ifstream &ifs, svu &packet){
 	  && InRange(packet.at(packet.size()-5), 0xF000, 0xFFFF)
 	  && InRange(packet.at(packet.size()-4), 0xE000, 0xEFFF)
 	  && InRange(packet.at(packet.size()-3), 0xE000, 0xEFFF)
-	  && InRange(packet.at(packet.size()-2), 0xE000, 0xEFFF)
-	  && InRange(packet.at(packet.size()-1), 0xE000, 0xEFFF))
+	  && InRange(packet.at(packet.size()-2), 0xE000, 0xEFFF))
 	&& ifs.read(reinterpret_cast<char*>(&word), sizeof(word))){
     packet.push_back(word);
   }

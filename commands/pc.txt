@@ -1,55 +1,14 @@
-== ================ Global reset and MUXes ================ ==
-W  3000 100 	    FW reset
+W  3004 0 	    FW reset
 SLEEP 10000
-W  3000  280	Set dummy data and triggers
-W  3100  1	Set internal loopback
-W  3110  7	Set TXDIFFCTRL
-W  401C  13F	Set KILL
-W  3010  10     Send test L1A(_MATCH) to all DCFEBs
-
-== ============ Reading DDU RX FIFO ================ ==
-R  540C  0      Read number of words in DDU RX FIFO
-R  5400  0      Read DDU RX FIFO [start of header]
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-
-R  5400  0      Read DDU RX FIFO [DCFEB 6 data]
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-
-R  5400  0      Read DDU RX FIFO [DCFEB 7 data]
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-
-R  5400  0      Read DDU RX FIFO [start of trailer]
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-R  5400  0      Read DDU RX FIFO
-
-R  540C  0      Read number of words in DDU RX FIFO
-R  34AC  0      Read number of DDU packets sent
+W  3300  0	Set dummy data
+W  3304  1	Set internal triggers
+W  401C  1FB	Set KILL
+W  4028  400_d      Number dummy words
+W  3200  4      Send test L1A(_MATCH) to all DCFEBs
 
 == ============ Reading DDU TX FIFO ================ ==
 R  530C  0      Read number of words in DDU TX FIFO
+
 R  5300  0      Read DDU TX FIFO [start of header]
 R  5300  0      Read DDU TX FIFO
 R  5300  0      Read DDU TX FIFO
@@ -59,23 +18,9 @@ R  5300  0      Read DDU TX FIFO
 R  5300  0      Read DDU TX FIFO
 R  5300  0      Read DDU TX FIFO
 
-R  5300  0      Read DDU TX FIFO [DCFEB 6 data]
-R  5300  0      Read DDU TX FIFO
-R  5300  0      Read DDU TX FIFO
-R  5300  0      Read DDU TX FIFO
-R  5300  0      Read DDU TX FIFO
-R  5300  0      Read DDU TX FIFO
-R  5300  0      Read DDU TX FIFO
-R  5300  0      Read DDU TX FIFO
-
-R  5300  0      Read DDU TX FIFO [DCFEB 7 data]
-R  5300  0      Read DDU TX FIFO
-R  5300  0      Read DDU TX FIFO
-R  5300  0      Read DDU TX FIFO
-R  5300  0      Read DDU TX FIFO
-R  5300  0      Read DDU TX FIFO
-R  5300  0      Read DDU TX FIFO
-R  5300  0      Read DDU TX FIFO
+BL 800
+R  5300  0      Read DDU TX FIFO 
+EL
 
 R  5300  0      Read DDU TX FIFO [start of trailer]
 R  5300  0      Read DDU TX FIFO
@@ -89,61 +34,16 @@ R  5300  0      Read DDU TX FIFO
 R  530C  0      Read number of words in DDU TX FIFO
 
 
-== ============ Reading PC RX FIFO ================ ==
-R  520C  0      Read number of words in PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-
-R  5200  0      Read PC RX FIFO [start of header]
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-
-R  5200  0      Read PC RX FIFO [DCFEB 6 data]
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-
-R  5200  0      Read PC RX FIFO [DCFEB 7 data]
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-
-R  5200  0      Read PC RX FIFO [start of trailer]
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-R  5200  0      Read PC RX FIFO
-
-R  520C  0      Read number of words in PC RX FIFO
-R  34BC  0      Read number of PC packets sent
-
-
-
 == ============ Reading PC TX FIFO ================ ==
 R  510C  0      Read number of words in PC TX FIFO
+
+R  5100  0      Read PC TX FIFO
+R  5100  0      Read PC TX FIFO
+R  5100  0      Read PC TX FIFO
+R  5100  0      Read PC TX FIFO
+R  5100  0      Read PC TX FIFO
+R  5100  0      Read PC TX FIFO
+R  5100  0      Read PC TX FIFO
 R  5100  0      Read PC TX FIFO
 R  5100  0      Read PC TX FIFO
 R  5100  0      Read PC TX FIFO
@@ -158,23 +58,9 @@ R  5100  0      Read PC TX FIFO
 R  5100  0      Read PC TX FIFO
 R  5100  0      Read PC TX FIFO
 
-R  5100  0      Read PC TX FIFO [DCFEB 6 data]
-R  5100  0      Read PC TX FIFO
-R  5100  0      Read PC TX FIFO
-R  5100  0      Read PC TX FIFO
-R  5100  0      Read PC TX FIFO
-R  5100  0      Read PC TX FIFO
-R  5100  0      Read PC TX FIFO
-R  5100  0      Read PC TX FIFO
-
-R  5100  0      Read PC TX FIFO [DCFEB 7 data]
-R  5100  0      Read PC TX FIFO
-R  5100  0      Read PC TX FIFO
-R  5100  0      Read PC TX FIFO
-R  5100  0      Read PC TX FIFO
-R  5100  0      Read PC TX FIFO
-R  5100  0      Read PC TX FIFO
-R  5100  0      Read PC TX FIFO
+BL 800
+R  5100  0      Read PC TX FIFO 
+EL
 
 R  5100  0      Read PC TX FIFO [start of trailer]
 R  5100  0      Read PC TX FIFO
@@ -185,6 +71,7 @@ R  5100  0      Read PC TX FIFO
 R  5100  0      Read PC TX FIFO
 R  5100  0      Read PC TX FIFO
 
+R  5100  0      Read PC TX FIFO
 R  5100  0      Read PC TX FIFO
 R  5100  0      Read PC TX FIFO
 R  5100  0      Read PC TX FIFO

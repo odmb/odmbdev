@@ -6,6 +6,27 @@
 #include "stdint.h"
 
 namespace Packet{
+  namespace io{
+    const std::string bold("\033[1m");
+    const std::string fg_black("\033[30m");
+    const std::string fg_red("\033[31m");
+    const std::string fg_green("\033[32m");
+    const std::string fg_yellow("\033[33m");
+    const std::string fg_blue("\033[34m");
+    const std::string fg_magenta("\033[35m");
+    const std::string fg_cyan("\033[36m");
+    const std::string fg_white("\033[37m");
+    const std::string bg_black("\033[40m");
+    const std::string bg_red("\033[41m");
+    const std::string bg_green("\033[42m");
+    const std::string bg_yellow("\033[43m");
+    const std::string bg_blue("\033[44m");
+    const std::string bg_magenta("\033[45m");
+    const std::string bg_cyan("\033[46m");
+    const std::string bg_white("\033[47m");
+    const std::string normal("\033[0m");
+  }
+
   typedef std::vector<uint16_t> svu;
   typedef svu::size_type svust;
   typedef std::vector<svu>::size_type svsvust;
@@ -17,7 +38,6 @@ namespace Packet{
   }
   bool AllInRange(const svu &, const svust &, const svust &,
 		  const uint16_t &, const uint16_t &);
-  void PrintBuffer(const svu &, const unsigned int &);
   void PutInRange(svust &, svust &, const svust &, const svust &);
 
   class DataPacket{
@@ -61,6 +81,7 @@ namespace Packet{
 
   private:
     svu full_packet_;
+    mutable std::vector<bool> colorize_;
     mutable svust ddu_header_start_, ddu_header_end_;
     mutable svust odmb_header_start_, odmb_header_end_;
     mutable svust alct_start_, alct_end_;
@@ -86,6 +107,8 @@ namespace Packet{
     void FindRunInRange(svust &, svust &, const svust &, const svust &,
 			const uint16_t &, const uint16_t &) const;
     svust SplitALCTandOTMB(const svust &, const svust &) const;
+
+    void PrintBuffer(const svu &, const unsigned int &, const svust &) const;
 
     unsigned short GetContainingRanges(const svust &) const;
 

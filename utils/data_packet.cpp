@@ -17,12 +17,17 @@ namespace Packet{
     return all_in_range;
   }
 
-  void PrintBuffer(const svu &buffer, const unsigned int &words_per_line){
+  void DataPacket::PrintBuffer(const svu &buffer, const unsigned int &words_per_line, const svust &start) const{
+    std::cout << std::hex << std::setfill('0');
     for(unsigned int index(0); index<buffer.size(); ++index){
       if(index && !(index%words_per_line)) std::cout << std::endl;
-      std::cout << std::hex << std::setw(4) << std::setfill('0') << buffer.at(index) << " ";
+      if(colorize_.at(index+start)){
+	std::cout << io::bold << io::bg_red << io::fg_white << std::setw(4) << buffer.at(index) << io::normal << " ";
+      }else{
+	std::cout << io::normal << std::setw(4) << buffer.at(index) << " ";
+      }
     }
-    std::cout << std::endl;
+    std::cout << io::normal << std::endl;
   }
 
   void PutInRange(svust &a, svust &b, const svust &min, const svust &max){
@@ -38,6 +43,7 @@ namespace Packet{
 
   DataPacket::DataPacket():
     full_packet_(0),
+    colorize_(),
     ddu_header_start_(-1), ddu_header_end_(-1),
     odmb_header_start_(-1), odmb_header_end_(-1),
     alct_start_(-1), alct_end_(-1),
@@ -50,6 +56,7 @@ namespace Packet{
 
   DataPacket::DataPacket(const svu &packet_in):
     full_packet_(packet_in),
+    colorize_(0),
     ddu_header_start_(-1), ddu_header_end_(-1),
     odmb_header_start_(-1), odmb_header_end_(-1),
     alct_start_(-1), alct_end_(-1),
@@ -62,6 +69,7 @@ namespace Packet{
 
   void DataPacket::SetData(const svu &packet_in){
     parsed_=false;
+    colorize_=std::vector<bool>(packet_in.size(), false);
     full_packet_=packet_in;
   }
 
@@ -155,6 +163,9 @@ namespace Packet{
 	 && full_packet_.at(index+7)==0x8000){
 	ddu_header_start_=index;
 	ddu_header_end_=index+12;
+	colorize_.at(index+5)=true;
+	colorize_.at(index+6)=true;
+	colorize_.at(index+7)=true;
 	return;
       }
     }
@@ -170,10 +181,12 @@ namespace Packet{
 	 && InRange(full_packet_.at(index+3), 0x9000, 0x9FFF)
 	 && InRange(full_packet_.at(index+4), 0xA000, 0xAFFF)
 	 && InRange(full_packet_.at(index+5), 0xA000, 0xAFFF)
-	 && InRange(full_packet_.at(index+6), 0xA000, 0xAFFF)
-	 && InRange(full_packet_.at(index+7), 0xA000, 0xAFFF)){
+	 && InRange(full_packet_.at(index+6), 0xA000, 0xAFFF)){
 	odmb_header_start_=index;
 	odmb_header_end_=index+8;
+	for(svust disp(0); disp<8; ++disp){
+	  colorize_.at(index+disp)=true;
+	}
 	return;
       }
     }
@@ -197,6 +210,12 @@ namespace Packet{
 	if(d_run_start_1!=bad_index){
 	  alct_start_=d_run_start_1;
 	  alct_end_=d_run_end_1;
+
+	}
+	FindRunInRange(d_run_start_2, d_run_end_2, d_run_end_1, d_run_threshhold, 0xB000, 0xBFFF);
+	if(d_run_end_2!=bad_index){ // Dummy data (ALCT is n D-words straight, OTMB n B-words straight)
+	  otmb_start_= d_run_start_2;
+	  otmb_end_=d_run_end_2;
 	}
       }else{
 	alct_start_=d_run_start_1;
@@ -207,6 +226,22 @@ namespace Packet{
       otmb_start_=SplitALCTandOTMB(d_run_start_2, d_run_end_2);
       alct_end_=otmb_start_;
       otmb_end_=d_run_end_3;
+    }
+    
+    for(svust index(d_run_start_1);
+	index<full_packet_.size() && index<d_run_end_1;
+	++index){
+      colorize_.at(index)=true;
+    }
+    for(svust index(d_run_start_2);
+	index<full_packet_.size() && index<d_run_end_2;
+	++index){
+      colorize_.at(index)=true;
+    }
+    for(svust index(d_run_start_3);
+	index<full_packet_.size() && index<d_run_end_3;
+	++index){
+      colorize_.at(index)=true;
     }
   }
 
@@ -220,6 +255,7 @@ namespace Packet{
 	  || InRange(full_packet_.at(index-100), 0xD000, 0xDFFF)
 	  || InRange(full_packet_.at(index-100), 0XA000, 0xAFFF))){
 	temp_dcfeb_end.push_back(index+1);
+	colorize_.at(index)=true;
       }
     }
     for(svsvustst dcfeb(7); dcfeb<temp_dcfeb_end.size(); dcfeb+=8){
@@ -238,10 +274,12 @@ namespace Packet{
 	 && InRange(full_packet_.at(index+3), 0xF000, 0xFFFF)
 	 && InRange(full_packet_.at(index+4), 0xE000, 0xEFFF)
 	 && InRange(full_packet_.at(index+5), 0xE000, 0xEFFF)
-	 && InRange(full_packet_.at(index+6), 0xE000, 0xEFFF)
-	 && InRange(full_packet_.at(index+7), 0xE000, 0xEFFF)){
+	 && InRange(full_packet_.at(index+6), 0xE000, 0xEFFF)){
 	odmb_trailer_start_=index;
 	odmb_trailer_end_=index+8;
+	for(svust disp(0); disp<8; ++disp){
+	  colorize_.at(index+disp)=true;
+	}
       }
     }
   }
@@ -256,6 +294,9 @@ namespace Packet{
 	 && full_packet_.at(index+3)==0x8000){
 	ddu_trailer_start_=index;
 	ddu_trailer_end_=index+12;
+	for(svust disp(0); disp<4; ++disp){
+	  colorize_.at(index+disp)=true;
+	}
       }
     }
   }
@@ -329,6 +370,15 @@ namespace Packet{
     PutInRange(ddu_trailer_start_temp, ddu_trailer_end_temp,
 	       odmb_trailer_end_temp, full_packet_.size());
 
+    std::cout << ddu_header_start_temp << " " << ddu_header_end_temp << " " << odmb_header_start_temp << " "
+	      << odmb_header_end_temp << " " << alct_start_temp << " " << alct_end_temp << " "
+	      << otmb_start_temp << " " << otmb_end_temp << " ";
+    for(unsigned i(0); i<num_dcfebs; ++ i){
+      std::cout << dcfeb_start_temp.at(i) << " " << dcfeb_end_temp.at(i) << " ";
+    }
+    std::cout << odmb_trailer_start_temp << " " << odmb_trailer_end_temp << " "
+	      << ddu_trailer_start_temp << " " << ddu_trailer_end_temp << std::endl;
+
     PrintComponent(uncat, 0, ddu_header_start_temp, words_per_line);
     PrintComponent("DDU Header", ddu_header_start_temp, ddu_header_end_temp, words_per_line);
     PrintComponent(uncat, ddu_header_end_temp, odmb_header_start_temp, words_per_line);
@@ -354,9 +404,11 @@ namespace Packet{
 		     dcfeb_end_temp.at(num_dcfebs-1), words_per_line);
       PrintComponent(uncat, dcfeb_end_temp.at(num_dcfebs-1),
 		     odmb_trailer_start_temp, words_per_line);
+    }else{
+      PrintComponent(uncat, otmb_end_temp, odmb_trailer_start_temp, words_per_line);
     }
     PrintComponent("ODMB Trailer", odmb_trailer_start_temp,
-		     odmb_trailer_end_temp, words_per_line);
+		   odmb_trailer_end_temp, words_per_line);
     PrintComponent(uncat, odmb_trailer_end_temp, ddu_trailer_start_temp, words_per_line);
     PrintComponent("DDU Trailer", ddu_trailer_start_temp,
 		   ddu_trailer_end_temp, words_per_line);
@@ -368,7 +420,7 @@ namespace Packet{
 				  const svust &end, const unsigned int &words_per_line) const{
     if(start<end){
       std::cout << str << std::endl;
-      PrintBuffer(GetComponent(start, end), words_per_line);
+      PrintBuffer(GetComponent(start, end), words_per_line, start);
       std::cout << std::endl;
     }
   }
