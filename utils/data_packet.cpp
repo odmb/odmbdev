@@ -8,20 +8,22 @@
 #include <stdint.h>
 
 namespace Packet{
-  bool AllInRange(const svu &vec, const svust &start, const svust &end,
+  bool AllInRange(const svu &vec, const unsigned &start, const unsigned &end,
 		  const uint16_t &low, const uint16_t &high){
     bool all_in_range(true);
-    for(svust index(start); index<vec.size() && index<end && all_in_range; ++index){
+    for(unsigned index(start); index<vec.size() && index<end && all_in_range; ++index){
       if(!InRange(vec.at(index), low, high)) all_in_range=false;
     }
     return all_in_range;
   }
 
-  void DataPacket::PrintBuffer(const svu &buffer, const unsigned int &words_per_line, const svust &start) const{
+  void DataPacket::PrintBuffer(const svu &buffer, const unsigned int &words_per_line, const unsigned &start) const{
     std::cout << std::hex << std::setfill('0');
     for(unsigned int index(0); index<buffer.size(); ++index){
       if(index && !(index%words_per_line)) std::cout << std::endl;
       if(colorize_.at(index+start)){
+	std::cout << io::bold << io::bg_blue << io::fg_yellow << std::setw(4) << buffer.at(index) << io::normal << " ";
+      }else if(buffer.at(index)==0x7fff){
 	std::cout << io::bold << io::bg_red << io::fg_white << std::setw(4) << buffer.at(index) << io::normal << " ";
       }else{
 	std::cout << io::normal << std::setw(4) << buffer.at(index) << " ";
@@ -30,7 +32,7 @@ namespace Packet{
     std::cout << io::normal << std::endl;
   }
 
-  void PutInRange(svust &a, svust &b, const svust &min, const svust &max){
+  void PutInRange(unsigned &a, unsigned &b, const unsigned &min, const unsigned &max){
     if(max<=min){
       a=max;
       b=max;
@@ -100,7 +102,7 @@ namespace Packet{
   std::vector<svu> DataPacket::GetDCFEBData() const{
     if(!parsed_) Parse();
     std::vector<svu> data(0);
-    for(svsvustst dcfeb(0); dcfeb<dcfeb_start_.size(); ++dcfeb){
+    for(unsigned dcfeb(0); dcfeb<dcfeb_start_.size(); ++dcfeb){
       data.push_back(GetComponent(dcfeb_start_.at(dcfeb), dcfeb_end_.at(dcfeb)));
     }
     return data;
@@ -116,7 +118,7 @@ namespace Packet{
     return GetComponent(ddu_trailer_start_, ddu_trailer_end_);
   }
 
-  svu DataPacket::GetComponent(const svust &start, const svust &end) const{
+  svu DataPacket::GetComponent(const unsigned &start, const unsigned &end) const{
     if(start<=end && end<=full_packet_.size()){
       return svu(full_packet_.begin()+start, full_packet_.begin()+end);
     }else{
@@ -157,7 +159,7 @@ namespace Packet{
   void DataPacket::FindDDUHeader() const{
     ddu_header_start_=-1;
     ddu_header_end_=-1;
-    for(svust index(0); index+11<full_packet_.size(); ++index){
+    for(unsigned index(0); index+11<full_packet_.size(); ++index){
       if(full_packet_.at(index+5)==0x8000
 	 && full_packet_.at(index+6)==0x0001
 	 && full_packet_.at(index+7)==0x8000){
@@ -174,7 +176,7 @@ namespace Packet{
   void DataPacket::FindODMBHeader() const{
     odmb_header_start_=-1;
     odmb_header_end_=-1;
-    for(svust index(0); index+7<full_packet_.size(); ++index){
+    for(unsigned index(0); index+7<full_packet_.size(); ++index){
       if(InRange(full_packet_.at(index), 0x9000, 0x9FFF)
 	 && InRange(full_packet_.at(index+1), 0x9000, 0x9FFF)
 	 && InRange(full_packet_.at(index+2), 0x9000, 0x9FFF)
@@ -184,8 +186,11 @@ namespace Packet{
 	 && InRange(full_packet_.at(index+6), 0xA000, 0xAFFF)){
 	odmb_header_start_=index;
 	odmb_header_end_=index+8;
-	for(svust disp(0); disp<8; ++disp){
+	for(unsigned disp(0); disp<7; ++disp){
 	  colorize_.at(index+disp)=true;
+	}
+	if(InRange(full_packet_.at(index+7), 0xA000, 0xAFFF)){
+	  colorize_.at(index+7)=true;
 	}
 	return;
       }
@@ -194,14 +199,14 @@ namespace Packet{
 
   void DataPacket::FindALCTandOTMBData() const{
     const unsigned int d_run_threshhold(3);
-    const svust bad_index(-1);
+    const unsigned bad_index(-1);
     alct_start_=bad_index;
     alct_end_=bad_index;
     otmb_start_=bad_index;
     otmb_end_=bad_index;
-    svust d_run_start_1(bad_index), d_run_end_1(bad_index);
-    svust d_run_start_2(bad_index), d_run_end_2(bad_index);
-    svust d_run_start_3(bad_index), d_run_end_3(bad_index);
+    unsigned d_run_start_1(bad_index), d_run_end_1(bad_index);
+    unsigned d_run_start_2(bad_index), d_run_end_2(bad_index);
+    unsigned d_run_start_3(bad_index), d_run_end_3(bad_index);
     FindRunInRange(d_run_start_1, d_run_end_1, 0, d_run_threshhold, 0xD000, 0xDFFF);
     FindRunInRange(d_run_start_2, d_run_end_2, d_run_end_1, d_run_threshhold, 0xD000, 0xDFFF);
     FindRunInRange(d_run_start_3, d_run_end_3, d_run_end_2, d_run_threshhold, 0xD000, 0xDFFF);
@@ -228,17 +233,17 @@ namespace Packet{
       otmb_end_=d_run_end_3;
     }
     
-    for(svust index(d_run_start_1);
+    for(unsigned index(d_run_start_1);
 	index<full_packet_.size() && index<d_run_end_1;
 	++index){
       colorize_.at(index)=true;
     }
-    for(svust index(d_run_start_2);
+    for(unsigned index(d_run_start_2);
 	index<full_packet_.size() && index<d_run_end_2;
 	++index){
       colorize_.at(index)=true;
     }
-    for(svust index(d_run_start_3);
+    for(unsigned index(d_run_start_3);
 	index<full_packet_.size() && index<d_run_end_3;
 	++index){
       colorize_.at(index)=true;
@@ -248,8 +253,8 @@ namespace Packet{
   void DataPacket::FindDCFEBData() const{
     dcfeb_start_.clear();
     dcfeb_end_.clear();
-    std::vector<svust> temp_dcfeb_end(0);
-    for(svust index(99); index<full_packet_.size(); ++index){
+    std::vector<unsigned> temp_dcfeb_end(0);
+    for(unsigned index(99); index<full_packet_.size(); ++index){
       if(full_packet_.at(index)==0x7FFF &&
 	 (index==99 || full_packet_.at(index-100)==0x7FFF
 	  || InRange(full_packet_.at(index-100), 0xD000, 0xDFFF)
@@ -258,7 +263,7 @@ namespace Packet{
 	colorize_.at(index)=true;
       }
     }
-    for(svsvustst dcfeb(7); dcfeb<temp_dcfeb_end.size(); dcfeb+=8){
+    for(unsigned dcfeb(7); dcfeb<temp_dcfeb_end.size(); dcfeb+=8){
       dcfeb_start_.push_back(temp_dcfeb_end.at(dcfeb-7)-100);
       dcfeb_end_.push_back(temp_dcfeb_end.at(dcfeb));
     }
@@ -267,7 +272,7 @@ namespace Packet{
   void DataPacket::FindODMBTrailer() const{
     odmb_trailer_start_=-1;
     odmb_trailer_end_=-1;
-    for(svust index(0); index+7<full_packet_.size(); ++index){
+    for(unsigned index(0); index+7<full_packet_.size(); ++index){
       if(InRange(full_packet_.at(index), 0xF000, 0xFFFF)
 	 && InRange(full_packet_.at(index+1), 0xF000, 0xFFFF)
 	 && InRange(full_packet_.at(index+2), 0xF000, 0xFFFF)
@@ -277,8 +282,11 @@ namespace Packet{
 	 && InRange(full_packet_.at(index+6), 0xE000, 0xEFFF)){
 	odmb_trailer_start_=index;
 	odmb_trailer_end_=index+8;
-	for(svust disp(0); disp<8; ++disp){
+	for(unsigned disp(0); disp<7; ++disp){
 	  colorize_.at(index+disp)=true;
+	}
+	if(InRange(full_packet_.at(index+7), 0xE000, 0xEFFF)){
+	  colorize_.at(index+7)=true;
 	}
       }
     }
@@ -287,26 +295,26 @@ namespace Packet{
   void DataPacket::FindDDUTrailer() const{
     ddu_trailer_start_=-1;
     ddu_trailer_end_=-1;
-    for(svust index(0); index+11<full_packet_.size(); ++index){
+    for(unsigned index(0); index+11<full_packet_.size(); ++index){
       if(full_packet_.at(index)==0x8000
 	 && full_packet_.at(index+1)==0x8000
 	 && full_packet_.at(index+2)==0xFFFF
 	 && full_packet_.at(index+3)==0x8000){
 	ddu_trailer_start_=index;
 	ddu_trailer_end_=index+12;
-	for(svust disp(0); disp<4; ++disp){
+	for(unsigned disp(0); disp<4; ++disp){
 	  colorize_.at(index+disp)=true;
 	}
       }
     }
   }
 
-  void DataPacket::FindRunInRange(svust &start, svust &end, const svust &left,
-				  const svust &min_length, const uint16_t &low,
+  void DataPacket::FindRunInRange(unsigned &start, unsigned &end, const unsigned &left,
+				  const unsigned &min_length, const uint16_t &low,
 				  const uint16_t &high) const{
     start=-1;
     end=-1;
-    svust index(left);
+    unsigned index(left);
     for(; index+min_length-1<full_packet_.size(); ++index){
       if(AllInRange(full_packet_, index, index+min_length, low, high)){
 	start=index;
@@ -322,15 +330,15 @@ namespace Packet{
     }
   }
 
-  svust DataPacket::SplitALCTandOTMB(const svust &start, const svust &end) const{
+  unsigned DataPacket::SplitALCTandOTMB(const unsigned &start, const unsigned &end) const{
     if(start<end){
-      for(svust index(start); index<end && index<full_packet_.size(); ++index){
+      for(unsigned index(start); index<end && index<full_packet_.size(); ++index){
 	if(full_packet_.at(index)==0xDB0C) return index;
       }
-      for(svust index(start); index<end && index<full_packet_.size(); ++index){
+      for(unsigned index(start); index<end && index<full_packet_.size(); ++index){
 	if(full_packet_.at(index)==0xDB0A) return index;
       }
-      return static_cast<svust>(ceil(start+0.5*(end-start)));
+      return static_cast<unsigned>(ceil(start+0.5*(end-start)));
     }else{
       return end;
     }
@@ -338,15 +346,15 @@ namespace Packet{
 
   void DataPacket::Print(const unsigned int &words_per_line) const{
     if(!parsed_) Parse();
-    svust ddu_header_start_temp(ddu_header_start_), ddu_header_end_temp(ddu_header_end_);
-    svust odmb_header_start_temp(odmb_header_start_), odmb_header_end_temp(odmb_header_end_);
-    svust alct_start_temp(alct_start_), alct_end_temp(alct_end_);
-    svust otmb_start_temp(otmb_start_), otmb_end_temp(otmb_end_);
-    std::vector<svust> dcfeb_start_temp(dcfeb_start_), dcfeb_end_temp(dcfeb_end_);
-    svust odmb_trailer_start_temp(odmb_trailer_start_), odmb_trailer_end_temp(odmb_trailer_end_);
-    svust ddu_trailer_start_temp(ddu_trailer_start_), ddu_trailer_end_temp(ddu_trailer_end_);
+    unsigned ddu_header_start_temp(ddu_header_start_), ddu_header_end_temp(ddu_header_end_);
+    unsigned odmb_header_start_temp(odmb_header_start_), odmb_header_end_temp(odmb_header_end_);
+    unsigned alct_start_temp(alct_start_), alct_end_temp(alct_end_);
+    unsigned otmb_start_temp(otmb_start_), otmb_end_temp(otmb_end_);
+    std::vector<unsigned> dcfeb_start_temp(dcfeb_start_), dcfeb_end_temp(dcfeb_end_);
+    unsigned odmb_trailer_start_temp(odmb_trailer_start_), odmb_trailer_end_temp(odmb_trailer_end_);
+    unsigned ddu_trailer_start_temp(ddu_trailer_start_), ddu_trailer_end_temp(ddu_trailer_end_);
 
-    const svsvustst num_dcfebs(dcfeb_start_.size());
+    const unsigned num_dcfebs(dcfeb_start_.size());
     const std::string uncat("Uncategorized");
 
     PutInRange(ddu_header_start_temp, ddu_header_end_temp, 0, full_packet_.size());
@@ -357,7 +365,7 @@ namespace Packet{
     if(num_dcfebs>0){
       PutInRange(dcfeb_start_temp.at(0), dcfeb_end_temp.at(0),
 		 otmb_end_temp, full_packet_.size());
-      for(svsvustst dcfeb(1); dcfeb<num_dcfebs; ++dcfeb){
+      for(unsigned dcfeb(1); dcfeb<num_dcfebs; ++dcfeb){
 	PutInRange(dcfeb_start_temp.at(dcfeb), dcfeb_end_temp.at(dcfeb),
 		   dcfeb_start_temp.at(dcfeb-1), full_packet_.size());
       }
@@ -370,14 +378,14 @@ namespace Packet{
     PutInRange(ddu_trailer_start_temp, ddu_trailer_end_temp,
 	       odmb_trailer_end_temp, full_packet_.size());
 
-    std::cout << ddu_header_start_temp << " " << ddu_header_end_temp << " " << odmb_header_start_temp << " "
+    /*std::cout << ddu_header_start_temp << " " << ddu_header_end_temp << " " << odmb_header_start_temp << " "
 	      << odmb_header_end_temp << " " << alct_start_temp << " " << alct_end_temp << " "
 	      << otmb_start_temp << " " << otmb_end_temp << " ";
     for(unsigned i(0); i<num_dcfebs; ++ i){
       std::cout << dcfeb_start_temp.at(i) << " " << dcfeb_end_temp.at(i) << " ";
     }
     std::cout << odmb_trailer_start_temp << " " << odmb_trailer_end_temp << " "
-	      << ddu_trailer_start_temp << " " << ddu_trailer_end_temp << std::endl;
+    << ddu_trailer_start_temp << " " << ddu_trailer_end_temp << std::endl;*/
 
     PrintComponent(uncat, 0, ddu_header_start_temp, words_per_line);
     PrintComponent("DDU Header", ddu_header_start_temp, ddu_header_end_temp, words_per_line);
@@ -390,7 +398,7 @@ namespace Packet{
     PrintComponent("OTMB", otmb_start_temp, otmb_end_temp, words_per_line);
     if(num_dcfebs>0){
       PrintComponent(uncat, otmb_end_temp, dcfeb_start_temp.at(0), words_per_line);
-      for(svsvustst dcfeb(0); dcfeb+1<num_dcfebs; ++dcfeb){
+      for(unsigned dcfeb(0); dcfeb+1<num_dcfebs; ++dcfeb){
 	std::ostringstream oss("");
 	oss << "DCFEB " << dcfeb+1;
 	PrintComponent(oss.str(), dcfeb_start_temp.at(dcfeb),
@@ -416,8 +424,8 @@ namespace Packet{
   }
 
 
-  void DataPacket::PrintComponent(const std::string &str, const svust &start,
-				  const svust &end, const unsigned int &words_per_line) const{
+  void DataPacket::PrintComponent(const std::string &str, const unsigned &start,
+				  const unsigned &end, const unsigned int &words_per_line) const{
     if(start<end){
       std::cout << str << std::endl;
       PrintBuffer(GetComponent(start, end), words_per_line, start);
@@ -427,13 +435,13 @@ namespace Packet{
 
   bool DataPacket::HasUnusedWords() const{
     if(!parsed_) Parse();
-    for(svust word(0); word<full_packet_.size(); ++word){
+    for(unsigned word(0); word<full_packet_.size(); ++word){
       if(InRange(word, ddu_header_start_, ddu_header_end_)) continue;
       if(InRange(word, odmb_header_start_, odmb_header_end_)) continue;
       if(InRange(word, alct_start_, alct_end_)) continue;
       if(InRange(word, otmb_start_, otmb_end_)) continue;
       bool found_in_dcfeb(false);
-      for(svsvustst dcfeb(0); dcfeb<dcfeb_start_.size() && !found_in_dcfeb; ++dcfeb){
+      for(unsigned dcfeb(0); dcfeb<dcfeb_start_.size() && !found_in_dcfeb; ++dcfeb){
 	if(InRange(word, dcfeb_start_.at(dcfeb), dcfeb_end_.at(dcfeb))){
 	  found_in_dcfeb=true;
 	  continue;
@@ -447,7 +455,7 @@ namespace Packet{
     return false;
   }
 
-  unsigned short DataPacket::GetContainingRanges(const svust &word) const{
+  unsigned short DataPacket::GetContainingRanges(const unsigned &word) const{
     unsigned short num_ranges(0);
     if(InRange(word, ddu_header_start_, ddu_header_end_-1)) ++num_ranges;
     if(InRange(word, odmb_header_start_, odmb_header_end_-1)) ++num_ranges;
@@ -455,7 +463,7 @@ namespace Packet{
     if(InRange(word, otmb_start_, otmb_end_-1)) ++num_ranges;
     if(InRange(word, odmb_trailer_start_, odmb_trailer_end_-1)) ++num_ranges;
     if(InRange(word, ddu_trailer_start_, ddu_trailer_end_-1)) ++num_ranges;
-    for(svsvustst dcfeb(0); dcfeb<dcfeb_start_.size(); ++dcfeb){
+    for(unsigned dcfeb(0); dcfeb<dcfeb_start_.size(); ++dcfeb){
       if(InRange(word, dcfeb_start_.at(dcfeb), dcfeb_end_.at(dcfeb)-1)) ++num_ranges;
     }
     return num_ranges;

@@ -28,17 +28,14 @@ namespace Packet{
   }
 
   typedef std::vector<uint16_t> svu;
-  typedef svu::size_type svust;
-  typedef std::vector<svu>::size_type svsvust;
-  typedef std::vector<svust>::size_type svsvustst;
 
   template<typename t1, typename t2, typename t3> bool InRange(const t1 &x, const t2 &low,
 							       const t3 &high){
     return x>=low && x<=high;
   }
-  bool AllInRange(const svu &, const svust &, const svust &,
+  bool AllInRange(const svu &, const unsigned &, const unsigned &,
 		  const uint16_t &, const uint16_t &);
-  void PutInRange(svust &, svust &, const svust &, const svust &);
+  void PutInRange(unsigned &, unsigned &, const unsigned &, const unsigned &);
 
   class DataPacket{
   public:
@@ -82,13 +79,13 @@ namespace Packet{
   private:
     svu full_packet_;
     mutable std::vector<bool> colorize_;
-    mutable svust ddu_header_start_, ddu_header_end_;
-    mutable svust odmb_header_start_, odmb_header_end_;
-    mutable svust alct_start_, alct_end_;
-    mutable svust otmb_start_, otmb_end_;
-    mutable std::vector<svust> dcfeb_start_, dcfeb_end_;
-    mutable svust odmb_trailer_start_, odmb_trailer_end_;
-    mutable svust ddu_trailer_start_, ddu_trailer_end_;
+    mutable unsigned ddu_header_start_, ddu_header_end_;
+    mutable unsigned odmb_header_start_, odmb_header_end_;
+    mutable unsigned alct_start_, alct_end_;
+    mutable unsigned otmb_start_, otmb_end_;
+    mutable std::vector<unsigned> dcfeb_start_, dcfeb_end_;
+    mutable unsigned odmb_trailer_start_, odmb_trailer_end_;
+    mutable unsigned ddu_trailer_start_, ddu_trailer_end_;
     mutable bool parsed_;
 
     void Parse() const;
@@ -100,17 +97,17 @@ namespace Packet{
     void FindODMBTrailer() const;
     void FindDDUTrailer() const;
 
-    svu GetComponent(const svust &, const svust &) const;
-    void PrintComponent(const std::string &, const svust &,
-			const svust &, const unsigned int &) const;
+    svu GetComponent(const unsigned &, const unsigned &) const;
+    void PrintComponent(const std::string &, const unsigned &,
+			const unsigned &, const unsigned int &) const;
 
-    void FindRunInRange(svust &, svust &, const svust &, const svust &,
+    void FindRunInRange(unsigned &, unsigned &, const unsigned &, const unsigned &,
 			const uint16_t &, const uint16_t &) const;
-    svust SplitALCTandOTMB(const svust &, const svust &) const;
+    unsigned SplitALCTandOTMB(const unsigned &, const unsigned &) const;
 
-    void PrintBuffer(const svu &, const unsigned int &, const svust &) const;
+    void PrintBuffer(const svu &, const unsigned int &, const unsigned &) const;
 
-    unsigned short GetContainingRanges(const svust &) const;
+    unsigned short GetContainingRanges(const unsigned &) const;
 
     bool HasUnusedWords() const;
     bool HasNoDDUHeader() const;

@@ -31,7 +31,6 @@ void GetRestOfPCPacket(std::ifstream &, Packet::svu &);
 int calcDDUcrc(unsigned short uipacket[], unsigned int entries);
 using Packet::DataPacket;
 using Packet::svu;
-using Packet::svust;
 using Packet::InRange;
 
 
@@ -126,7 +125,7 @@ bool FindStartOfPacket(std::ifstream &ifs, svu &header){
 
 void UpdateLastFewWords(const uint16_t &x, svu &buf){
   if(buf.size()>0){
-    for(svust index(0); index+1<buf.size(); ++index){
+    for(unsigned index(0); index+1<buf.size(); ++index){
       buf.at(index)=buf.at(index+1);
     }
     buf.at(buf.size()-1)=x;

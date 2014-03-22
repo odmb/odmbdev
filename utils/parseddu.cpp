@@ -29,19 +29,19 @@ Last modified: 2014-03-21
 
 using Packet::DataPacket;
 using Packet::svu;
-using Packet::svust;
 using Packet::InRange;
 
 int main(int argc, char *argv[]){
   unsigned int words_per_line(40);
   std::string filename("");
-  unsigned int entry_to_find(0);
+  unsigned int start_entry(0), end_entry(0);
+  bool count_mode(false);
 
   if(argc==2 && argv[1][0]!='-'){
     filename=argv[1];
   }else{
     char opt(' ');
-    while(( opt=getopt(argc, argv, "w:f:e:") )!=-1){
+    while(( opt=getopt(argc, argv, "w:f:s:e:c") )!=-1){
       switch(opt){
       case 'w':
 	words_per_line=atoi(optarg);
@@ -49,29 +49,43 @@ int main(int argc, char *argv[]){
       case 'f':
 	filename=optarg;
 	break;
+      case 's':
+	start_entry=atoi(optarg);
+	break;
       case 'e':
-	entry_to_find=atoi(optarg);
+	end_entry=atoi(optarg);
+      case 'c':
+	count_mode=true;
 	break;
       default:
 	std::cerr << "Error: Invalid option flag '" << opt << "'." << std::endl;
       }
     }
   }
-
   std::ifstream ifs(filename.c_str(),std::ifstream::in | std::ifstream::binary);
   if(ifs.is_open()){
     DataPacket data_packet;
     svu packet(0);
-    unsigned int entry(0);
-    if(entry_to_find!=0){
-      for(entry=0; entry<entry_to_find && FindStartOfPacket(ifs, packet); ++entry){
+    unsigned int entry(1);
+    if(!count_mode && start_entry>0 || end_entry>0){
+      if(end_entry==0) end_entry=start_entry;
+      if(start_entry==0) start_entry=end_entry;
+      if(start_entry>end_entry){
+	const unsigned temp(start_entry);
+	start_entry=end_entry;
+	end_entry=temp;
       }
-      if(entry==entry_to_find){
+      for(entry=1; entry<start_entry && FindStartOfPacket(ifs, packet); ++entry){
+      }
+      for(; entry<=end_entry && FindStartOfPacket(ifs, packet); ++entry){
+	std::cout << "***Event " << std::dec << entry << " (0x" << std::hex << entry << std::dec << ')';
+	for(unsigned i(0); i<128; ++i) std::cout << '*';
+	std::cout << std::endl;
 	GetRestOfPacket(ifs, packet);
 	data_packet.SetData(packet);
 	data_packet.Print(words_per_line);
       }
-    }else{
+    }else if(!count_mode){
       std::map<DataPacket::ErrorType, unsigned int> type_counter;
       for(entry=0; FindStartOfPacket(ifs, packet); ++entry){
 	GetRestOfPacket(ifs, packet);
@@ -96,14 +110,23 @@ int main(int argc, char *argv[]){
 		  << " packets of type " << std::setw(4) << std::setfill('0') << std::hex
 		  << it->first << std::endl;
       }
+    }else{
+      unsigned event_count(0);
+      for(entry=0; FindStartOfPacket(ifs, packet); ++entry){
+	GetRestOfPacket(ifs, packet);
+	++event_count;
+      }
+      std::cout << std::dec << event_count << " total events." << std::endl;
     }
     ifs.close();
+  }else{
+    std::cerr << "Error: could not open " << filename << std::endl;
   }
 }
 
 void UpdateLastFewWords(const uint16_t &x, svu &buf){
   if(buf.size()>0){
-    for(svust index(0); index+1<buf.size(); ++index){
+    for(unsigned index(0); index+1<buf.size(); ++index){
       buf.at(index)=buf.at(index+1);
     }
     buf.at(buf.size()-1)=x;
