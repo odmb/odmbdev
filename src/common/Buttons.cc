@@ -1,4 +1,4 @@
-#include "emu/odmbdev/Buttons.h"
+#include "emu/odmbdev/Buttons.h" 
 #include "emu/odmbdev/utils.h"
 #include "emu/odmbdev/Manager.h"
 
@@ -2689,7 +2689,7 @@ namespace emu {
 	  long_arg="10000";
 	  good_button=true;
 	}else if(typeid(button_ref)==typeid(DCFEBPulses)){
-	  short_arg="1000";
+	  short_arg="100";
 	  long_arg="10000";
 	  good_button=true;
 	}else if(typeid(button_ref)==typeid(CCBReg)){
@@ -3342,7 +3342,7 @@ namespace emu {
       // == ================ Configuration ================ ==
       // Reset!
       vme_wrapper_->VMEWrite(addr_odmb_rst,0x1,slot,"Reset");
-      usleep(10000000);
+      usleep(1000000);
       // Set real data and internal triggers
       vme_wrapper_->VMEWrite(0x3300, 0x0, slot, "Set real data.");
       vme_wrapper_->VMEWrite(0x3304, 0x1, slot, "Set internal trigger.");
@@ -5416,8 +5416,8 @@ namespace emu {
       //       crate_->vmeController()->Debug(10);
 
       //unsigned short int fw_ver_returned;
-      const unsigned short int fw_ver1 = 0xf205;
-      const unsigned short int fw_ver2 = 0x0205;
+      const unsigned short int fw_ver1 = 0x0301;
+      const unsigned short int fw_ver2 = 0x0302;
       //unsigned int raddr = 0x004200;
 
       //int counter_pass = 0;
@@ -5425,8 +5425,8 @@ namespace emu {
       //bool corruptLoad = false;
       int singleLoadFailCount = 0;
 
-      std::string filename1("/data/Dropbox/odmb/Temp/mcs_v4ProdTest/VF2-05_odmb_ucsb.mcs");
-      std::string filename2("/data/Dropbox/odmb/Temp/mcs_v4ProdTest/V02-05_odmb_ucsb.mcs");
+      std::string filename1("/data/Dropbox/odmb/VME/V03-01//V03-01_odmb_ucsb.mcs");
+      std::string filename2("/data/Dropbox/odmb/VME/V03-02//V03-02_odmb_ucsb.mcs");
 
       if (filename1.empty() || filename2.empty()) {
 	printf("No MCS file specified.  Exiting.\n");
