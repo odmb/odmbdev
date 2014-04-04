@@ -17,6 +17,7 @@ export XDAQ_PLATFORM=x86_64_slc5
 tmp_file_build="makefile_errors_and_warnings_temporary_collision_free_long_unambiguous_name_build.log"
 tmp_file_install="makefile_errors_and_warnings_temporary_collision_free_long_unambiguous_name_install.log"
 
+rm -f core.*
 make -j -k 2> >(tee $tmp_file_build >&2)
 make -j -k install 2> >(tee $tmp_file_install >&2)
 
@@ -33,10 +34,12 @@ if [[ -s $tmp_file_build || -s $tmp_file_install ]] ; then
     fi
     rm -rf $tmp_file_build
     rm -rf $tmp_file_install
+    echo
     exit 1
 else
     echo
     echo "Compiled successfully without errors or warnings!"
+    echo
     rm -rf $tmp_file_build
     rm -rf $tmp_file_install
     exit 0

@@ -590,13 +590,6 @@ namespace emu { namespace odmbdev {
 	}
     };
 
-    class dcfebDebugDump : public Action {
-    public:
-      dcfebDebugDump(emu::pc::Crate * crate);
-      void display(xgi::Output * out);
-      void respond(xgi::Input * in, std::ostringstream & out);
-    };
-
 
     class enableVmeDebugPrintout : public Action, ActionValue<int> {
     public:
@@ -614,82 +607,7 @@ namespace emu { namespace odmbdev {
     };
 
 
-    class CommonUtilities_setupDDU : public Action {
-    public:
-      CommonUtilities_setupDDU(emu::pc::Crate * crate);
-      void display(xgi::Output * out);
-      void respond(xgi::Input * in, std::ostringstream & out);
-    };
 
-
-    class CommonUtilities_restoreCFEBIdle : public Action {
-    public:
-      CommonUtilities_restoreCFEBIdle(emu::pc::Crate * crate);
-      void display(xgi::Output * out);
-      void respond(xgi::Input * in, std::ostringstream & out);
-    };
-
-
-
-
-    class ODMB_OTMB_LCT_Testing : public Action, public ActionValue<int> {
-    public:
-      ODMB_OTMB_LCT_Testing(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
-      void display(xgi::Output * out);
-      void respond(xgi::Input * in, std::ostringstream & out);
-    };
-  
-
-
-    class Investigate_MissingEvents : public Action, public ActionValue<int> {
-    public:
-      Investigate_MissingEvents(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
-      void display(xgi::Output * out);
-      void respond(xgi::Input * in, std::ostringstream & out);
-    };
-
-
-    class ODMB_L1A_Testing : public Action, public ActionValue<int> {
-    public:
-      ODMB_L1A_Testing(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
-      void display(xgi::Output * out);
-      void respond(xgi::Input * in, std::ostringstream & out);
-    };
-
-
-
-    class RoutineTest_ShortCosmicsRun : public Action, public ActionValue<int> {
-    public:
-      RoutineTest_ShortCosmicsRun(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
-      void display(xgi::Output * out);
-      void respond(xgi::Input * in, std::ostringstream & out);
-    };
-
-    class RoutineTest_PrecisionPulses : public Action {
-    public:
-      RoutineTest_PrecisionPulses(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
-      void display(xgi::Output * out);
-      void respond(xgi::Input * in, std::ostringstream & out);
-    };
-    class RoutineTest_PatternPulses_TMBCounters : public Action {
-    public:
-      RoutineTest_PatternPulses_TMBCounters(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
-      void display(xgi::Output * out);
-      void respond(xgi::Input * in, std::ostringstream & out);
-    };
-    class STEP9bFibers : public Action {
-    public:
-      STEP9bFibers(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
-      void display(xgi::Output * out);
-      void respond(xgi::Input * in, std::ostringstream & out);
-    };     
-
-    class ButtonTests : public Action {
-    public:
-      ButtonTests(emu::pc::Crate * crate, emu::odmbdev::Manager* manager);
-      void display(xgi::Output * out);
-      void respond(xgi::Input * in, std::ostringstream & out);
-    };     
 
     /**************************************************************************
      * Load MCS via BPI
