@@ -2297,9 +2297,9 @@ namespace emu {
       unsigned int read_addr_vec[9] = {0x7150, 0x7120, 0x7000, 0x7160, 0x7140, 0x7100, 0x7130, 0x7110, 0x7170};
       string description[9] = {"C\t -  Thermistor 1 temperature", odmb_version<=3?"C\t -  Thermistor 2 temperature":"mA\t -  IPPIB: Current for PPIB", "C\t -  FPGA temperature", 
 			       "V\t -  P1V0: Voltage for FPGA", "V\t -  P2V5: Voltage for FPGA", "V\t -  LV_P3V3: Voltage for FPGA", 
-			       "V\t -  P3V3_PP: Voltage for PPIB", "V\t -  P5V: General voltage", "V\t -  P5V_LVMB: Voltage for LVMB"};
+			       "V\t -  P3V6_PP: Voltage for PPIB", "V\t -  P5V: General voltage", "V\t -  P5V_LVMB: Voltage for LVMB"};
       //int precision[9] = {1, 1, 1, 2, 2, 2, 2, 2, 2};
-      float voltmax[9] = {1.0, 1.0, 1.0, 1.0, 2.5, 3.3, 3.3, 5.0, 5.0};
+      float voltmax[9] = {1.0, 1.0, 1.0, 1.0, 2.5, 3.3, 3.6, 5.0, 5.0};
       float result2[9];
       for (int i = 0; i < 9; i++){
         // old version...
@@ -3942,13 +3942,14 @@ namespace emu {
       if(testReps<=0) return;
       const unsigned int manager_slot(Manager::getSlotNumber());
 
-      string filename1("/data/Dropbox/odmb/VME/V03-01//V03-01_odmb_ucsb.mcs");
-      string filename2("/data/Dropbox/odmb/VME/V03-02//V03-02_odmb_ucsb.mcs");
-      const unsigned short int fw_ver1 = 0x0301, fw1_lead = fw_ver1/0x100;
-      const unsigned short int fw_ver2 = 0x0302, fw2_lead = fw_ver2/0x100;
+      string filename1("/data/Dropbox/odmb/VME/V03-03/write_unique_id/VF3-03_write_unique_id.mcs");
+      string filename2("/data/Dropbox/odmb/VME/V03-03//V03-03_odmb_ucsb.mcs");
+      const unsigned short int fw_ver1 = 0xF303, fw1_lead = fw_ver1/0x100;
+      const unsigned short int fw_ver2 = 0x0303, fw2_lead = fw_ver2/0x100;
       int singleLoadFailCount = 0, errorType = 0;
       ostringstream fw1_stream, fw2_stream;
-      fw1_stream <<"V0"<<hex<<fw1_lead<<"-0"<<hex<<fw_ver1-fw1_lead*0x100;
+      if(fw_ver1>0xFFF) fw1_stream <<"V"<<hex<<fw1_lead<<"-0"<<hex<<fw_ver1-fw1_lead*0x100;
+      else fw1_stream <<"V0"<<hex<<fw1_lead<<"-0"<<hex<<fw_ver1-fw1_lead*0x100;
       fw2_stream <<"V0"<<hex<<fw2_lead<<"-0"<<hex<<fw_ver2-fw2_lead*0x100;
 
       if (filename1.empty() || filename2.empty()) {
