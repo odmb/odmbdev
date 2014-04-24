@@ -29,7 +29,8 @@ namespace Packet{
 
   typedef std::vector<uint16_t> svu;
 
-  template<typename t1, typename t2, typename t3> bool InRange(const t1 &x, const t2 &low,
+  template<typename t1, typename t2, typename t3> bool InRange(const t1 &x,
+							       const t2 &low,
 							       const t3 &high){
     return x>=low && x<=high;
   }
@@ -53,7 +54,7 @@ namespace Packet{
     svu GetODMBTrailer() const;
     svu GetDDUTrailer() const;
 
-    void Print(const unsigned int &) const;
+    void Print(const unsigned int &, const bool=false) const;
 
     enum ErrorType{
       kGood		= 0x0000,
@@ -99,13 +100,15 @@ namespace Packet{
 
     svu GetComponent(const unsigned &, const unsigned &) const;
     void PrintComponent(const std::string &, const unsigned &,
-			const unsigned &, const unsigned int &) const;
+			const unsigned &, const unsigned int &,
+			const bool=false) const;
 
     void FindRunInRange(unsigned &, unsigned &, const unsigned &, const unsigned &,
 			const uint16_t &, const uint16_t &) const;
     unsigned SplitALCTandOTMB(const unsigned &, const unsigned &) const;
 
-    void PrintBuffer(const svu &, const unsigned int &, const unsigned &) const;
+    void PrintBuffer(const svu &, const unsigned int &, const unsigned &,
+		     const bool=false) const;
 
     unsigned short GetContainingRanges(const unsigned &) const;
 

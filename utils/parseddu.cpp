@@ -6,7 +6,9 @@ errors ((no ODMB trailer, no ODMB header, no OTMB data, no ALCT data), (missing 
 
 Command line options:
 -f: Sets input file.
--e: Sets event number to parse and process. Setting this to zero or leaving it unset produces a     diagnostic report for all events in the file.
+-s: Sets the first event to parse and process.
+-e: Sets the last event to parse and process.
+-t: Text-only mode. Turns off colorization of parsed key words in output.
 -w: Sets the number of words to print per line. Default is 20.
 
 If only one command line option is given (without a "-"), it is used as a file name and a diagnostic report is produced.
@@ -36,12 +38,14 @@ int main(int argc, char *argv[]){
   std::string filename("");
   unsigned int start_entry(0), end_entry(0);
   bool count_mode(false);
+  bool text_mode(false);
+  std::cout << 1 << std::endl;
 
   if(argc==2 && argv[1][0]!='-'){
     filename=argv[1];
   }else{
     char opt(' ');
-    while(( opt=getopt(argc, argv, "w:f:s:e:c") )!=-1){
+    while(( opt=getopt(argc, argv, "w:f:s:e:ct") )!=-1){
       switch(opt){
       case 'w':
 	words_per_line=atoi(optarg);
@@ -54,20 +58,26 @@ int main(int argc, char *argv[]){
 	break;
       case 'e':
 	end_entry=atoi(optarg);
+	break;
       case 'c':
 	count_mode=true;
+	break;
+      case 't':
+	text_mode=true;
 	break;
       default:
 	std::cerr << "Error: Invalid option flag '" << opt << "'." << std::endl;
       }
     }
   }
+  std::cout << 2 << std::endl;
   std::ifstream ifs(filename.c_str(),std::ifstream::in | std::ifstream::binary);
   if(ifs.is_open()){
+    std::cout << 3 << std::endl;
     DataPacket data_packet;
     svu packet(0);
     unsigned int entry(1);
-    if(!count_mode && start_entry>0 || end_entry>0){
+    if(!count_mode && (start_entry>0 || end_entry>0)){
       if(end_entry==0) end_entry=start_entry;
       if(start_entry==0) start_entry=end_entry;
       if(start_entry>end_entry){
@@ -83,9 +93,10 @@ int main(int argc, char *argv[]){
 	std::cout << std::endl;
 	GetRestOfPacket(ifs, packet);
 	data_packet.SetData(packet);
-	data_packet.Print(words_per_line);
+	data_packet.Print(words_per_line, text_mode);
       }
     }else if(!count_mode){
+      std::cout << 4 << std::endl;
       std::map<DataPacket::ErrorType, unsigned int> type_counter;
       for(entry=0; FindStartOfPacket(ifs, packet); ++entry){
 	GetRestOfPacket(ifs, packet);
@@ -111,8 +122,10 @@ int main(int argc, char *argv[]){
 		  << it->first << std::endl;
       }
     }else{
+      std::cout << 5 << std::endl;
       unsigned event_count(0);
       for(entry=0; FindStartOfPacket(ifs, packet); ++entry){
+	std::cout << entry << std::endl;
 	GetRestOfPacket(ifs, packet);
 	++event_count;
       }
@@ -120,6 +133,7 @@ int main(int argc, char *argv[]){
     }
     ifs.close();
   }else{
+    std::cout << 6 << std::endl;
     std::cerr << "Error: could not open " << filename << std::endl;
   }
 }
