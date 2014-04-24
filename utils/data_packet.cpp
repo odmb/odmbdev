@@ -44,7 +44,11 @@ namespace Packet{
 	}
       }
     }
-    std::cout << io::normal << std::endl;
+    if(text_mode){
+      std::cout << std::endl;
+    }else{
+      std::cout << io::normal << std::endl;
+    }
   }
 
   void PutInRange(unsigned &a, unsigned &b, const unsigned &min, const unsigned &max){
