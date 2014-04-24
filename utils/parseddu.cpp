@@ -14,7 +14,7 @@ Command line options:
 If only one command line option is given (without a "-"), it is used as a file name and a diagnostic report is produced.
 
 Author: Adam Dishaw (ald77@physics.ucsb.edu)
-Last modified: 2014-03-21
+Last modified: 2014-04-24
 */
 
 #include <cstdlib>
@@ -39,7 +39,6 @@ int main(int argc, char *argv[]){
   unsigned int start_entry(0), end_entry(0);
   bool count_mode(false);
   bool text_mode(false);
-  std::cout << 1 << std::endl;
 
   if(argc==2 && argv[1][0]!='-'){
     filename=argv[1];
@@ -70,10 +69,8 @@ int main(int argc, char *argv[]){
       }
     }
   }
-  std::cout << 2 << std::endl;
   std::ifstream ifs(filename.c_str(),std::ifstream::in | std::ifstream::binary);
   if(ifs.is_open()){
-    std::cout << 3 << std::endl;
     DataPacket data_packet;
     svu packet(0);
     unsigned int entry(1);
@@ -96,7 +93,6 @@ int main(int argc, char *argv[]){
 	data_packet.Print(words_per_line, text_mode);
       }
     }else if(!count_mode){
-      std::cout << 4 << std::endl;
       std::map<DataPacket::ErrorType, unsigned int> type_counter;
       for(entry=0; FindStartOfPacket(ifs, packet); ++entry){
 	GetRestOfPacket(ifs, packet);
@@ -122,7 +118,6 @@ int main(int argc, char *argv[]){
 		  << it->first << std::endl;
       }
     }else{
-      std::cout << 5 << std::endl;
       unsigned event_count(0);
       for(entry=0; FindStartOfPacket(ifs, packet); ++entry){
 	std::cout << entry << std::endl;
@@ -133,7 +128,6 @@ int main(int argc, char *argv[]){
     }
     ifs.close();
   }else{
-    std::cout << 6 << std::endl;
     std::cerr << "Error: could not open " << filename << std::endl;
   }
 }
