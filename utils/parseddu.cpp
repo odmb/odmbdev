@@ -120,7 +120,6 @@ int main(int argc, char *argv[]){
     }else{
       unsigned event_count(0);
       for(entry=0; FindStartOfPacket(ifs, packet); ++entry){
-	std::cout << entry << std::endl;
 	GetRestOfPacket(ifs, packet);
 	++event_count;
       }
