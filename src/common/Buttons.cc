@@ -2648,9 +2648,58 @@ namespace emu {
 
      
       unsigned short int VMEresult;
-      //unsigned short int data;
+      unsigned short int data;
 
-   
+
+      //1) Test on-off 
+      unsigned short int addr_turn_on = 0x008010;
+      unsigned short int on_off_byte[2] = {0x00, 0xFF};
+      unsigned int addr_sel_dcfeb = (0x001020);
+      unsigned short int DCFEB_number[7] = {0x1, 0x2, 0x4, 0x08, 0x10, 0x20,0x40};
+      unsigned int addr_set_int_reg = (0x00191C);
+      unsigned int addr_read_hdr = (0x001F04);
+      unsigned int addr_read_tlr = (0x001F08);
+      unsigned int addr_read_tdo = (0x001F14);
+      unsigned short int reg_user_code = 0x3C8;
+
+      unsigned int nConn_DCFEBs(0);
+      // Need a new power-on/off test for 904--merging with DCFEB JTAG
+      for (int on_off=0; on_off<1; on_off++) { // once for off, once for on
+      vme_wrapper_->VMEWrite(addr_turn_on,on_off_byte[on_off],slot,"Power-off/on all DCFEBs");
+      usleep(500000);
+      for (int d = 0; d < 7; d++){ // Loop over all DCFEBs
+	// Select DCFEB (one bit per DCFEB)
+	vme_wrapper_->VMEWrite(addr_sel_dcfeb,DCFEB_number[d],slot,"Select DCFEB (one bit per DCFEB)");
+	// Read selected DCFEB
+	//VMEresult = vme_wrapper_->VMERead(addr_read_dcfeb,slot,"Read selected DCFEB");
+	// Set instruction register to *Read UserCode*
+	vme_wrapper_->VMEWrite(addr_set_int_reg,reg_user_code,slot,"Set instruction register to *Read UserCode*");
+	// Shift 16 lower bits
+	vme_wrapper_->VMEWrite(addr_read_hdr,data,slot,"Shift 16 lower bits");
+	// Read first half of UserCode
+	VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read first half of UserCode");
+	// check firmware version
+	string s_result = FixLength(VMEresult, 4, true);
+	string firmwareVersion = s_result.substr(1,1)+"."+s_result.substr(2,2);
+	// Shift 16 upper bits
+	vme_wrapper_->VMEWrite(addr_read_tlr,data,slot,"Shift 16 upper bits");
+	// Read second half of UserCode
+	VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read second half of UserCode");
+	// check to see if DCFEB is connected
+	if (FixLength(VMEresult, 4, true)=="DCFE") nConn_DCFEBs++;
+      } // end loop over DCFEBs
+      if ( (on_off==0 && nConn_DCFEBs>0) || (on_off==1 && nConn_DCFEBs<7) ) {
+	out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
+	out_local << "Failed to power-off/on DCFEBs." << endl;
+	out << out_local.str();
+	UpdateLog(vme_wrapper_, slot, out_local);
+	return;
+      }
+      } // end power-off/on test
+      vme_wrapper_->VMEWrite(addr_turn_on,0xFF,slot,"Power-on all DCFEBs"); // just to be safe
+      usleep(500000);
+
+      //2) Test ADCs
       vector <int> hexes;
       vector <float> the_voltages;
 
@@ -2673,12 +2722,6 @@ namespace emu {
       vector<bool> ADC_10V_not_matched(7,false);
       int pass = 0;
       int fail = 0;
-
-      //1) Test on-off 
-      // Need a new power-on/off test for 904
-
-
-      //2) Test ADC
       for (int j = 0; j < (int)nReps; j++){
         for (int ADC = 0; ADC < 7; ADC++){
           //Write ADC to be read 
@@ -2767,7 +2810,8 @@ namespace emu {
       //out << "Voltage reading failure rate: " << fail << " out of " << nReps*7  << ". " << endl;
       if (fail==0) out_local << "\t\t\t\t\t\tPASSED" << endl;
       else out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
-      out_local << "Voltage reading: " << pass << "/" << nReps*7 << "." << endl; 
+      out_local << "Successfully powered-on/off all DCFEBs. ";
+      out_local << "ADC voltage readings: " << pass << "/" << nReps*7 << "." << endl; 
       out_local << endl;
 
       out << out_local.str();

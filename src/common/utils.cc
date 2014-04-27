@@ -131,7 +131,7 @@ namespace emu{ namespace odmbdev{
     char year[10], month[10], day[10], hour[10], minute[10], second[10];
     strftime(year, 10, "%g", timeinfo ); strftime(month, 10, "%m", timeinfo ); strftime(day, 10, "%d", timeinfo ); 
     strftime(hour, 10, "%H", timeinfo ); strftime(minute, 10, "%M", timeinfo ); strftime(second, 10, "%S", timeinfo );
-    string file_name("/data/odmb/logfiles/odmb_log_");
+    string file_name("/local/data/cscme11/ucsb/logfiles/odmb_log_");
     char time_stamp[100];
     sprintf (time_stamp,"%s%s%s_%s%s%s_p%d.log",year,month,day,hour,minute,second,port_number);
     file_name+=time_stamp;
@@ -159,7 +159,7 @@ namespace emu{ namespace odmbdev{
     sprintf(time_stamp,"%s",ctime(&rawtime));
     
     // locate log file
-    string filename("/data/odmb/logfiles/new/odmb_"+unique_id+".log");
+    string filename("/local/data/cscme11/ucsb/logfiles/button_output/odmb_"+unique_id+".log");
     //std::cout << "Wrote to: " << filename << std::endl;
     ofstream logfile(filename.c_str(), std::ofstream::app);
     logfile << "FW version " << fwv << ", build " << fwb << " -- " << time_stamp;
