@@ -3801,7 +3801,7 @@ namespace emu {
       out_local << hdr;
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
 
-      unsigned int odmb_slot(Manager::getSlotNumber()), otmb_slot(6);
+      unsigned int odmb_slot(Manager::getSlotNumber()), otmb_slot(4);
       unsigned int addr_otmb_cnt_rst(0x9410);
       unsigned int addr_otmb_mode(0x1EE), addr_otmb_prbs_start(0x31EE);
       unsigned int /*addr_otmb_prbs_en(0x9400),*/ addr_read_prbs_matches(0x9408), addr_read_prbs_errors(0x940C);
