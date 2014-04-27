@@ -48,7 +48,7 @@ bool myfunction (pair<float, int> i, pair<float, int> j) { return (i.first < j.f
 namespace emu {
   namespace odmbdev {
     
-    int Manager::slot_number = 7;
+    int Manager::slot_number = 5;
     unsigned int Manager::port_ = 9997; // This doesn't affect the xdaq app;
     // I just needed to initialize this
     // static member variable.
@@ -3384,7 +3384,7 @@ namespace emu {
     
     void DCFEBJTAGcontrol::respond(xgi::Input* in, ostringstream& out,
                                    const string& textBoxContent_in) { // JB-F
-      
+      const unsigned increment(32);
       ostringstream out_local;
       string hdr("********** DCFEB JTAG Control **********");
       JustifyHdr(hdr);
@@ -3413,8 +3413,10 @@ namespace emu {
       unsigned int nConnected(0);
       unsigned short int start(0x0), end(0xFFF);
       int slot = Manager::getSlotNumber();
+      unsigned attempts[7];
 
       for (int d = 0; d < 7; d++){ // Loop over all DCFEBs
+        attempts[d]=0;
         // Select DCFEB (one bit per DCFEB)
         vme_wrapper_->VMEWrite(addr_sel_dcfeb,DCFEB_number[d],slot,"Select DCFEB (one bit per DCFEB)");
         // Read selected DCFEB
@@ -3440,6 +3442,7 @@ namespace emu {
           nConnected++;
         }
         if (repeatNumber==0) continue; // default: just read UserCodes
+        unsigned index(0);
         for(unsigned int repNum=0; repNum<repeatNumber; ++repNum){ // repeat the test repNum times
           // Set instruction register to *Device select*
           vme_wrapper_->VMEWrite(addr_set_int_reg,reg_dev_sel,slot,"Set instruction register to *Device select*");
@@ -3451,7 +3454,7 @@ namespace emu {
           vector<string> tdo;        
           vme_wrapper_->VMEWrite(addr_shift_dr_12,0x0,slot,"Set DR, shift 12 bits");
           usleep(100);
-          for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft+=10) {
+          for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft+=increment) {
             ++v_nJTAGshifts[d];
             // Set DR, shift 12 bits
             vme_wrapper_->VMEWrite(addr_shift_dr_12,reg_val_shft,slot,"Set DR, shift 12 bits");
@@ -3461,21 +3464,25 @@ namespace emu {
             VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read TDO");
             usleep(100);
             tdo.push_back(FixLength(VMEresult, 4, true));
-            if (reg_val_shft == start) continue;
-            if (tdo[reg_val_shft].substr(0,3) == tdi[reg_val_shft-1]) v_nShiftReads[d]++;
+            if (reg_val_shft == start){
+              ++index;
+              continue;
+            }
+            if (tdo.at(index).substr(0,3) == tdi.at(index-1)) ++v_nShiftReads[d];
+            ++attempts[d];
+            ++index;
           } // loop over words to shift
         } // repeat the test repNum times per DCFEB
       } // Loop over all DCFEBs
       if (nConnected==0) {
         out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
         out_local << "Error: could not find DCFEBs. Please check connections." << endl;
-      }
-      else {
+      }else {
         unsigned int nFailedDCFEBs(0);
         // Now loop over DCFEBs again to count failed reads
         for (int d = 0; d < 7; d++){ 
           if (v_UCRead[d]==false) continue;
-          if ((2*repeatNumber*(end-start)-v_nJTAGshifts[d]-v_nShiftReads[d])!=0) nFailedDCFEBs++;
+          if ((2*attempts[d]-v_nJTAGshifts[d]-v_nShiftReads[d])!=0) nFailedDCFEBs++;
         }
         // Now loop one more time to display results
         if (nFailedDCFEBs==0)  out_local << "\t\t\t\t\t\tPASSED" << endl;
@@ -3487,8 +3494,8 @@ namespace emu {
           out_local << " Firmware version " << v_firmwareVersion[d];
           if (repeatNumber==0) out_local << endl;
           else {
-            out_local << " Sent " << 2*repeatNumber*(end-start) << " shift+read commands.";
-            out_local << " Errors: " << 2*repeatNumber*(end-start)-v_nJTAGshifts[d]-v_nShiftReads[d] << "." << endl;
+            out_local << " Sent " << 2*attempts[d] << " shift+read commands.";
+            out_local << " Errors: " << 2*attempts[d]-v_nJTAGshifts[d]-v_nShiftReads[d] << "." << endl;
           }
         }
       }
@@ -3578,7 +3585,7 @@ namespace emu {
           // == ============ Status summary ============ ==
           // Read L1A counter
           VMEresult = vme_wrapper_->VMERead(addr_read_word,slot,"Read first word (L1A counter MSB)"); 
-          unsigned int l1ac_MSB(VMEresult&0x0FFF);
+          //unsigned int l1ac_MSB(VMEresult&0x0FFF);
           VMEresult = vme_wrapper_->VMERead(addr_read_word,slot,"Read second word (L1A counter LSB)");
           unsigned int l1ac_LSB(VMEresult&0x0FFF);
           //dcfeb_L1A_cnt[dcfeb] = (l1ac_MSB<<12)|l1ac_LSB;
