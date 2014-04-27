@@ -428,6 +428,17 @@ namespace emu { namespace odmbdev {
     };
 
     /**************************************************************************
+     * LVMB904
+     *
+     * Building 904 version of test -- voltages and ranges hard-coded
+     **************************************************************************/
+    class LVMB904 : public RepeatTextBoxAction {
+    public:
+      LVMB904(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
+    };
+
+    /**************************************************************************
      * ReadODMBVitals
      *
      * Print unique ID and firmware info

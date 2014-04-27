@@ -2629,6 +2629,151 @@ namespace emu {
       UpdateLog(vme_wrapper_, slot, out_local);
     }
 
+    LVMB904::LVMB904(Crate * crate, emu::odmbdev::Manager* manager) 
+      : RepeatTextBoxAction(crate, manager, "LVMB 904",300) 
+    { 
+      //This constructor intentionally left blank.
+    }
+    
+    void LVMB904::respond(xgi::Input * in, ostringstream & out,
+			   const string& textBoxContent_in) { // TD
+      
+      RepeatTextBoxAction::respond(in, out, textBoxContent_in);
+      ostringstream out_local;
+      string hdr("********** LVMB--Building 904 **********");
+      JustifyHdr(hdr);
+      out_local << hdr;
+      const unsigned int slot(Manager::getSlotNumber());
+      unsigned int nReps(atoi(textBoxContent.c_str()));
+
+     
+      unsigned short int VMEresult;
+      //unsigned short int data;
+
+   
+      vector <int> hexes;
+      vector <float> the_voltages;
+
+      int best_adc_chan[7] = {5, 6, 4, 6, 1, 6, 0};
+      vector <pair<float, float> > cv_tol;
+      cv_tol.push_back(make_pair (2.107,0.05));
+      cv_tol.push_back(make_pair (2.081,0.05));
+      cv_tol.push_back(make_pair (2.,0.05));
+      cv_tol.push_back(make_pair (5.387,0.05));
+      cv_tol.push_back(make_pair (5.4237,0.05));
+      cv_tol.push_back(make_pair (3.2845,0.05));
+      cv_tol.push_back(make_pair (5.5751,0.05));
+
+      //addresses
+      unsigned short int addr_sel_adc = 0x008020;
+      unsigned short int addr_cntl_byte = 0x008000;
+      unsigned short int addr_read_adc = 0x008004;
+      vector <pair<float, int> > voltages[7], v1_vec[7];
+      unsigned short int ADC_number_vec[7] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+      vector<bool> ADC_10V_not_matched(7,false);
+      int pass = 0;
+      int fail = 0;
+
+      //1) Test on-off 
+      // Need a new power-on/off test for 904
+
+
+      //2) Test ADC
+      for (int j = 0; j < (int)nReps; j++){
+        for (int ADC = 0; ADC < 7; ADC++){
+          //Write ADC to be read 
+          vme_wrapper_->VMEWrite(addr_sel_adc, ADC_number_vec[ADC], slot, "Select ADC to be read");
+          usleep(10);
+	  // select best channel for test
+
+          //Send control byte to ADC -- 10V range
+           unsigned short int byte = 0x89 | (best_adc_chan[ADC]<<4);
+	   //Send control byte to ADC -- 10V range
+	   vme_wrapper_->VMEWrite(addr_cntl_byte, byte, slot, "Send control byte to ADC -- 10V range");
+	   usleep(100);
+	   //Read from ADC
+	   VMEresult = vme_wrapper_->VMERead(addr_read_adc, slot, "Read from ADC");
+	   usleep(10);
+          int hex_1 = VMEresult;
+          if (VMEresult == 65535 && ADC == 0){ 
+            VMEresult = 0;
+            //notConnected++;
+            //if (notConnected == 1) out << "Failed test: LVMB not connected" << endl;
+            //if (notConnected == 3) return; 
+            break;
+          }
+          else{
+            float voltage_result_1 = float(VMEresult)*10.0/float(0xfff);
+            //Error checking
+            float voltage = voltage_result_1; //(voltage_result_1 > 4.0 ? voltage_result_1 : 0.5*(voltage_result_1 + voltage_result_2));
+            bool done = false;
+
+	    //Filling 10V range histogram
+	    bool bin_exists = false;
+	    for (unsigned int bin = 0; bin < v1_vec[ADC_number_vec[ADC]].size(); bin++){
+	      if (fabs(v1_vec[ADC_number_vec[ADC]][bin].first - voltage_result_1) < .00001){
+                v1_vec[ADC_number_vec[ADC]][bin].second++;
+                bin_exists = true;
+                break;
+              }
+            }
+	    if(bin_exists == false) v1_vec[ADC_number_vec[ADC]].push_back(make_pair(voltage_result_1, 1));
+
+	    for (unsigned int l = 0; l < voltages[ADC_number_vec[ADC]].size(); l++){
+              if (fabs(voltages[ADC_number_vec[ADC]][l].first - voltage) < .00001){
+                voltages[ADC_number_vec[ADC]][l].second++;
+                done = true;
+                break;
+              } 
+            }
+            
+            if (done == false){
+              voltages[ADC_number_vec[ADC]].push_back(make_pair(voltage, 1));
+            }
+
+	    if (fabs(voltage - cv_tol[ADC].first) > cv_tol[ADC].second) cout << "inst: " << dec << j << " Voltage 1: " << voltage_result_1 << "  from hex   " << hex << hex_1 << " expected: " << cv_tol[ADC].first << hex << int(cv_tol[ADC].first*4095/10) << endl;
+	    hexes.push_back(hex_1);
+	    the_voltages.push_back(voltage_result_1);
+
+          }
+        }//ADC-loop
+      }//j-loop
+      cout << "Printing hex numbers" << endl;
+      sort(hexes.begin(), hexes.end()); 
+      sort(the_voltages.begin(), the_voltages.end()); 
+      int old = 0;
+      for (unsigned int i1 = 0; i1 < hexes.size(); i1++){
+        if (hexes[i1] != old) cout << hex << hexes[i1] << " voltages " << the_voltages[i1] <<  endl;
+        old = hexes[i1]; 
+      }
+
+      for (int i = 0; i < 7; i++){
+        std::sort( voltages[ADC_number_vec[i]].begin(), voltages[ADC_number_vec[i]].end(), myfunction );
+        std::sort( v1_vec[ADC_number_vec[i]].begin(), v1_vec[ADC_number_vec[i]].end(), myfunction );
+
+        cout <<endl<< "Printing everything for ADC " << ADC_number_vec[i] << ": Expected voltage " << cv_tol[i].first << endl;
+	cout << "Histogram for 10V range"<<endl;
+        for (unsigned int l = 0; l < v1_vec[ADC_number_vec[i]].size(); l++){
+          printf("%6.4f   %5d \n", v1_vec[ADC_number_vec[i]][l].first, v1_vec[ADC_number_vec[i]][l].second);
+          if ( fabs(v1_vec[ADC_number_vec[i]][l].first - cv_tol[i].first) > cv_tol[i].second ) {
+	    fail += v1_vec[ADC_number_vec[i]][l].second;
+	    ADC_10V_not_matched[i] = true;
+	  }
+          else pass += v1_vec[ADC_number_vec[i]][l].second;
+        }
+       
+
+      }
+      //out << "Voltage reading failure rate: " << fail << " out of " << nReps*7  << ". " << endl;
+      if (fail==0) out_local << "\t\t\t\t\t\tPASSED" << endl;
+      else out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
+      out_local << "Voltage reading: " << pass << "/" << nReps*7 << "." << endl; 
+      out_local << endl;
+
+      out << out_local.str();
+      UpdateLog(vme_wrapper_, slot, out_local);
+    }
+
     ReadODMBVitals::ReadODMBVitals(Crate* crate) :
       ButtonAction(crate, "ODMB Vitals"){
     }

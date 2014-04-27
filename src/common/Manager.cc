@@ -151,6 +151,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<ChangeSlotNumber>(crate, this);
       addActionByTypename<MasterTest>(crate, this);
       addActionByTypename<LVMBtest>(crate, this);
+      addActionByTypename<LVMB904>(crate, this);
       addActionByTypename<DCFEBJTAGcontrol>(crate, this);
       addActionByTypename<DCFEBFiber>(crate, this);
       addActionByTypename<DCFEBPulses>(crate, this);

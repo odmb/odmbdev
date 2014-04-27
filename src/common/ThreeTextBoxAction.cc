@@ -10,7 +10,7 @@ namespace emu{
       buttonLabel(buttonLabel_in),
       textBoxContent("4.5  3.0"),
       textBoxContent2("0.05"),
-      textBoxContent3("100"){
+      textBoxContent3("300"){
     }
 
     void ThreeTextBoxAction::display(xgi::Output * out){
