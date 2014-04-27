@@ -10,7 +10,7 @@ elif [[ $current_path == *local/data/odmb_ucsb* ]]; then
 else
     export BUILD_HOME=`dirname ${current_path}`/TriDAS
 fi
-export BUILD_HOME=/local/data/cscme11/ucsb/jbf/TriDAS
+
 export XDAQ_ROOT=/opt/xdaq
 export XDAQ_OS=linux
 export XDAQ_PLATFORM=x86_64_slc5

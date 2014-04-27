@@ -2823,7 +2823,7 @@ namespace emu {
 	std::string short_arg(""), long_arg("");
 	bool good_button(false);
 	Action& button_ref(*(button->get()));
-	if(typeid(button_ref)==typeid(LVMBtest)){
+	if(typeid(button_ref)==typeid(LVMB904)){
 	  short_arg="100";
 	  long_arg="5000";
 	  good_button=true;
@@ -2851,14 +2851,14 @@ namespace emu {
 	  short_arg="6";
 	  long_arg="60000";
 	  good_button=true;
-	}else if(typeid(button_ref)==typeid(OTMBPRBSTest)){
+	  /*}else if(typeid(button_ref)==typeid(OTMBPRBSTest)){
 	  short_arg="6";
 	  long_arg="60001";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(MCSBackAndForthBPI)){
+	  good_button=true;*/
+	  /*}else if(typeid(button_ref)==typeid(MCSBackAndForthBPI)){
 	  short_arg="0";
 	  long_arg="1";
-	  good_button=true;
+	  good_button=true;*/
 	}else if(typeid(button_ref)==typeid(DiscreteLogicTest)){
 	  short_arg="1000";
 	  long_arg="10000";
