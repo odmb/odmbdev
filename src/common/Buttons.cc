@@ -2872,7 +2872,7 @@ namespace emu {
           long_arg="5000";
           good_button=true;
         }else if(typeid(button_ref)==typeid(DCFEBJTAGcontrol)){
-          short_arg="0";
+          short_arg="1";
           long_arg="10";
           good_button=true;
         }else if(typeid(button_ref)==typeid(DCFEBFiber)){
@@ -3451,8 +3451,8 @@ namespace emu {
           vector<string> tdo;        
           vme_wrapper_->VMEWrite(addr_shift_dr_12,0x0,slot,"Set DR, shift 12 bits");
           usleep(100);
-          for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
-            v_nJTAGshifts[d]++;
+          for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft+=10) {
+            ++v_nJTAGshifts[d];
             // Set DR, shift 12 bits
             vme_wrapper_->VMEWrite(addr_shift_dr_12,reg_val_shft,slot,"Set DR, shift 12 bits");
             usleep(100);
