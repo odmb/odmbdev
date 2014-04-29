@@ -10,6 +10,8 @@ Command line options:
 -e: Sets the last event to parse and process.
 -t: Text-only mode. Turns off colorization of parsed key words in output.
 -w: Sets the number of words to print per line. Default is 20.
+-c: Counting mode. Counts number of packets without further processing
+-a: Analysis mode. Analyzes events without printing
 
 If only one command line option is given (without a "-"), it is used as a file name and a diagnostic report is produced.
 
@@ -34,17 +36,18 @@ using Packet::svu;
 using Packet::InRange;
 
 int main(int argc, char *argv[]){
-  unsigned int words_per_line(40);
+  unsigned words_per_line(40);
   std::string filename("");
-  unsigned int start_entry(0), end_entry(0);
+  unsigned start_entry(0), end_entry(0);
   bool count_mode(false);
   bool text_mode(false);
+  bool analysis_mode(false);
 
   if(argc==2 && argv[1][0]!='-'){
     filename=argv[1];
   }else{
     char opt(' ');
-    while(( opt=getopt(argc, argv, "w:f:s:e:ct") )!=-1){
+    while(( opt=getopt(argc, argv, "w:f:s:e:cta") )!=-1){
       switch(opt){
       case 'w':
 	words_per_line=atoi(optarg);
@@ -60,7 +63,11 @@ int main(int argc, char *argv[]){
 	break;
       case 'c':
 	count_mode=true;
+	analysis_mode=false;
 	break;
+      case 'a':
+	analysis_mode=true;
+	count_mode=false;
       case 't':
 	text_mode=true;
 	break;
@@ -69,36 +76,31 @@ int main(int argc, char *argv[]){
       }
     }
   }
+
+  if(start_entry!=0 || end_entry!=0){
+    if(end_entry==0) end_entry=start_entry;
+    if(start_entry==0) start_entry=end_entry;
+    if(start_entry>end_entry){
+      const unsigned temp(start_entry);
+      start_entry=end_entry;
+      end_entry=temp;
+    }
+  }
+
   std::ifstream ifs(filename.c_str(),std::ifstream::in | std::ifstream::binary);
   if(ifs.is_open()){
     DataPacket data_packet;
     svu packet(0);
-    unsigned int entry(1);
-    if(!count_mode && (start_entry>0 || end_entry>0)){
-      if(end_entry==0) end_entry=start_entry;
-      if(start_entry==0) start_entry=end_entry;
-      if(start_entry>end_entry){
-	const unsigned temp(start_entry);
-	start_entry=end_entry;
-	end_entry=temp;
-      }
+    unsigned entry(1);
+    if(analysis_mode){
+      std::map<DataPacket::ErrorType, unsigned> type_counter;
       for(entry=1; entry<start_entry && FindStartOfPacket(ifs, packet); ++entry){
       }
       for(; entry<=end_entry && FindStartOfPacket(ifs, packet); ++entry){
-	std::cout << "***Event " << std::dec << entry << " (0x" << std::hex << entry << std::dec << ')';
-	for(unsigned i(0); i<128; ++i) std::cout << '*';
-	std::cout << std::endl;
-	GetRestOfPacket(ifs, packet);
-	data_packet.SetData(packet);
-	data_packet.Print(words_per_line, text_mode);
-      }
-    }else if(!count_mode){
-      std::map<DataPacket::ErrorType, unsigned int> type_counter;
-      for(entry=0; FindStartOfPacket(ifs, packet); ++entry){
 	GetRestOfPacket(ifs, packet);
 	data_packet.SetData(packet);
 	const DataPacket::ErrorType this_type(data_packet.GetPacketType());
-	if((this_type & ~DataPacket::kNoDCFEBs)!=0){
+	if(this_type){
 	  std::cout << "Packet " << std::dec << std::setw(8) << std::setfill(' ') << entry+1
 		    << " is of type " << std::hex << std::setw(4) << std::setfill('0')
 		    << this_type << "." << std::endl;
@@ -109,21 +111,29 @@ int main(int argc, char *argv[]){
 	  ++type_counter[this_type];
 	}
       }
-      std::cout << std::dec << std::setw(8) << std::setfill(' ') << entry
+      std::cout << std::dec << std::setw(8) << std::setfill(' ') << entry-start_entry
 		<< " total packets:" <<std::endl;
-      for(std::map<DataPacket::ErrorType, unsigned int>::iterator it(type_counter.begin());
+      for(std::map<DataPacket::ErrorType, unsigned>::iterator it(type_counter.begin());
 	  it!=type_counter.end(); ++it){
 	std::cout << std::setw(8) << std::dec << std::setfill(' ') << it->second
 		  << " packets of type " << std::setw(4) << std::setfill('0') << std::hex
 		  << it->first << std::endl;
       }
-    }else{
+    }else if(count_mode){
       unsigned event_count(0);
       for(entry=0; FindStartOfPacket(ifs, packet); ++entry){
 	GetRestOfPacket(ifs, packet);
 	++event_count;
       }
       std::cout << std::dec << event_count << " total events." << std::endl;
+    }else if(start_entry!=0 || end_entry!=0){
+      for(entry=1; entry<start_entry && FindStartOfPacket(ifs, packet); ++entry){
+      }
+      for(; entry<=end_entry && FindStartOfPacket(ifs, packet); ++entry){
+	GetRestOfPacket(ifs, packet);
+	data_packet.SetData(packet);
+	data_packet.Print(words_per_line, entry, text_mode);
+      }
     }
     ifs.close();
   }else{
@@ -147,7 +157,7 @@ bool FindStartOfPacket(std::ifstream &ifs, svu &header){
   while(ifs.read(reinterpret_cast<char*>(&word), sizeof(word))){
     UpdateLastFewWords(word, header);
     if(header.at(5)==0x8000 && header.at(6)==0x0001 && header.at(7)==0x8000){
-      for(unsigned int word_count(8);
+      for(unsigned word_count(8);
 	  word_count<20 && ifs.read(reinterpret_cast<char*>(&word), sizeof(word));
 	  ++word_count){
 	header.push_back(word);
