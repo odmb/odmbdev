@@ -30,13 +30,13 @@ namespace Packet{
   typedef std::vector<uint16_t> svu;
 
   template<typename t1, typename t2, typename t3> bool InRange(const t1& x,
-							       const t2& low,
-							       const t3& high){
+                                                               const t2& low,
+                                                               const t3& high){
     return x>=low && x<=high;
   }
 
   bool AllInRange(const svu&, const unsigned, const unsigned,
-		  const uint16_t, const uint16_t);
+                  const uint16_t, const uint16_t);
   void PutInRange(unsigned&, unsigned&, const unsigned, const unsigned);
   bool GetBit(const unsigned, const unsigned);
   
@@ -61,8 +61,8 @@ namespace Packet{
     void Print(const unsigned, const unsigned, const bool=false) const;
 
     enum ErrorType{
-      kGood		= 0x0000,
-      kL1AMismatch	= 0x0001
+      kGood             = 0x0000,
+      kL1AMismatch      = 0x0001
     };
     ErrorType GetPacketType() const;
 
@@ -97,17 +97,17 @@ namespace Packet{
 
     svu GetComponent(const unsigned, const unsigned) const;
     void PrintComponent(const std::string&, const unsigned,
-			const unsigned, const unsigned,
-			const bool=false) const;
+                        const unsigned, const unsigned,
+                        const bool=false) const;
 
     void PrintHeader(const std::vector<std::string>&, const unsigned words_per_line) const;
 
     void FindRunInRange(unsigned&, unsigned&, const unsigned, const unsigned,
-			const uint16_t, const uint16_t) const;
+                        const uint16_t, const uint16_t) const;
     unsigned SplitALCTandOTMB(const unsigned, const unsigned) const;
 
     void PrintBuffer(const svu&, const unsigned, const unsigned,
-		     const bool=false) const;
+                     const bool=false) const;
 
     unsigned short GetContainingRanges(const unsigned) const;
 
