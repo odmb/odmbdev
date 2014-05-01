@@ -25,6 +25,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <limits>
 #include <map>
 #include <stdint.h>
 #include <unistd.h>
@@ -85,6 +86,9 @@ int main(int argc, char *argv[]){
       start_entry=end_entry;
       end_entry=temp;
     }
+  }else{
+    start_entry=1;
+    end_entry=std::numeric_limits<unsigned>::max();
   }
 
   std::ifstream ifs(filename.c_str(),std::ifstream::in | std::ifstream::binary);
@@ -94,14 +98,14 @@ int main(int argc, char *argv[]){
     unsigned entry(1);
     if(analysis_mode){
       std::map<DataPacket::ErrorType, unsigned> type_counter;
-      for(entry=1; entry<start_entry && FindStartOfPacket(ifs, packet); ++entry){
+      for(entry=1; entry<start_entry && FindStartOfNextPacket(ifs, packet); ++entry){
       }
-      for(; entry<=end_entry && FindStartOfPacket(ifs, packet); ++entry){
+      for(; entry<=end_entry && FindStartOfNextPacket(ifs, packet); ++entry){
         GetRestOfPacket(ifs, packet);
         data_packet.SetData(packet);
         const DataPacket::ErrorType this_type(data_packet.GetPacketType());
         if(this_type){
-          std::cout << "Packet " << std::dec << std::setw(8) << std::setfill(' ') << entry+1
+          std::cout << "Packet " << std::dec << std::setw(8) << std::setfill(' ') << entry
                     << " is of type " << std::hex << std::setw(4) << std::setfill('0')
                     << this_type << "." << std::endl;
         }
@@ -121,15 +125,15 @@ int main(int argc, char *argv[]){
       }
     }else if(count_mode){
       unsigned event_count(0);
-      for(entry=0; FindStartOfPacket(ifs, packet); ++entry){
+      for(entry=0; FindStartOfNextPacket(ifs, packet); ++entry){
         GetRestOfPacket(ifs, packet);
         ++event_count;
       }
       std::cout << std::dec << event_count << " total events." << std::endl;
     }else if(start_entry!=0 || end_entry!=0){
-      for(entry=1; entry<start_entry && FindStartOfPacket(ifs, packet); ++entry){
+      for(entry=1; entry<start_entry && FindStartOfNextPacket(ifs, packet); ++entry){
       }
-      for(; entry<=end_entry && FindStartOfPacket(ifs, packet); ++entry){
+      for(; entry<=end_entry && FindStartOfNextPacket(ifs, packet); ++entry){
         GetRestOfPacket(ifs, packet);
         data_packet.SetData(packet);
         data_packet.Print(words_per_line, entry, text_mode);
@@ -173,6 +177,12 @@ bool FindStartOfPacket(std::ifstream& ifs, svu& header){
        && InRange(header.at(6), 0xA000, 0xAFFF)) return true;
   }
   return false;
+}
+
+bool FindStartOfNextPacket(std::ifstream&ifs, svu& header){
+  GetRestOfPacket(ifs, header);
+  header.clear();
+  return FindStartOfPacket(ifs, header);
 }
 
 void GetRestOfDDUPacket(std::ifstream& ifs, svu& packet){
