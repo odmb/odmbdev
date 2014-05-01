@@ -29,21 +29,25 @@ namespace Packet{
 
   typedef std::vector<uint16_t> svu;
 
-  template<typename t1, typename t2, typename t3> bool InRange(const t1 &x,
-							       const t2 &low,
-							       const t3 &high){
+  template<typename t1, typename t2, typename t3> bool InRange(const t1& x,
+                                                               const t2& low,
+                                                               const t3& high){
     return x>=low && x<=high;
   }
-  bool AllInRange(const svu &, const unsigned &, const unsigned &,
-		  const uint16_t &, const uint16_t &);
-  void PutInRange(unsigned &, unsigned &, const unsigned &, const unsigned &);
+
+  bool AllInRange(const svu&, const unsigned, const unsigned,
+                  const uint16_t, const uint16_t);
+  void PutInRange(unsigned&, unsigned&, const unsigned, const unsigned);
+  bool GetBit(const unsigned, const unsigned);
+  
+  void PrintWithStars(const std::string&, const unsigned);
 
   class DataPacket{
   public:
     DataPacket();
-    DataPacket(const svu &);
+    DataPacket(const svu&);
 
-    void SetData(const svu &);
+    void SetData(const svu&);
     svu GetData() const;
 
     svu GetDDUHeader() const;
@@ -54,26 +58,11 @@ namespace Packet{
     svu GetODMBTrailer() const;
     svu GetDDUTrailer() const;
 
-    void Print(const unsigned int &, const bool=false) const;
+    void Print(const unsigned, const unsigned, const bool=false) const;
 
     enum ErrorType{
-      kGood		= 0x0000,
-      kNoDCFEBs		= 0x0001,
-      kNoDDUHeader	= 0x0002,
-      kNoDDUTrailer	= 0x0004,
-      kUnusedWords	= 0x0008,
-      kExtraALCTStart	= 0x0010,
-      kMissingALCTStart	= 0x0020,
-      kExtraALCTEnd	= 0x0040,
-      kMissingALCTEnd	= 0x0080,
-      kExtraOTMBStart	= 0x0100,
-      kMissingOTMBStart	= 0x0200,
-      kExtraOTMBEnd	= 0x0400,
-      kMissingOTMBEnd	= 0x0800,
-      kNoALCT		= 0x1000,
-      kNoOTMB		= 0x2000,
-      kNoODMBHeader	= 0x4000,
-      kNoODMBTrailer	= 0x8000
+      kGood             = 0x0000,
+      kL1AMismatch      = 0x0001
     };
     ErrorType GetPacketType() const;
 
@@ -87,9 +76,17 @@ namespace Packet{
     mutable std::vector<unsigned> dcfeb_start_, dcfeb_end_;
     mutable unsigned odmb_trailer_start_, odmb_trailer_end_;
     mutable unsigned ddu_trailer_start_, ddu_trailer_end_;
+    mutable unsigned ddu_header_start_fixed_, ddu_header_end_fixed_;
+    mutable unsigned odmb_header_start_fixed_, odmb_header_end_fixed_;
+    mutable unsigned alct_start_fixed_, alct_end_fixed_;
+    mutable unsigned otmb_start_fixed_, otmb_end_fixed_;
+    mutable std::vector<unsigned> dcfeb_start_fixed_, dcfeb_end_fixed_;
+    mutable unsigned odmb_trailer_start_fixed_, odmb_trailer_end_fixed_;
+    mutable unsigned ddu_trailer_start_fixed_, ddu_trailer_end_fixed_;
     mutable bool parsed_;
 
     void Parse() const;
+    void FixComponents() const;
 
     void FindDDUHeader() const;
     void FindODMBHeader() const;
@@ -98,19 +95,21 @@ namespace Packet{
     void FindODMBTrailer() const;
     void FindDDUTrailer() const;
 
-    svu GetComponent(const unsigned &, const unsigned &) const;
-    void PrintComponent(const std::string &, const unsigned &,
-			const unsigned &, const unsigned int &,
-			const bool=false) const;
+    svu GetComponent(const unsigned, const unsigned) const;
+    void PrintComponent(const std::string&, const unsigned,
+                        const unsigned, const unsigned,
+                        const bool=false) const;
 
-    void FindRunInRange(unsigned &, unsigned &, const unsigned &, const unsigned &,
-			const uint16_t &, const uint16_t &) const;
-    unsigned SplitALCTandOTMB(const unsigned &, const unsigned &) const;
+    void PrintHeader(const std::vector<std::string>&, const unsigned words_per_line) const;
 
-    void PrintBuffer(const svu &, const unsigned int &, const unsigned &,
-		     const bool=false) const;
+    void FindRunInRange(unsigned&, unsigned&, const unsigned, const unsigned,
+                        const uint16_t, const uint16_t) const;
+    unsigned SplitALCTandOTMB(const unsigned, const unsigned) const;
 
-    unsigned short GetContainingRanges(const unsigned &) const;
+    void PrintBuffer(const svu&, const unsigned, const unsigned,
+                     const bool=false) const;
+
+    unsigned short GetContainingRanges(const unsigned) const;
 
     bool HasUnusedWords() const;
     bool HasNoDDUHeader() const;
@@ -128,6 +127,13 @@ namespace Packet{
     bool HasMissingOTMBStartWords() const;
     bool HasExtraOTMBEndWords() const;
     bool HasMissingOTMBEndWords() const;
+    bool HasL1AMismatch() const;
+
+    std::vector<unsigned> GetValidDCFEBs() const;
+    std::string GetDCFEBText() const;
+
+    std::vector<unsigned> GetL1As() const;
+    std::string GetL1AText(const bool=false) const;
   };
 }
 

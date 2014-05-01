@@ -1,10 +1,10 @@
 /*
-add_ddu_hdr: Adds DDU headers and trailers to raw file obtained with ODMB's spy PC channel.
-It takes the name of the input file as an argument. The output file can be given as an 
-argument, or the default is the same name with "ddu_" pre-pended.
+  add_ddu_hdr: Adds DDU headers and trailers to raw file obtained with ODMB's spy PC channel.
+  It takes the name of the input file as an argument. The output file can be given as an 
+  argument, or the default is the same name with "ddu_" pre-pended.
 
-Authors: Adam Dishaw (ald77@physics.ucsb.edu), Manuel Franco Sevilla (manuelf@physics.ucsb.edu)
-Last modified: 2013-11-05
+  Authors: Adam Dishaw (ald77@physics.ucsb.edu), Manuel Franco Sevilla (manuelf@physics.ucsb.edu)
+  Last modified: 2013-11-05
 */
 
 #include <stdio.h>
@@ -23,11 +23,11 @@ Last modified: 2013-11-05
 #define MaxWords 10000
 using namespace std;
 
-void UpdateLastFewWords(const uint16_t &, Packet::svu &);
-bool FindStartOfPacket(std::ifstream &, Packet::svu &);
-void GetRestOfPacket(std::ifstream &, Packet::svu &);
-void GetRestOfDDUPacket(std::ifstream &, Packet::svu &);
-void GetRestOfPCPacket(std::ifstream &, Packet::svu &);
+void UpdateLastFewWords(const uint16_t, Packet::svu&);
+bool FindStartOfPacket(std::ifstream&, Packet::svu&);
+void GetRestOfPacket(std::ifstream&, Packet::svu&);
+void GetRestOfDDUPacket(std::ifstream&, Packet::svu&);
+void GetRestOfPCPacket(std::ifstream&, Packet::svu&);
 int calcDDUcrc(unsigned short uipacket[], unsigned int entries);
 using Packet::DataPacket;
 using Packet::svu;
@@ -47,9 +47,9 @@ int main(int argc, char *argv[]){
   }
 
   unsigned short dduheader[] = {0xF860, 0x0002, 0x0000, 0x5000, 0x0000, 0x8000, 
-				0x0001, 0x8000, 0x2FC1, 0x0001, 0x3030, 0x0001};
+                                0x0001, 0x8000, 0x2FC1, 0x0001, 0x3030, 0x0001};
   unsigned short ddutrailer[] = {0x8000, 0x8000, 0xFFFF, 0x8000, 0x0001, 0x0005, 
-				 0xC2DB, 0x8040, 0xC2C0, 0x4918, 0x000E, 0xA000};
+                                 0xC2DB, 0x8040, 0xC2C0, 0x4918, 0x000E, 0xA000};
   FILE *outfile;
   outfile = fopen(outname.c_str(),"wb");
 
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]){
       // Calculating CRC
       for(unsigned int ind=0; ind<12; ind++) crcpacket[ind] = dduheader[ind];
       for(unsigned int ind=0; ind<packet.size(); ind++){
-	crcpacket[ind+12] = packet[ind];
+        crcpacket[ind+12] = packet[ind];
       }
       for(unsigned int ind=0; ind<12; ind++) crcpacket[ind+12+packet.size()] = ddutrailer[ind];      
       int CRC = calcDDUcrc(crcpacket, packet.size()+24);
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]){
   return 1;
 }
 
-bool FindStartOfPacket(std::ifstream &ifs, svu &header){
+bool FindStartOfPacket(std::ifstream& ifs, svu& header){
   header.clear();
   header.resize(8,0);
   uint16_t word(0);
@@ -105,9 +105,9 @@ bool FindStartOfPacket(std::ifstream &ifs, svu &header){
     UpdateLastFewWords(word, header);
     if(header.at(5)==0x8000 && header.at(6)==0x0001 && header.at(7)==0x8000){
       for(unsigned int word_count(8);
-	  word_count<20 && ifs.read(reinterpret_cast<char*>(&word), sizeof(word));
-	  ++word_count){
-	header.push_back(word);
+          word_count<20 && ifs.read(reinterpret_cast<char*>(&word), sizeof(word));
+          ++word_count){
+        header.push_back(word);
       }
       return true;
     }
@@ -123,7 +123,7 @@ bool FindStartOfPacket(std::ifstream &ifs, svu &header){
   return false;
 }
 
-void UpdateLastFewWords(const uint16_t &x, svu &buf){
+void UpdateLastFewWords(const uint16_t x, svu& buf){
   if(buf.size()>0){
     for(unsigned index(0); index+1<buf.size(); ++index){
       buf.at(index)=buf.at(index+1);
@@ -132,36 +132,36 @@ void UpdateLastFewWords(const uint16_t &x, svu &buf){
   }
 }
 
-void GetRestOfDDUPacket(std::ifstream &ifs, svu &packet){
+void GetRestOfDDUPacket(std::ifstream& ifs, svu& packet){
   uint16_t word(0);
   while(packet.size()<12 && ifs.read(reinterpret_cast<char*>(&word), sizeof(word))){
     packet.push_back(word);
   }
   while(!(packet.at(packet.size()-12)==0x8000
-	  && packet.at(packet.size()-11)==0x8000
-	  && packet.at(packet.size()-10)==0xFFFF
-	  && packet.at(packet.size()-9)==0x8000)
-	&& ifs.read(reinterpret_cast<char*>(&word), sizeof(word))){
+          && packet.at(packet.size()-11)==0x8000
+          && packet.at(packet.size()-10)==0xFFFF
+          && packet.at(packet.size()-9)==0x8000)
+        && ifs.read(reinterpret_cast<char*>(&word), sizeof(word))){
     packet.push_back(word);
   }
 }
 
-void GetRestOfPCPacket(std::ifstream &ifs, svu &packet){
+void GetRestOfPCPacket(std::ifstream& ifs, svu& packet){
   uint16_t word(0);
   while(!(InRange(packet.at(packet.size()-8), 0xF000, 0xFFFF)
-	  && InRange(packet.at(packet.size()-7), 0xF000, 0xFFFF)
-	  && InRange(packet.at(packet.size()-6), 0xF000, 0xFFFF)
-	  && InRange(packet.at(packet.size()-5), 0xF000, 0xFFFF)
-	  && InRange(packet.at(packet.size()-4), 0xE000, 0xEFFF))
-	//&& InRange(packet.at(packet.size()-3), 0xE000, 0xEFFF)
-	//&& InRange(packet.at(packet.size()-2), 0xE000, 0xEFFF)
-	//&& InRange(packet.at(packet.size()-1), 0xE000, 0xEFFF))
-	&& ifs.read(reinterpret_cast<char*>(&word), sizeof(word))){
+          && InRange(packet.at(packet.size()-7), 0xF000, 0xFFFF)
+          && InRange(packet.at(packet.size()-6), 0xF000, 0xFFFF)
+          && InRange(packet.at(packet.size()-5), 0xF000, 0xFFFF)
+          && InRange(packet.at(packet.size()-4), 0xE000, 0xEFFF))
+        //&& InRange(packet.at(packet.size()-3), 0xE000, 0xEFFF)
+        //&& InRange(packet.at(packet.size()-2), 0xE000, 0xEFFF)
+        //&& InRange(packet.at(packet.size()-1), 0xE000, 0xEFFF))
+        && ifs.read(reinterpret_cast<char*>(&word), sizeof(word))){
     packet.push_back(word);
   }
 }
 
-void GetRestOfPacket(std::ifstream &ifs, svu &packet){
+void GetRestOfPacket(std::ifstream& ifs, svu& packet){
   if(packet.size()<8) return;
   if(packet.at(5)==0x8000 && packet.at(6)==0x0001 && packet.at(7)==0x8000){
     GetRestOfDDUPacket(ifs, packet);
