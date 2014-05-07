@@ -115,7 +115,7 @@ namespace Packet{
     std::vector<unsigned> GetValidDCFEBs(const unsigned) const;
     std::string GetDCFEBText(const unsigned) const;
 
-    std::vector<unsigned> GetL1As() const;
+    std::vector<std::pair<uint_fast32_t, bool> > GetL1As() const;
     std::string GetL1AText(const bool=false) const;
 
     bool HasUncategorizedWords() const;

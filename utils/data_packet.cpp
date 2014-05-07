@@ -591,34 +591,50 @@ namespace Packet{
     }
   }
 
-  std::vector<unsigned> DataPacket::GetL1As() const{
+  std::vector<std::pair<uint_fast32_t, bool> > DataPacket::GetL1As() const{
     Parse();
-    std::vector<unsigned> l1as(0);
-    if(ddu_header_end_-ddu_header_start_>=3){
-      l1as.push_back(full_packet_.at(ddu_header_start_+2) & 0xFFF);
+    std::vector<std::pair<uint_fast32_t, bool> > l1as(0);
+    if(ddu_header_end_-ddu_header_start_==3){
+      l1as.push_back(std::make_pair(full_packet_.at(ddu_header_start_+2) & 0xFFFFu, true));
+    }else if(ddu_header_end_-ddu_header_start_>=4){
+      const uint_fast8_t first_8_bits(full_packet_.at(ddu_header_start_+3) & 0xFFu);
+      const uint_fast16_t last_16_bits(full_packet_.at(ddu_header_start_+2) & 0xFFFFu);
+      l1as.push_back(std::make_pair((first_8_bits << 16) | last_16_bits, true));
     }
     for(unsigned packet(0); packet<odmb_header_start_.size(); ++packet){
-      if(odmb_header_end_.at(packet)-odmb_header_start_.at(packet)>=1){
-        l1as.push_back(full_packet_.at(odmb_header_start_.at(packet)) & 0xFFF);
+      if(odmb_header_end_.at(packet)-odmb_header_start_.at(packet)==1){
+        l1as.push_back(std::make_pair(full_packet_.at(odmb_header_start_.at(packet)) & 0xFFFu, true));
+      }else if(odmb_header_end_.at(packet)-odmb_header_start_.at(packet)>=2){
+	const uint_fast16_t first_12_bits(full_packet_.at(odmb_header_start_.at(packet)+1) & 0xFFFu);
+	const uint_fast16_t last_12_bits(full_packet_.at(odmb_header_start_.at(packet)) & 0xFFFu);
+	l1as.push_back(std::make_pair((first_12_bits << 12) | last_12_bits, true));
       }
       if(alct_end_.at(packet)-alct_start_.at(packet)>=3){
-        l1as.push_back(full_packet_.at(alct_start_.at(packet)+2) & 0xFFF);
+        l1as.push_back(std::make_pair(full_packet_.at(alct_start_.at(packet)+2) & 0xFFFu, false));
       }
       if(otmb_end_.at(packet)-otmb_start_.at(packet)>=3){
-        l1as.push_back(full_packet_.at(otmb_start_.at(packet)+2) & 0xFFF);
+        l1as.push_back(std::make_pair(full_packet_.at(otmb_start_.at(packet)+2) & 0xFFFu, false));
       }
     }
     return l1as;
   }
 
   bool DataPacket::HasL1AMismatch() const{
-    const std::vector<unsigned> l1as(GetL1As());
+    const std::vector<std::pair<uint_fast32_t, bool> > l1as(GetL1As());
     if(l1as.size()){
-      const unsigned to_match(l1as.at(0));
-      for(unsigned l1a(1); l1a<l1as.size(); ++l1a){
-        if(l1as.at(l1a)!=to_match){
-          return true;
+      uint_fast32_t to_match(l1as.at(0).first);
+      for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
+        if(l1as.at(l1a).second){
+          to_match=l1as.at(0).first;
+	  break;
         }
+      }
+      const uint_fast16_t to_match_12_bits(to_match & 0xFFFu);
+      for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
+	if((l1as.at(l1a).second && l1as.at(l1a).first!=to_match)
+	   || (!l1as.at(l1a).second && l1as.at(l1a).first!=to_match_12_bits)){
+	  return true;
+	}
       }
       return false;
     }else{
@@ -627,27 +643,43 @@ namespace Packet{
   }
 
   std::string DataPacket::GetL1AText(const bool text_mode) const{
-    const std::vector<unsigned> l1as(GetL1As());
+    const std::vector<std::pair<uint_fast32_t, bool> > l1as(GetL1As());
     if(l1as.size()){
-      const unsigned l1a0(l1as.at(0));
+      uint_fast32_t to_match(l1as.at(0).first);
+      for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
+	if(l1as.at(l1a).second){
+	  to_match=l1as.at(0).first;
+	  break;
+	}
+      }
+      const uint_fast16_t to_match_12_bits(l1as.at(0).first & 0xFFFu);
       std::ostringstream oss("");
       if(HasL1AMismatch()){
-        oss << "L1As=(" << l1a0;
-        for(unsigned l1a(1); l1a<l1as.size(); ++l1a){
-          if(l1as.at(l1a)!=l1a0 && !text_mode){
-            oss << ", " << io::bold << io::bg_red << io::fg_white
-                << l1as.at(l1a) << io::normal;
+        oss << "L1As=(";
+        for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
+	  const bool is_match(l1as.at(l1a).second?(l1as.at(l1a).first==to_match):(l1as.at(l1a).first==to_match_12_bits));
+          if(!is_match && !text_mode){
+	    if(l1a!=0){
+	      oss << ", " << io::bold << io::bg_red << io::fg_white
+		  << l1as.at(l1a).first << io::normal;
+	    }else{
+	      oss << io::bold << io::bg_red << io::fg_white
+		  << l1as.at(l1a).first << io::normal;
+	    }
           }else{
-            oss << ", " << l1as.at(l1a);
+	    if(l1a!=0){
+	      oss << ", " << l1as.at(l1a).first;
+	    }else{
+	      oss << l1as.at(l1a).first;
+	    }
           }
         }
         oss << ")";
       }else{
-        oss << "L1A=" << l1a0 << " (0x" << std::hex << l1a0 << ")";
+        oss << "L1A=" << to_match << " (0x" << std::hex << to_match << ")";
       }
       return oss.str();
     }else{
-      std::ostringstream oss("");
       return "No L1As";
     }
   }
