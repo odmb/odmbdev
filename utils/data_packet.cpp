@@ -29,13 +29,6 @@ namespace Packet{
           std::cout << io::bold << io::bg_blue << io::fg_yellow
                     << std::setw(4) << buffer.at(index) << io::normal << " ";
         }
-      }else if(buffer.at(index)==0x7fff){
-        if(text_mode){
-          std::cout << std::setw(4) << buffer.at(index) << " ";
-        }else{
-          std::cout << io::bold << io::bg_red << io::fg_white
-                    << std::setw(4) << buffer.at(index) << io::normal << " ";
-        }
       }else{
         if(text_mode){
           std::cout << std::setw(4) << buffer.at(index) << " ";
@@ -281,7 +274,13 @@ namespace Packet{
         if(found_one){
           alct_start_.at(packet)=d_run_start_1;
           alct_end_.at(packet)=d_run_end_1;
-
+          otmb_start_.at(packet)=alct_end_.at(packet);
+          otmb_end_.at(packet)=alct_end_.at(packet);
+        }else{
+          alct_start_.at(packet)=low;
+          alct_end_.at(packet)=low;
+          otmb_start_.at(packet)=low;
+          otmb_end_.at(packet)=low;
         }
         if(FindRunInRange(d_run_start_2, d_run_end_2, d_run_end_1, high, d_run_threshhold, 0xB000, 0xBFFF)){
           //Dummy data (ALCT is n D-words straight, OTMB n B-words straight)
@@ -291,6 +290,8 @@ namespace Packet{
       }else{
         alct_start_.at(packet)=d_run_start_1;
         alct_end_.at(packet)=d_run_end_2;
+        otmb_start_.at(packet)=alct_end_.at(packet);
+        otmb_end_.at(packet)=alct_end_.at(packet);
       }
     }else{
       alct_start_.at(packet)=d_run_start_1;
@@ -317,19 +318,28 @@ namespace Packet{
   }
 
   void DataPacket::FindDCFEBData(const unsigned packet) const{
-    const unsigned low(odmb_header_end_.at(packet));
+    const unsigned low(otmb_end_.at(packet));
     const unsigned high(odmb_trailer_start_.at(packet));
     const unsigned upper_bound(high<full_packet_.size()?high:full_packet_.size());
     dcfeb_start_.at(packet).clear();
     dcfeb_end_.at(packet).clear();
     std::vector<unsigned> temp_dcfeb_end(0);
     for(unsigned index(low+99); index<upper_bound; ++index){
-      if(full_packet_.at(index)==0x7FFF &&
-         (index==low+99 || full_packet_.at(index-100)==0x7FFF
-          || InRange(full_packet_.at(index-100), 0xD000, 0xDFFF)
-          || InRange(full_packet_.at(index-100), 0XA000, 0xAFFF))){
+      const bool good_here((InRange(full_packet_.at(index-2), 0x7000u, 0x700Fu)
+                            || InRange(full_packet_.at(index-2), 0x7000u, 0x7FFFu))
+                           && InRange(full_packet_.at(index-1), 0x7000u, 0x7FFFu));
+      const bool good_earlier(index<low+102
+                              || ((InRange(full_packet_.at(index-102), 0x7000u, 0x700Fu)
+                                   || InRange(full_packet_.at(index-102), 0x7000u, 0x7FFFu))
+                                  && InRange(full_packet_.at(index-101), 0x7000u, 0x7FFFu))
+                              || (InRange(full_packet_.at(index-102), 0xD000u, 0xDFFFu)
+                                  && InRange(full_packet_.at(index-101), 0xD000u, 0xDFFFu)));
+
+      if(good_here && good_earlier){
         temp_dcfeb_end.push_back(index+1);
-        colorize_.at(index)=true;
+        colorize_.at(index-2)=true;
+        colorize_.at(index-1)=true;
+        index+=99;
       }
     }
     for(unsigned dcfeb(7); dcfeb<temp_dcfeb_end.size(); dcfeb+=8){
@@ -384,26 +394,25 @@ namespace Packet{
                                   const unsigned min_length, const uint16_t low,
                                   const uint16_t high) const{
     const unsigned upper_bound(right<full_packet_.size()?right:full_packet_.size());
-    bool found_left(false), found_right(false);
+    bool found(false);
     start=left;
-    end=right;
+    end=left;
     unsigned index(left);
     for(; index+min_length<=upper_bound; ++index){
       if(AllInRange(full_packet_, index, index+min_length, low, high)){
         start=index;
-        end=full_packet_.size();
-        found_left=true;
+        end=upper_bound;
+        found=true;
         break;
       }
     }
     for(index=index+min_length; index<upper_bound; ++index){
       if(!InRange(full_packet_.at(index), low, high)){
         end=index;
-        found_right=true;
         break;
       }
     }
-    return found_left && found_right;
+    return found;
   }
 
   unsigned DataPacket::SplitALCTandOTMB(const unsigned start,
@@ -465,6 +474,7 @@ namespace Packet{
                          const unsigned entry,
                          const bool text_mode) const{
     Parse();
+
     const std::string uncat("Uncategorized");
     std::ostringstream event_text("");
     event_text << "Event " << std::dec << entry << " (0x" << std::hex << entry << std::dec << ')';
