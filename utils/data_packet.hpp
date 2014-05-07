@@ -95,9 +95,9 @@ namespace Packet{
                         const unsigned, const unsigned,
                         const bool=false) const;
     void PrintODMB(const std::string& uncat,
-		   const unsigned odmb,
-		   const unsigned words_per_line,
-		   const unsigned text_mode) const;
+                   const unsigned odmb,
+                   const unsigned words_per_line,
+                   const unsigned text_mode) const;
     void PrintHeader(const std::vector<std::string>&, const unsigned words_per_line) const;
 
     bool FindRunInRange(unsigned&, unsigned&, const unsigned, const unsigned,

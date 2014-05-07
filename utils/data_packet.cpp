@@ -171,23 +171,14 @@ namespace Packet{
   
   void DataPacket::Parse() const{
     if(!parsed_){
-      //std::cout << "Finding DDU header" << std::endl;
       FindDDUHeader();
-      //std::cout << "Finding DDU trailer" << std::endl;
       FindDDUTrailer();
-      //std::cout << "Finding ODMB headers and trailers" << std::endl;
       FindAllODMBHeadersAndTrailers();
-      //std::cout << "Calculating number of ODMB packets" << std::endl;
       FixNumberOfODMBPackets();
       for(unsigned packet(0); packet<odmb_header_start_.size(); ++packet){
-	//std::cout << "On ODMB packet " << packet << std::endl;
-	FindALCTandOTMBData(packet);
-	//std::cout << "Finding DCFEBs" << std::endl;
-	FindDCFEBData(packet);
-	//std::cout << "Found DCFEBs" << std::endl;
+        FindALCTandOTMBData(packet);
+        FindDCFEBData(packet);
       }
-      //std::cout << "Done parsing" << std::endl;
-      //FixComponents();
       parsed_=true;
     }
   }
@@ -257,20 +248,13 @@ namespace Packet{
       bool header(true);
       bool printed(false);
       while(!at_end){
-	const unsigned low(odmb_header_end_.at(odmb_header_end_.size()-1));
-	const unsigned high(ddu_trailer_start_);
-	if(!printed){
-	  printed=true;
-	  for(unsigned word(low); word<=high; ++word){
-	    //std::cout << std::hex << std::setfill('0') << std::setw(4) << full_packet_.at(word) << ' ';
-	  }
-	  //std::cout << std::dec;
-	}
-	//std::cout << "Top: " << low << " " << high << " " << at_end << " " << header << std::endl;
-	at_end|=(header?(!FindODMBHeader(low, high)):(!FindODMBTrailer(low, high)));
-	header=!header;
-	//std::cout << "Bot: " << low << " " << high << " " << at_end << " " << header << std::endl;
-	//std::cout << odmb_header_start_.size() << " " << odmb_header_end_.size() << " " << odmb_trailer_start_.size() << " " << odmb_trailer_end_.size() << std::endl;
+        const unsigned low(odmb_header_end_.at(odmb_header_end_.size()-1));
+        const unsigned high(ddu_trailer_start_);
+        if(!printed){
+          printed=true;
+        }
+        at_end|=(header?(!FindODMBHeader(low, high)):(!FindODMBTrailer(low, high)));
+        header=!header;
       }
     }
   }
@@ -289,9 +273,9 @@ namespace Packet{
     unsigned d_run_start_3(bad_index), d_run_end_3(bad_index);
     const bool found_one(FindRunInRange(d_run_start_1, d_run_end_1, low, high, d_run_threshhold, 0xD000, 0xDFFF));
     const bool found_two(FindRunInRange(d_run_start_2, d_run_end_2, d_run_end_1, high, d_run_threshhold,
-					0xD000, 0xDFFF));
+                                        0xD000, 0xDFFF));
     const bool found_three(FindRunInRange(d_run_start_3, d_run_end_3, d_run_end_2, high, d_run_threshhold,
-					  0xD000, 0xDFFF));
+                                          0xD000, 0xDFFF));
     if(!found_three){
       if(!found_two){
         if(found_one){
@@ -372,7 +356,7 @@ namespace Packet{
         if(InRange(full_packet_.at(index+7), 0xE000, 0xEFFF)){
           colorize_.at(index+7)=true;
         }
-	return true;
+        return true;
       }
     }
     return false;
@@ -396,7 +380,7 @@ namespace Packet{
   }
 
   bool DataPacket::FindRunInRange(unsigned& start, unsigned& end,
-				  const unsigned left, const unsigned right,
+                                  const unsigned left, const unsigned right,
                                   const unsigned min_length, const uint16_t low,
                                   const uint16_t high) const{
     const unsigned upper_bound(right<full_packet_.size()?right:full_packet_.size());
@@ -408,14 +392,14 @@ namespace Packet{
       if(AllInRange(full_packet_, index, index+min_length, low, high)){
         start=index;
         end=full_packet_.size();
-	found_left=true;
+        found_left=true;
         break;
       }
     }
     for(index=index+min_length; index<upper_bound; ++index){
       if(!InRange(full_packet_.at(index), low, high)){
         end=index;
-	found_right=true;
+        found_right=true;
         break;
       }
     }
@@ -438,51 +422,49 @@ namespace Packet{
   }
 
   void DataPacket::PrintODMB(const std::string& uncat,
-			     const unsigned odmb,
-			     const unsigned words_per_line,
-			     const unsigned text_mode) const{
+                             const unsigned odmb,
+                             const unsigned words_per_line,
+                             const unsigned text_mode) const{
     const std::string dcfeb_text(GetDCFEBText(odmb));
     std::ostringstream oss("");
     oss << "ODMB Header " << odmb+1 << "; " << dcfeb_text;
     PrintComponent(oss.str(), odmb_header_start_.at(odmb),
-		   odmb_header_end_.at(odmb), words_per_line, text_mode);
+                   odmb_header_end_.at(odmb), words_per_line, text_mode);
     PrintComponent(uncat, odmb_header_end_.at(odmb), alct_start_.at(odmb),
-		   words_per_line, text_mode);
+                   words_per_line, text_mode);
     PrintComponent("ALCT", alct_start_.at(odmb), alct_end_.at(odmb), words_per_line, text_mode);
     PrintComponent(uncat, alct_end_.at(odmb), otmb_start_.at(odmb), words_per_line, text_mode);
     PrintComponent("OTMB", otmb_start_.at(odmb), otmb_end_.at(odmb), words_per_line, text_mode);
     const unsigned num_dcfebs(dcfeb_start_.at(odmb).size());
     if(num_dcfebs>0){
       PrintComponent(uncat, otmb_end_.at(odmb), dcfeb_start_.at(odmb).at(0),
-		     words_per_line, text_mode);
+                     words_per_line, text_mode);
       for(unsigned dcfeb(0); dcfeb+1<num_dcfebs; ++dcfeb){
-	std::ostringstream oss2("");
-	oss2 << "DCFEB " << dcfeb+1;
-	PrintComponent(oss2.str(), dcfeb_start_.at(odmb).at(dcfeb),
-		       dcfeb_end_.at(odmb).at(dcfeb), words_per_line, text_mode);
-	PrintComponent(uncat, dcfeb_end_.at(odmb).at(dcfeb),
-		       dcfeb_start_.at(odmb).at(dcfeb+1), words_per_line, text_mode);
+        std::ostringstream oss2("");
+        oss2 << "DCFEB " << dcfeb+1;
+        PrintComponent(oss2.str(), dcfeb_start_.at(odmb).at(dcfeb),
+                       dcfeb_end_.at(odmb).at(dcfeb), words_per_line, text_mode);
+        PrintComponent(uncat, dcfeb_end_.at(odmb).at(dcfeb),
+                       dcfeb_start_.at(odmb).at(dcfeb+1), words_per_line, text_mode);
       }
       std::ostringstream oss2("");
       oss2 << "DCFEB " << num_dcfebs;
       PrintComponent(oss2.str(), dcfeb_start_.at(odmb).at(num_dcfebs-1),
-		     dcfeb_end_.at(odmb).at(num_dcfebs-1), words_per_line, text_mode);
+                     dcfeb_end_.at(odmb).at(num_dcfebs-1), words_per_line, text_mode);
       PrintComponent(uncat, dcfeb_end_.at(odmb).at(num_dcfebs-1),
-		     odmb_trailer_start_.at(odmb), words_per_line, text_mode);
+                     odmb_trailer_start_.at(odmb), words_per_line, text_mode);
     }else{
       PrintComponent(uncat, otmb_end_.at(odmb), odmb_trailer_start_.at(odmb),
-		     words_per_line, text_mode);
+                     words_per_line, text_mode);
     }
     PrintComponent("ODMB Trailer", odmb_trailer_start_.at(odmb),
-		   odmb_trailer_end_.at(odmb), words_per_line, text_mode);
+                   odmb_trailer_end_.at(odmb), words_per_line, text_mode);
   }
   
   void DataPacket::Print(const unsigned words_per_line,
                          const unsigned entry,
                          const bool text_mode) const{
-    //std::cout << "About to parse" << std::endl;
     Parse();
-    //std::cout << "Parsed" << std::endl;
     const std::string uncat("Uncategorized");
     std::ostringstream event_text("");
     event_text << "Event " << std::dec << entry << " (0x" << std::hex << entry << std::dec << ')';
@@ -498,33 +480,20 @@ namespace Packet{
                    words_per_line, text_mode);
     const unsigned num_odmbs(odmb_header_start_.size());
 
-    /*std::cout << std::dec << "DDU Header: " << ddu_header_start_ << " " << ddu_header_end_ << std::endl;
-    for(unsigned odmb(0); odmb<odmb_header_start_.size(); ++odmb){
-      std::cout << "ODMB Header " << odmb << ": " << odmb_header_start_.at(odmb) << " " << odmb_header_end_.at(odmb) << std::endl
-		<< "ALCT: " << alct_start_.at(odmb) << " " << alct_end_.at(odmb) << std::endl
-		<< "OTMB: " << otmb_start_.at(odmb) << " " << otmb_end_.at(odmb) << std::endl;
-	for(unsigned dcfeb(0); dcfeb<dcfeb_start_.at(odmb).size(); ++dcfeb){
-	  std::cout << "DCFEB " << dcfeb << ": " << dcfeb_start_.at(odmb).at(dcfeb) << " "
-		    << dcfeb_end_.at(odmb).at(dcfeb) << std::endl;
-	}
-      std::cout << "ODMB Trailer: " << odmb_trailer_start_.at(odmb) << " " << odmb_trailer_end_.at(odmb) << std::endl;
-    }
-    std::cout << "DDU Trailer: " << ddu_trailer_start_ << " " << ddu_trailer_end_ << std::endl;*/
-    
     if(num_odmbs>0){
       PrintComponent(uncat, ddu_trailer_end_, odmb_header_start_.at(0),
-		     words_per_line, text_mode);
+                     words_per_line, text_mode);
       for(unsigned odmb(0); odmb+1<num_odmbs; ++odmb){
-	PrintODMB(uncat, odmb, words_per_line, text_mode);
-	PrintComponent(uncat, odmb_trailer_end_.at(odmb),
-		       odmb_header_start_.at(odmb+1), words_per_line, text_mode);
+        PrintODMB(uncat, odmb, words_per_line, text_mode);
+        PrintComponent(uncat, odmb_trailer_end_.at(odmb),
+                       odmb_header_start_.at(odmb+1), words_per_line, text_mode);
       }
       PrintODMB(uncat, num_odmbs-1, words_per_line, text_mode);
       PrintComponent(uncat, odmb_trailer_end_.at(odmb_trailer_end_.size()-1), ddu_trailer_start_,
-		     words_per_line, text_mode);
+                     words_per_line, text_mode);
     }else{
       PrintComponent(uncat, ddu_header_end_,
-		     ddu_trailer_start_, words_per_line, text_mode);
+                     ddu_trailer_start_, words_per_line, text_mode);
     }
     PrintComponent("DDU Trailer", ddu_trailer_start_,
                    ddu_trailer_end_, words_per_line, text_mode);
@@ -563,7 +532,7 @@ namespace Packet{
       if(InRange(word, otmb_start_.at(odmb), otmb_end_.at(odmb)-1)) ++num_ranges;
       if(InRange(word, odmb_trailer_start_.at(odmb), odmb_trailer_end_.at(odmb)-1)) ++num_ranges;
       for(unsigned dcfeb(0); dcfeb<dcfeb_start_.size(); ++dcfeb){
-	if(InRange(word, dcfeb_start_.at(odmb).at(dcfeb), dcfeb_end_.at(odmb).at(dcfeb)-1)) ++num_ranges;
+        if(InRange(word, dcfeb_start_.at(odmb).at(dcfeb), dcfeb_end_.at(odmb).at(dcfeb)-1)) ++num_ranges;
       }
     }
     if(InRange(word, ddu_trailer_start_, ddu_trailer_end_-1)) ++num_ranges;
@@ -611,13 +580,13 @@ namespace Packet{
     }
     for(unsigned packet(0); packet<odmb_header_start_.size(); ++packet){
       if(odmb_header_end_.at(packet)-odmb_header_start_.at(packet)>=1){
-	l1as.push_back(full_packet_.at(odmb_header_start_.at(packet)) & 0xFFF);
+        l1as.push_back(full_packet_.at(odmb_header_start_.at(packet)) & 0xFFF);
       }
       if(alct_end_.at(packet)-alct_start_.at(packet)>=3){
-	l1as.push_back(full_packet_.at(alct_start_.at(packet)+2) & 0xFFF);
+        l1as.push_back(full_packet_.at(alct_start_.at(packet)+2) & 0xFFF);
       }
       if(otmb_end_.at(packet)-otmb_start_.at(packet)>=3){
-	l1as.push_back(full_packet_.at(otmb_start_.at(packet)+2) & 0xFFF);
+        l1as.push_back(full_packet_.at(otmb_start_.at(packet)+2) & 0xFFF);
       }
     }
     return l1as;
