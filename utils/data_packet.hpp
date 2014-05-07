@@ -61,8 +61,9 @@ namespace Packet{
     void Print(const unsigned, const unsigned, const bool=false) const;
 
     enum ErrorType{
-      kGood             = 0x0000,
-      kL1AMismatch      = 0x0001
+      kGood               = 0x0000,
+      kUncategorizedWords = 0x0001,
+      kL1AMismatch        = 0x0002
     };
     ErrorType GetPacketType() const;
 
@@ -116,6 +117,8 @@ namespace Packet{
 
     std::vector<unsigned> GetL1As() const;
     std::string GetL1AText(const bool=false) const;
+
+    bool HasUncategorizedWords() const;
   };
 }
 

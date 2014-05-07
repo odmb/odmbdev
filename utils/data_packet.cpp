@@ -159,7 +159,8 @@ namespace Packet{
 
   DataPacket::ErrorType DataPacket::GetPacketType() const{
     Parse();
-    return static_cast<ErrorType>((HasL1AMismatch()?kL1AMismatch:kGood));
+    return static_cast<ErrorType>((HasL1AMismatch()?kL1AMismatch:kGood)
+                                  | (HasUncategorizedWords()?kUncategorizedWords:kGood));
   }
   
   void DataPacket::Parse() const{
@@ -334,11 +335,13 @@ namespace Packet{
                                   && InRange(full_packet_.at(index-101), 0x7000u, 0x7FFFu))
                               || (InRange(full_packet_.at(index-102), 0xD000u, 0xDFFFu)
                                   && InRange(full_packet_.at(index-101), 0xD000u, 0xDFFFu)));
+      const bool found_7fff(full_packet_.at(index)==0x7FFFu);
 
-      if(good_here && good_earlier){
+      if(good_here && (good_earlier || found_7fff)){
         temp_dcfeb_end.push_back(index+1);
         colorize_.at(index-2)=true;
         colorize_.at(index-1)=true;
+        if(found_7fff) colorize_.at(index)=true;
         index+=99;
       }
     }
@@ -475,7 +478,13 @@ namespace Packet{
                          const bool text_mode) const{
     Parse();
 
-    const std::string uncat("Uncategorized");
+    std::ostringstream oss_uncat("");
+    if(text_mode){
+      oss_uncat << "Uncategorized";
+    }else{
+      oss_uncat << io::bold << io::bg_red << io::fg_white << "Uncategorized" << io::normal;
+    }
+    const std::string uncat(oss_uncat.str());
     std::ostringstream event_text("");
     event_text << "Event " << std::dec << entry << " (0x" << std::hex << entry << std::dec << ')';
     const std::string l1a_text(GetL1AText(text_mode));
@@ -491,7 +500,7 @@ namespace Packet{
     const unsigned num_odmbs(odmb_header_start_.size());
 
     if(num_odmbs>0){
-      PrintComponent(uncat, ddu_trailer_end_, odmb_header_start_.at(0),
+      PrintComponent(uncat, ddu_header_end_, odmb_header_start_.at(0),
                      words_per_line, text_mode);
       for(unsigned odmb(0); odmb+1<num_odmbs; ++odmb){
         PrintODMB(uncat, odmb, words_per_line, text_mode);
@@ -641,5 +650,48 @@ namespace Packet{
       std::ostringstream oss("");
       return "No L1As";
     }
+  }
+
+  bool DataPacket::HasUncategorizedWords() const{
+    Parse();
+
+    if(ddu_header_start_>0) return true;
+    const unsigned num_odmbs(odmb_header_start_.size());
+    if(num_odmbs>0){
+      if(ddu_header_end_!=odmb_header_start_.at(0)) return true;
+      for(unsigned odmb(0); odmb+1<num_odmbs; ++odmb){
+        if(odmb_header_end_.at(odmb)!=alct_start_.at(odmb)) return true;
+        if(alct_end_.at(odmb)!=otmb_start_.at(odmb)) return true;
+        const unsigned num_dcfebs(dcfeb_start_.at(odmb).size());
+        if(num_dcfebs>0){
+          if(otmb_end_.at(odmb)!=dcfeb_start_.at(odmb).at(0)) return true;
+          for(unsigned dcfeb(0); dcfeb+1<num_dcfebs; ++dcfeb){
+            if(dcfeb_end_.at(odmb).at(dcfeb)!=dcfeb_start_.at(odmb).at(dcfeb+1)) return true;
+          }
+          if(dcfeb_end_.at(odmb).at(num_dcfebs-1)!=odmb_trailer_start_.at(odmb)) return true;
+        }else{
+          if(otmb_end_.at(odmb)!=odmb_trailer_start_.at(odmb)) return true;
+        }
+        if(odmb_trailer_end_.at(odmb)!=odmb_header_start_.at(odmb+1)) return true;
+      }
+   
+      if(odmb_header_end_.at(num_odmbs-1)!=alct_start_.at(num_odmbs-1)) return true;
+      if(alct_end_.at(num_odmbs-1)!=otmb_start_.at(num_odmbs-1)) return true;
+      const unsigned num_dcfebs(dcfeb_start_.at(num_odmbs-1).size());
+      if(num_dcfebs>0){
+        if(otmb_end_.at(num_odmbs-1)!=dcfeb_start_.at(num_odmbs-1).at(0)) return true;
+        for(unsigned dcfeb(0); dcfeb+1<num_dcfebs; ++dcfeb){
+          if(dcfeb_end_.at(num_odmbs-1).at(dcfeb)!=dcfeb_start_.at(num_odmbs-1).at(dcfeb+1)) return true;
+        }
+        if(dcfeb_end_.at(num_odmbs-1).at(num_dcfebs-1)!=odmb_trailer_start_.at(num_odmbs-1)) return true;
+      }else{
+        if(otmb_end_.at(num_odmbs-1)!=odmb_trailer_start_.at(num_odmbs-1)) return true;
+      }
+      if(odmb_trailer_end_.at(odmb_trailer_end_.size()-1)!=ddu_trailer_start_) return true;
+    }else{
+      if(ddu_header_end_!=ddu_trailer_start_) return true;
+    }
+    if(ddu_trailer_end_!=full_packet_.size()) return true;
+    return false;
   }
 }
