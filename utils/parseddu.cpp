@@ -131,13 +131,21 @@ int main(int argc, char *argv[]){
       }
       std::cout << std::dec << event_count << " total events." << std::endl;
     }else if(start_entry!=0 || end_entry!=0){
+      //std::cout << "Printing mode" << std::endl;
       for(entry=1; entry<start_entry && FindStartOfNextPacket(ifs, packet); ++entry){
+	//std::cout << "Skipping " << entry << std::endl;
       }
+      //std::cout << "At starting event" << std::endl;
       for(; entry<=end_entry && FindStartOfNextPacket(ifs, packet); ++entry){
+	//std::cout << "On packet " << entry << std::endl;
         GetRestOfPacket(ifs, packet);
+	//std::cout << "Got rest of packet" << std::endl;
         data_packet.SetData(packet);
+	//std::cout << "Set data" << std::endl;
         data_packet.Print(words_per_line, entry, text_mode);
+	//std::cout << "Printed" << std::endl;
       }
+      //std::cout << "Done looping over events" << std::endl;
     }
     ifs.close();
   }else{
