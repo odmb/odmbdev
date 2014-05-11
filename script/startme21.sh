@@ -21,8 +21,13 @@ ulimit -c unlimited
 
 # BUILD_HOME, XDAQ_ROOT and ROOTSYS should be set. Their default values are:
 # export BUILD_HOME=${BUILD_HOME:-$PWD/${0:h}/../../..}
-export BUILD_HOME=${BUILD_HOME:-$HOME/CMS/TriDAS}
-export XDAQ_ROOT=${XDAQ_ROOT:-$HOME/XDAQ}
+current_path=`pwd -P`
+if [[ $current_path == *TriDAS* ]]; then
+    export BUILD_HOME=`echo $current_path | sed -r 's|(TriDAS).*$|\1|'`
+else
+    export BUILD_HOME=`dirname ${current_path}`/TriDAS
+fi
+export XDAQ_ROOT=/opt/xdaq
 export ROOTSYS=${ROOTSYS:-$HOME/ROOT/root}
 
 export XDAQ_OS=linux
@@ -48,7 +53,7 @@ print "    LD_LIBRARY_PATH    = $LD_LIBRARY_PATH"
 print
 
 OPTIONS="\
- -h emume11.cern.ch \
+ -h csc-pc \
  -p 9997 \
  -c ${BUILD_HOME}/emu/odmbdev/xml/EmuME21Dev.xml \
  -e ${BUILD_HOME}/emu/odmbdev/xml/EmuME11Dev.profile"
