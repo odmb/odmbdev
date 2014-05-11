@@ -758,7 +758,7 @@ namespace Packet{
     Parse();
     std::vector<bool> is_odmb(0);
     for(unsigned dmb(0); dmb<odmb_header_start_.size(); ++dmb){
-      if(odmb_header_end_.at(dmb)-odmb_header_start_.at(dmb)){
+      if(odmb_header_end_.at(dmb)-odmb_header_start_.at(dmb)>=3){
 	is_odmb.push_back(GetBit(full_packet_.at(odmb_header_start_.at(dmb)+2), 9));
       }
     }
@@ -772,9 +772,7 @@ namespace Packet{
     if(is_odmb.size()){
       oss << "(" << (is_odmb.at(0)?"ODMB":"DMB");
       for(unsigned dmb(1); dmb<is_odmb.size(); ++dmb){
-	if(is_odmb.at(dmb)){
-	  oss << ", " << (is_odmb.at(0)?"ODMB":"DMB");
-	}
+	oss << ", " << (is_odmb.at(dmb)?"ODMB":"DMB");
       }
       oss << ")";
     }else{

@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -44,7 +45,10 @@ int main(int argc, char *argv[]){
   bool count_mode(false);
   bool text_mode(false);
   bool analysis_mode(false);
-  DataPacket::ErrorType mask(static_cast<DataPacket::ErrorType>(0x3FFFFFFFFu));
+  uint_fast64_t temp_mask(0x3FFFFFFFFu);
+  DataPacket::ErrorType mask(static_cast<DataPacket::ErrorType>(temp_mask));
+
+  std::stringstream ss("");
 
   if(argc==2 && argv[1][0]!='-'){
     filename=argv[1];
@@ -65,7 +69,8 @@ int main(int argc, char *argv[]){
         end_entry=atoi(optarg);
         break;
       case 'm':
-        mask=static_cast<DataPacket::ErrorType>(atoi(optarg));
+	temp_mask=strtol(optarg, NULL, 0);
+	mask=static_cast<DataPacket::ErrorType>(temp_mask);
         break;
       case 'c':
         count_mode=true;
