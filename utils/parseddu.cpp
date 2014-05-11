@@ -103,15 +103,16 @@ int main(int argc, char *argv[]){
     unsigned entry(1);
     if(analysis_mode){
       std::map<DataPacket::ErrorType, unsigned> type_counter;
-      std::vector<std::pair<DataPacket::ErrorType, unsigned> > type_record;
+      std::vector<std::pair<std::pair<DataPacket::ErrorType, std::vector<bool> >, unsigned> > type_record(0);
       for(entry=1; entry<start_entry && FindStartOfNextPacket(ifs, packet); ++entry){
       }
       for(; entry<=end_entry && FindStartOfNextPacket(ifs, packet); ++entry){
         GetRestOfPacket(ifs, packet);
         data_packet.SetData(packet);
 	
+	const std::vector<bool> is_odmb(data_packet.GetDMBType());
         const DataPacket::ErrorType this_type(static_cast<DataPacket::ErrorType>(mask & data_packet.GetPacketType()));
-	type_record.push_back(std::make_pair(this_type, entry));
+	type_record.push_back(std::make_pair(std::make_pair(this_type, is_odmb), entry));
 	
         if(type_counter.find(this_type)==type_counter.end()){
           type_counter[this_type]=1;
@@ -120,16 +121,39 @@ int main(int argc, char *argv[]){
         }
       }
       for(unsigned i(0); i<type_record.size(); ++i){
-	const DataPacket::ErrorType last((i==0)?(DataPacket::kGood):(type_record.at(i-1).first));
-	const DataPacket::ErrorType ups=static_cast<DataPacket::ErrorType>(type_record.at(i).first & (~last));
-	const DataPacket::ErrorType downs=static_cast<DataPacket::ErrorType>((~type_record.at(i).first) & last);
+	const DataPacket::ErrorType last((i==0)?(DataPacket::kGood):(type_record.at(i-1).first.first));
+	const DataPacket::ErrorType ups=static_cast<DataPacket::ErrorType>(type_record.at(i).first.first & (~last));
+	const DataPacket::ErrorType downs=static_cast<DataPacket::ErrorType>((~type_record.at(i).first.first) & last);
+
+	bool have_dmb(false), have_odmb(false);
+	for(unsigned dmb(0); dmb<type_record.at(i).first.second.size(); ++dmb){
+	  if(type_record.at(i).first.second.at(dmb)){
+	    have_odmb=true;
+	  }else{
+	    have_dmb=true;
+	  }
+	}
+	std::string packet_type("ODMB");
+	if(have_odmb){
+	  if(have_dmb){
+	    packet_type="ODMB+DMB";
+	  }else{
+	    packet_type="    ODMB";
+	  }
+	}else{
+	  if(have_dmb){
+	    packet_type="     DMB";
+	  }else{
+	    packet_type="   Empty";
+	  }
+	}
 
 	if(ups | downs){
-	  std::cout << "Packet " << std::dec << std::setw(8) << std::setfill(' ') << type_record.at(i).second
+	  std::cout << packet_type << " packet " << std::dec << std::setw(8) << std::setfill(' ') << type_record.at(i).second
 		    << " turns on " << std::hex << std::setw(9) << std::setfill('0')
 		    << ups << " and turns off " << std::hex << std::setw(9) << std::setfill('0')
 		    << downs << " (now at " << std::hex << std::setw(9) << std::setfill('0')
-		    << type_record.at(i).first << ")." << std::endl;
+		    << type_record.at(i).first.first << ")." << std::endl;
 	}
       }
       

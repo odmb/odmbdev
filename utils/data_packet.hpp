@@ -60,6 +60,8 @@ namespace Packet{
 
     void Print(const unsigned, const unsigned, const bool=false) const;
 
+    std::vector<bool> GetDMBType() const;
+
     enum ErrorType{
       kGood               = 0x000000000u,
       kDDU                = 0x0FFFFFFFFu,
@@ -118,6 +120,7 @@ namespace Packet{
 
     std::vector<std::pair<uint_fast32_t, bool> > GetL1As() const;
     std::string GetL1AText(const bool=false) const;
+    std::string GetODMBText() const;
 
     bool HasUncategorizedWords() const;
 

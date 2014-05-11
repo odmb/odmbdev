@@ -440,7 +440,13 @@ namespace Packet{
                              const unsigned text_mode) const{
     const std::string dcfeb_text(GetDCFEBText(odmb));
     std::ostringstream oss("");
-    oss << "ODMB Header " << odmb+1 << "; " << dcfeb_text;
+    const bool is_odmb(GetDMBType().at(odmb));
+    if(is_odmb){
+      oss << "ODMB Header ";
+    }else{
+      oss << "DMB Header ";
+    }
+    oss << odmb+1 << "; " << dcfeb_text;
     PrintComponent(oss.str(), odmb_header_start_.at(odmb),
                    odmb_header_end_.at(odmb), words_per_line, text_mode);
     PrintComponent(uncat, odmb_header_end_.at(odmb), alct_start_.at(odmb),
@@ -470,8 +476,13 @@ namespace Packet{
       PrintComponent(uncat, otmb_end_.at(odmb), odmb_trailer_start_.at(odmb),
                      words_per_line, text_mode);
     }
-    PrintComponent("ODMB Trailer", odmb_trailer_start_.at(odmb),
-                   odmb_trailer_end_.at(odmb), words_per_line, text_mode);
+    if(is_odmb){
+      PrintComponent("ODMB Trailer", odmb_trailer_start_.at(odmb),
+		     odmb_trailer_end_.at(odmb), words_per_line, text_mode);
+    }else{
+      PrintComponent("DMB Trailer", odmb_trailer_start_.at(odmb),
+		     odmb_trailer_end_.at(odmb), words_per_line, text_mode);
+    }
   }
   
   void DataPacket::Print(const unsigned words_per_line,
@@ -489,10 +500,12 @@ namespace Packet{
     std::ostringstream event_text("");
     event_text << "Event " << std::dec << entry << " (0x" << std::hex << entry << std::dec << ')';
     const std::string l1a_text(GetL1AText(text_mode));
+    const std::string dmb_text(GetODMBText());
 
     std::vector<std::string> header_parts(0);
     header_parts.push_back(event_text.str());
     header_parts.push_back(l1a_text);
+    header_parts.push_back(dmb_text);
     PrintHeader(header_parts, words_per_line);
 
     PrintComponent(uncat, 0, ddu_header_start_, words_per_line, text_mode);
@@ -739,5 +752,34 @@ namespace Packet{
     }else{
       return 0x0u;
     }
+  }
+
+  std::vector<bool> DataPacket::GetDMBType() const{
+    Parse();
+    std::vector<bool> is_odmb(0);
+    for(unsigned dmb(0); dmb<odmb_header_start_.size(); ++dmb){
+      if(odmb_header_end_.at(dmb)-odmb_header_start_.at(dmb)){
+	is_odmb.push_back(GetBit(full_packet_.at(odmb_header_start_.at(dmb)+2), 9));
+      }
+    }
+    return is_odmb;
+  }
+
+  std::string DataPacket::GetODMBText() const{
+    Parse();
+    std::ostringstream oss("");
+    const std::vector<bool> is_odmb(GetDMBType());
+    if(is_odmb.size()){
+      oss << "(" << (is_odmb.at(0)?"ODMB":"DMB");
+      for(unsigned dmb(1); dmb<is_odmb.size(); ++dmb){
+	if(is_odmb.at(dmb)){
+	  oss << ", " << (is_odmb.at(0)?"ODMB":"DMB");
+	}
+      }
+      oss << ")";
+    }else{
+      oss << "No (O)DMBs";
+    }
+    return oss.str();
   }
 }
