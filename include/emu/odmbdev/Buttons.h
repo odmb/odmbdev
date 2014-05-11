@@ -439,6 +439,17 @@ namespace emu { namespace odmbdev {
     };
 
     /**************************************************************************
+     * BurnInTest
+     *
+     * Print unique ID and firmware info -- also do SYSMON                                                                                                                          
+     **************************************************************************/
+    class BurnInTest : public ButtonAction {
+    public:
+      BurnInTest(Crate * crate);                                                                                                                                                 
+      void respond(xgi::Input * in, ostringstream & out);
+    };           
+
+    /**************************************************************************
      * ReadODMBVitals
      *
      * Print unique ID and firmware info

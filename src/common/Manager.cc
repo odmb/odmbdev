@@ -143,7 +143,7 @@ namespace emu { namespace odmbdev {
       //addActionByTypename<BC0>(crate);
       //addActionByTypename<ReadBackUserCodes>(crate);
       //addActionByTypename<CommonUtilities_setupDDU>(crate);
-      addActionByTypename<CommonUtilities_setupDDU_passThrough>(crate);
+      addActionByTypename<BurnInTest>(crate);
       addActionByTypename<LoadMCSviaBPI>(crate, this);
       
       putButtonsInGroup("Production Tests");
