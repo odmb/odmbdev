@@ -1,14 +1,15 @@
 /*
   DDU parsing script
   Parses CSC raw files for either single event or whole file diagnostic report. The diagnostic
-  report produces a 16 bit error-code for each event containing, from MSB to LSB, a 1 for the
-  errors ((no ODMB trailer, no ODMB header, no OTMB data, no ALCT data), (missing words at end of OTMB data, extra words at end of OTMB data, missing words at start of OTMB data, extra words at start of OTMB data), (missing words at end of ALCT data, extra words at end of ALCT data, missing words at start of ALCT data, extra words at start of ALCT data), (unparsed words, no DDU trailer, no DDU header, no DCFEB data)).
+  report produces a 34 bit error-code for each event containing, from MSB to LSB, an L1A
+  mismatch error bit, an uncategorized word error bit, and the 32 bit DDU status
 
   Command line options:
   -f: Sets input file.
   -s: Sets the first event to parse and process.
   -e: Sets the last event to parse and process.
   -t: Text-only mode. Turns off colorization of parsed key words in output.
+  -m: Set error bitmask.
   -w: Sets the number of words to print per line. Default is 20.
   -c: Counting mode. Counts number of packets without further processing
   -a: Analysis mode. Analyzes events without printing
@@ -16,7 +17,7 @@
   If only one command line option is given (without a "-"), it is used as a file name and a diagnostic report is produced.
 
   Author: Adam Dishaw (ald77@physics.ucsb.edu)
-  Last modified: 2014-05-07
+  Last modified: 2014-05-11
 */
 
 #include <cstdlib>
@@ -43,12 +44,13 @@ int main(int argc, char *argv[]){
   bool count_mode(false);
   bool text_mode(false);
   bool analysis_mode(false);
+  DataPacket::ErrorType mask(static_cast<DataPacket::ErrorType>(0x3FFFFFFFFu));
 
   if(argc==2 && argv[1][0]!='-'){
     filename=argv[1];
   }else{
     char opt(' ');
-    while(( opt=getopt(argc, argv, "w:f:s:e:cta") )!=-1){
+    while(( opt=getopt(argc, argv, "w:f:s:e:m:cta") )!=-1){
       switch(opt){
       case 'w':
         words_per_line=atoi(optarg);
@@ -61,6 +63,9 @@ int main(int argc, char *argv[]){
         break;
       case 'e':
         end_entry=atoi(optarg);
+        break;
+      case 'm':
+        mask=static_cast<DataPacket::ErrorType>(atoi(optarg));
         break;
       case 'c':
         count_mode=true;
@@ -98,35 +103,48 @@ int main(int argc, char *argv[]){
     unsigned entry(1);
     if(analysis_mode){
       std::map<DataPacket::ErrorType, unsigned> type_counter;
+      std::vector<std::pair<DataPacket::ErrorType, unsigned> > type_record;
       for(entry=1; entry<start_entry && FindStartOfNextPacket(ifs, packet); ++entry){
       }
       for(; entry<=end_entry && FindStartOfNextPacket(ifs, packet); ++entry){
         GetRestOfPacket(ifs, packet);
         data_packet.SetData(packet);
-        const DataPacket::ErrorType this_type(data_packet.GetPacketType());
-        if(this_type){
-          std::cout << "Packet " << std::dec << std::setw(8) << std::setfill(' ') << entry
-                    << " is of type " << std::hex << std::setw(4) << std::setfill('0')
-                    << this_type << "." << std::endl;
-        }
+	
+        const DataPacket::ErrorType this_type(static_cast<DataPacket::ErrorType>(mask & data_packet.GetPacketType()));
+	type_record.push_back(std::make_pair(this_type, entry));
+	
         if(type_counter.find(this_type)==type_counter.end()){
           type_counter[this_type]=1;
         }else{
           ++type_counter[this_type];
         }
       }
+      for(unsigned i(0); i<type_record.size(); ++i){
+	const DataPacket::ErrorType last((i==0)?(DataPacket::kGood):(type_record.at(i-1).first));
+	const DataPacket::ErrorType ups=static_cast<DataPacket::ErrorType>(type_record.at(i).first & (~last));
+	const DataPacket::ErrorType downs=static_cast<DataPacket::ErrorType>((~type_record.at(i).first) & last);
+
+	if(ups | downs){
+	  std::cout << "Packet " << std::dec << std::setw(8) << std::setfill(' ') << type_record.at(i).second
+		    << " turns on " << std::hex << std::setw(9) << std::setfill('0')
+		    << ups << " and turns off " << std::hex << std::setw(9) << std::setfill('0')
+		    << downs << " (now at " << std::hex << std::setw(9) << std::setfill('0')
+		    << type_record.at(i).first << ")." << std::endl;
+	}
+      }
+      
       std::cout << std::dec << std::setw(8) << std::setfill(' ') << entry-start_entry
-                << " total packets:" <<std::endl;
+		<< " total packets:" <<std::endl;
       for(std::map<DataPacket::ErrorType, unsigned>::iterator it(type_counter.begin());
-          it!=type_counter.end(); ++it){
-        std::cout << std::setw(8) << std::dec << std::setfill(' ') << it->second
-                  << " packets of type " << std::setw(4) << std::setfill('0') << std::hex
-                  << it->first << std::endl;
+	  it!=type_counter.end(); ++it){
+	std::cout << std::setw(8) << std::dec << std::setfill(' ') << it->second
+		  << " packets of type " << std::setw(9) << std::setfill('0') << std::hex
+		  << it->first << std::endl;
       }
     }else if(count_mode){
       unsigned event_count(0);
       for(entry=0; FindStartOfNextPacket(ifs, packet); ++entry){
-        GetRestOfPacket(ifs, packet);
+	GetRestOfPacket(ifs, packet);
         ++event_count;
       }
       std::cout << std::dec << event_count << " total events." << std::endl;

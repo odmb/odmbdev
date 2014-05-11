@@ -160,7 +160,8 @@ namespace Packet{
   DataPacket::ErrorType DataPacket::GetPacketType() const{
     Parse();
     return static_cast<ErrorType>((HasL1AMismatch()?kL1AMismatch:kGood)
-                                  | (HasUncategorizedWords()?kUncategorizedWords:kGood));
+                                  | (HasUncategorizedWords()?kUncategorizedWords:kGood)
+				  | GetDDUStatus());
   }
   
   void DataPacket::Parse() const{
@@ -725,5 +726,18 @@ namespace Packet{
     }
     if(ddu_trailer_end_!=full_packet_.size()) return true;
     return false;
+  }
+
+  uint_fast32_t DataPacket::GetDDUStatus() const{
+    Parse();
+    if(ddu_trailer_end_-ddu_trailer_start_>=8){
+      const uint_fast16_t low_16_bits(full_packet_.at(ddu_trailer_start_+6));
+      const uint_fast16_t high_16_bits(full_packet_.at(ddu_trailer_start_+7));
+      return (high_16_bits << 16) | low_16_bits;
+    }else if(ddu_trailer_end_-ddu_header_start_==7){
+      return full_packet_.at(ddu_trailer_start_+6);
+    }else{
+      return 0x0u;
+    }
   }
 }
