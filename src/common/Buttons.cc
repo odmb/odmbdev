@@ -1879,7 +1879,8 @@ namespace emu {
       
       //If log subdir is empty, just put the log file directly in the logfiles directory
       if (log_subdir == "-1"){ strftime( outputfilename, 80, "logfiles/%y_%m_%d_ODMB_testing.log", timeinfo );
-        cout << "output file name: " << outputfilename << endl; }
+        // cout << "output file name: " << outputfilename << endl; 
+      }
       
       //Otherwise, put the log files into a new subdirectory specified by the box number
       else {
@@ -2111,7 +2112,9 @@ namespace emu {
             TypeCommand = 13;
             iss >> pipeDepth;
             out << "SET_PIPE   " << pipeDepth << endl;
-          } else { // Anything else is treated as a comment.
+          } else if (buffer=="BURN_IN_TEST") { 
+	    out << vme_wrapper_->BurnInODMBs().c_str() << endl;
+	  } else { // Anything else is treated as a comment.
             out  << line << endl;
             logfile << "# " << line << endl;
             continue; // Next line, please.
@@ -2348,8 +2351,8 @@ namespace emu {
       int slot = Manager::getSlotNumber();
       //addresses
       unsigned short int VMEresult = 0;
-      int addr_read_fwv(0x004024);
-      int addr_read_unique_id(0x004028);
+      int addr_read_fwv(0x004200);
+      int addr_read_unique_id(0x004100);
 
       // Read firmware version
       VMEresult = vme_wrapper_->VMERead(addr_read_fwv,slot,"Read firmware version");
@@ -2362,7 +2365,8 @@ namespace emu {
       cout << "Tester: " << initials << endl;
       // create log file
       //string file_name("logfiles/odmb_#_fw_v");
-      string file_name("/data/odmb/logfiles/production_tests/odmb");
+      //string file_name("/data/odmb/logfiles/production_tests/odmb");
+      string file_name("logfiles/button_tests/odmb");
       file_name += unique_id + string("_fwv") + fwv;
       file_name += string("_") + emu::utils::getDateTime(true) + string("_") + initials + string(".log");
       ofstream ofs(file_name.c_str(),ios::app);
@@ -2697,7 +2701,7 @@ namespace emu {
         }
       } // end power-off/on test
       vme_wrapper_->VMEWrite(addr_turn_on,0xFF,slot,"Power-on all DCFEBs"); // just to be safe
-      usleep(500000);
+      usleep(700000);
 
       //2) Test ADCs
       vector <int> hexes;
@@ -2816,6 +2820,15 @@ namespace emu {
 
       out << out_local.str();
       UpdateLog(vme_wrapper_, slot, out_local);
+    }
+
+    BurnInTest::BurnInTest(Crate* crate) :
+      ButtonAction(crate, "Check all ODMBs in crate"){
+    }
+
+    void BurnInTest::respond(xgi::Input* in, ostringstream& out){
+      string output = vme_wrapper_->BurnInODMBs();
+      out << output << endl;
     }
 
     ReadODMBVitals::ReadODMBVitals(Crate* crate) :
@@ -4119,7 +4132,7 @@ namespace emu {
             }
                     
             printf("loading MCS file %s...\n", filename.c_str());
-            (*dmb)->odmb_program_eprom(filename.c_str());
+            (*dmb)->odmb_program_eprom_poll(filename.c_str());
           }
         }
 
@@ -4185,7 +4198,7 @@ namespace emu {
               }
 
               cout<<"Programming ODMB on slot "<<slot<<" with MCS file "<<filename1.c_str()<<"...\n";
-              while (!(*dmb)->odmb_program_eprom(filename1.c_str())) {
+              while (!(*dmb)->odmb_program_eprom_poll(filename1.c_str())) {
                 singleLoadFailCount++;
                 if (singleLoadFailCount > 2) {
                   cout << "3 consecutive fails!  bailing!" << endl; 
@@ -4230,7 +4243,7 @@ namespace emu {
                     
               // Now we load the other FW .mcs file
               cout<<"Programming ODMB on slot "<<slot<<" with MCS file "<<filename2.c_str()<<"...\n";
-              while (!(*dmb)->odmb_program_eprom(filename2.c_str())) {
+              while (!(*dmb)->odmb_program_eprom_poll(filename2.c_str())) {
                 singleLoadFailCount++;
                 if (singleLoadFailCount > 2) {
                   cout << "3 consecutive fails!  bailing!" << endl; 

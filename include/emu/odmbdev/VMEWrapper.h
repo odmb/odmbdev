@@ -39,6 +39,9 @@ namespace odmbdev {
       unsigned short int VMERead (unsigned short int, unsigned int=7, string="");
       unsigned int JTAGShift (unsigned short int, unsigned short int, unsigned int, unsigned short int=12, unsigned int=7);
       unsigned int JTAGRead (unsigned short int, unsigned int, unsigned int=7);
+      string ODMBVitals (unsigned int);
+      string SYSMONReport (unsigned int);
+      string BurnInODMBs();
     
     protected:
     	emu::pc::Crate * crate_;
