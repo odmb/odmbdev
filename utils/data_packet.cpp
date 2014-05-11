@@ -161,7 +161,7 @@ namespace Packet{
     Parse();
     return static_cast<ErrorType>((HasL1AMismatch()?kL1AMismatch:kGood)
                                   | (HasUncategorizedWords()?kUncategorizedWords:kGood)
-				  | GetDDUStatus());
+                                  | GetDDUStatus());
   }
   
   void DataPacket::Parse() const{
@@ -437,6 +437,7 @@ namespace Packet{
   void DataPacket::PrintODMB(const std::string& uncat,
                              const unsigned odmb,
                              const unsigned words_per_line,
+                             const uint_fast64_t kill_mask,
                              const unsigned text_mode) const{
     const std::string dcfeb_text(GetDCFEBText(odmb));
     std::ostringstream oss("");
@@ -447,46 +448,73 @@ namespace Packet{
       oss << "DMB Header ";
     }
     oss << odmb+1 << "; " << dcfeb_text;
-    PrintComponent(oss.str(), odmb_header_start_.at(odmb),
-                   odmb_header_end_.at(odmb), words_per_line, text_mode);
-    PrintComponent(uncat, odmb_header_end_.at(odmb), alct_start_.at(odmb),
-                   words_per_line, text_mode);
-    PrintComponent("ALCT", alct_start_.at(odmb), alct_end_.at(odmb), words_per_line, text_mode);
-    PrintComponent(uncat, alct_end_.at(odmb), otmb_start_.at(odmb), words_per_line, text_mode);
-    PrintComponent("OTMB", otmb_start_.at(odmb), otmb_end_.at(odmb), words_per_line, text_mode);
+    if(GetBit(kill_mask, 3)){
+      PrintComponent(oss.str(), odmb_header_start_.at(odmb),
+                     odmb_header_end_.at(odmb), words_per_line, text_mode);
+    }
+    if(GetBit(kill_mask, 0)){
+      PrintComponent(uncat, odmb_header_end_.at(odmb), alct_start_.at(odmb),
+                     words_per_line, text_mode);
+    }
+    if(GetBit(kill_mask, 2)){
+      PrintComponent("ALCT", alct_start_.at(odmb), alct_end_.at(odmb), words_per_line, text_mode);
+    }
+    if(GetBit(kill_mask, 0)){
+      PrintComponent(uncat, alct_end_.at(odmb), otmb_start_.at(odmb), words_per_line, text_mode);
+    }
+    if(GetBit(kill_mask, 2)){
+      PrintComponent("OTMB", otmb_start_.at(odmb), otmb_end_.at(odmb), words_per_line, text_mode);
+    }
     const unsigned num_dcfebs(dcfeb_start_.at(odmb).size());
     if(num_dcfebs>0){
-      PrintComponent(uncat, otmb_end_.at(odmb), dcfeb_start_.at(odmb).at(0),
-                     words_per_line, text_mode);
+      if(GetBit(kill_mask, 0)){
+        PrintComponent(uncat, otmb_end_.at(odmb), dcfeb_start_.at(odmb).at(0),
+                       words_per_line, text_mode);
+      }
       for(unsigned dcfeb(0); dcfeb+1<num_dcfebs; ++dcfeb){
         std::ostringstream oss2("");
         oss2 << "DCFEB " << dcfeb+1;
-        PrintComponent(oss2.str(), dcfeb_start_.at(odmb).at(dcfeb),
-                       dcfeb_end_.at(odmb).at(dcfeb), words_per_line, text_mode);
-        PrintComponent(uncat, dcfeb_end_.at(odmb).at(dcfeb),
-                       dcfeb_start_.at(odmb).at(dcfeb+1), words_per_line, text_mode);
+        if(GetBit(kill_mask, 1)){
+          PrintComponent(oss2.str(), dcfeb_start_.at(odmb).at(dcfeb),
+                         dcfeb_end_.at(odmb).at(dcfeb), words_per_line, text_mode);
+        }
+        if(GetBit(kill_mask, 0)){
+          PrintComponent(uncat, dcfeb_end_.at(odmb).at(dcfeb),
+                         dcfeb_start_.at(odmb).at(dcfeb+1), words_per_line, text_mode);
+        }
       }
       std::ostringstream oss2("");
       oss2 << "DCFEB " << num_dcfebs;
-      PrintComponent(oss2.str(), dcfeb_start_.at(odmb).at(num_dcfebs-1),
-                     dcfeb_end_.at(odmb).at(num_dcfebs-1), words_per_line, text_mode);
-      PrintComponent(uncat, dcfeb_end_.at(odmb).at(num_dcfebs-1),
-                     odmb_trailer_start_.at(odmb), words_per_line, text_mode);
+      if(GetBit(kill_mask, 1)){
+        PrintComponent(oss2.str(), dcfeb_start_.at(odmb).at(num_dcfebs-1),
+                       dcfeb_end_.at(odmb).at(num_dcfebs-1), words_per_line, text_mode);
+      }
+      if(GetBit(kill_mask, 0)){
+        PrintComponent(uncat, dcfeb_end_.at(odmb).at(num_dcfebs-1),
+                       odmb_trailer_start_.at(odmb), words_per_line, text_mode);
+      }
     }else{
-      PrintComponent(uncat, otmb_end_.at(odmb), odmb_trailer_start_.at(odmb),
-                     words_per_line, text_mode);
+      if(GetBit(kill_mask, 0)){
+        PrintComponent(uncat, otmb_end_.at(odmb), odmb_trailer_start_.at(odmb),
+                       words_per_line, text_mode);
+      }
     }
     if(is_odmb){
-      PrintComponent("ODMB Trailer", odmb_trailer_start_.at(odmb),
-		     odmb_trailer_end_.at(odmb), words_per_line, text_mode);
+      if(GetBit(kill_mask, 3)){
+        PrintComponent("ODMB Trailer", odmb_trailer_start_.at(odmb),
+                       odmb_trailer_end_.at(odmb), words_per_line, text_mode);
+      }
     }else{
-      PrintComponent("DMB Trailer", odmb_trailer_start_.at(odmb),
-		     odmb_trailer_end_.at(odmb), words_per_line, text_mode);
+      if(GetBit(kill_mask, 3)){
+        PrintComponent("DMB Trailer", odmb_trailer_start_.at(odmb),
+                       odmb_trailer_end_.at(odmb), words_per_line, text_mode);
+      }
     }
   }
   
   void DataPacket::Print(const unsigned words_per_line,
                          const unsigned entry,
+                         const uint_fast64_t kill_mask,
                          const bool text_mode) const{
     Parse();
 
@@ -508,30 +536,46 @@ namespace Packet{
     header_parts.push_back(dmb_text);
     PrintHeader(header_parts, words_per_line);
 
-    PrintComponent(uncat, 0, ddu_header_start_, words_per_line, text_mode);
-    PrintComponent("DDU Header", ddu_header_start_, ddu_header_end_,
-                   words_per_line, text_mode);
+    if(GetBit(kill_mask, 0)){
+      PrintComponent(uncat, 0, ddu_header_start_, words_per_line, text_mode);
+    }
+    if(GetBit(kill_mask, 4)){
+      PrintComponent("DDU Header", ddu_header_start_, ddu_header_end_,
+                     words_per_line, text_mode);
+    }
     const unsigned num_odmbs(odmb_header_start_.size());
 
     if(num_odmbs>0){
-      PrintComponent(uncat, ddu_header_end_, odmb_header_start_.at(0),
-                     words_per_line, text_mode);
-      for(unsigned odmb(0); odmb+1<num_odmbs; ++odmb){
-        PrintODMB(uncat, odmb, words_per_line, text_mode);
-        PrintComponent(uncat, odmb_trailer_end_.at(odmb),
-                       odmb_header_start_.at(odmb+1), words_per_line, text_mode);
+      if(GetBit(kill_mask, 0)){
+        PrintComponent(uncat, ddu_header_end_, odmb_header_start_.at(0),
+                       words_per_line, text_mode);
       }
-      PrintODMB(uncat, num_odmbs-1, words_per_line, text_mode);
-      PrintComponent(uncat, odmb_trailer_end_.at(odmb_trailer_end_.size()-1), ddu_trailer_start_,
-                     words_per_line, text_mode);
+      for(unsigned odmb(0); odmb+1<num_odmbs; ++odmb){
+        PrintODMB(uncat, odmb, words_per_line, kill_mask, text_mode);
+        if(GetBit(kill_mask, 0)){
+          PrintComponent(uncat, odmb_trailer_end_.at(odmb),
+                         odmb_header_start_.at(odmb+1), words_per_line, text_mode);
+        }
+      }
+      PrintODMB(uncat, num_odmbs-1, words_per_line, kill_mask, text_mode);
+      if(GetBit(kill_mask, 0)){
+        PrintComponent(uncat, odmb_trailer_end_.at(odmb_trailer_end_.size()-1), ddu_trailer_start_,
+                       words_per_line, text_mode);
+      }
     }else{
-      PrintComponent(uncat, ddu_header_end_,
-                     ddu_trailer_start_, words_per_line, text_mode);
+      if(GetBit(kill_mask, 0)){
+        PrintComponent(uncat, ddu_header_end_,
+                       ddu_trailer_start_, words_per_line, text_mode);
+      }
     }
-    PrintComponent("DDU Trailer", ddu_trailer_start_,
-                   ddu_trailer_end_, words_per_line, text_mode);
-    PrintComponent(uncat, ddu_trailer_end_, full_packet_.size(),
-                   words_per_line, text_mode);
+    if(GetBit(kill_mask, 4)){
+      PrintComponent("DDU Trailer", ddu_trailer_start_,
+                     ddu_trailer_end_, words_per_line, text_mode);
+    }
+    if(GetBit(kill_mask, 0)){
+      PrintComponent(uncat, ddu_trailer_end_, full_packet_.size(),
+                     words_per_line, text_mode);
+    }
   }
 
   void DataPacket::PrintHeader(const std::vector<std::string>& parts, const unsigned words_per_line) const{
@@ -619,9 +663,9 @@ namespace Packet{
       if(odmb_header_end_.at(packet)-odmb_header_start_.at(packet)==1){
         l1as.push_back(std::make_pair(full_packet_.at(odmb_header_start_.at(packet)) & 0xFFFu, true));
       }else if(odmb_header_end_.at(packet)-odmb_header_start_.at(packet)>=2){
-	const uint_fast16_t first_12_bits(full_packet_.at(odmb_header_start_.at(packet)+1) & 0xFFFu);
-	const uint_fast16_t last_12_bits(full_packet_.at(odmb_header_start_.at(packet)) & 0xFFFu);
-	l1as.push_back(std::make_pair((first_12_bits << 12) | last_12_bits, true));
+        const uint_fast16_t first_12_bits(full_packet_.at(odmb_header_start_.at(packet)+1) & 0xFFFu);
+        const uint_fast16_t last_12_bits(full_packet_.at(odmb_header_start_.at(packet)) & 0xFFFu);
+        l1as.push_back(std::make_pair((first_12_bits << 12) | last_12_bits, true));
       }
       if(alct_end_.at(packet)-alct_start_.at(packet)>=3){
         l1as.push_back(std::make_pair(full_packet_.at(alct_start_.at(packet)+2) & 0xFFFu, false));
@@ -640,15 +684,15 @@ namespace Packet{
       for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
         if(l1as.at(l1a).second){
           to_match=l1as.at(0).first;
-	  break;
+          break;
         }
       }
       const uint_fast16_t to_match_12_bits(to_match & 0xFFFu);
       for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
-	if((l1as.at(l1a).second && l1as.at(l1a).first!=to_match)
-	   || (!l1as.at(l1a).second && l1as.at(l1a).first!=to_match_12_bits)){
-	  return true;
-	}
+        if((l1as.at(l1a).second && l1as.at(l1a).first!=to_match)
+           || (!l1as.at(l1a).second && l1as.at(l1a).first!=to_match_12_bits)){
+          return true;
+        }
       }
       return false;
     }else{
@@ -661,31 +705,31 @@ namespace Packet{
     if(l1as.size()){
       uint_fast32_t to_match(l1as.at(0).first);
       for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
-	if(l1as.at(l1a).second){
-	  to_match=l1as.at(0).first;
-	  break;
-	}
+        if(l1as.at(l1a).second){
+          to_match=l1as.at(0).first;
+          break;
+        }
       }
       const uint_fast16_t to_match_12_bits(l1as.at(0).first & 0xFFFu);
       std::ostringstream oss("");
       if(HasL1AMismatch()){
         oss << "L1As=(";
         for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
-	  const bool is_match(l1as.at(l1a).second?(l1as.at(l1a).first==to_match):(l1as.at(l1a).first==to_match_12_bits));
+          const bool is_match(l1as.at(l1a).second?(l1as.at(l1a).first==to_match):(l1as.at(l1a).first==to_match_12_bits));
           if(!is_match && !text_mode){
-	    if(l1a!=0){
-	      oss << ", " << io::bold << io::bg_red << io::fg_white
-		  << l1as.at(l1a).first << io::normal;
-	    }else{
-	      oss << io::bold << io::bg_red << io::fg_white
-		  << l1as.at(l1a).first << io::normal;
-	    }
+            if(l1a!=0){
+              oss << ", " << io::bold << io::bg_red << io::fg_white
+                  << l1as.at(l1a).first << io::normal;
+            }else{
+              oss << io::bold << io::bg_red << io::fg_white
+                  << l1as.at(l1a).first << io::normal;
+            }
           }else{
-	    if(l1a!=0){
-	      oss << ", " << l1as.at(l1a).first;
-	    }else{
-	      oss << l1as.at(l1a).first;
-	    }
+            if(l1a!=0){
+              oss << ", " << l1as.at(l1a).first;
+            }else{
+              oss << l1as.at(l1a).first;
+            }
           }
         }
         oss << ")";
@@ -759,7 +803,7 @@ namespace Packet{
     std::vector<bool> is_odmb(0);
     for(unsigned dmb(0); dmb<odmb_header_start_.size(); ++dmb){
       if(odmb_header_end_.at(dmb)-odmb_header_start_.at(dmb)>=3){
-	is_odmb.push_back(GetBit(full_packet_.at(odmb_header_start_.at(dmb)+2), 9));
+        is_odmb.push_back(GetBit(full_packet_.at(odmb_header_start_.at(dmb)+2), 9));
       }
     }
     return is_odmb;
@@ -772,7 +816,7 @@ namespace Packet{
     if(is_odmb.size()){
       oss << "(" << (is_odmb.at(0)?"ODMB":"DMB");
       for(unsigned dmb(1); dmb<is_odmb.size(); ++dmb){
-	oss << ", " << (is_odmb.at(dmb)?"ODMB":"DMB");
+        oss << ", " << (is_odmb.at(dmb)?"ODMB":"DMB");
       }
       oss << ")";
     }else{

@@ -10,6 +10,7 @@
   -e: Sets the last event to parse and process.
   -t: Text-only mode. Turns off colorization of parsed key words in output.
   -m: Set error bitmask.
+  -k: Set 5 bit kill bitmask indicating which components to print (DDU, ODMB, ALCT+OTMB, DCFEBs, uncategorized)
   -w: Sets the number of words to print per line. Default is 20.
   -c: Counting mode. Counts number of packets without further processing
   -a: Analysis mode. Analyzes events without printing
@@ -45,7 +46,8 @@ int main(int argc, char *argv[]){
   bool count_mode(false);
   bool text_mode(false);
   bool analysis_mode(false);
-  uint_fast64_t temp_mask(0x3FFFFFFFFu);
+  uint_fast64_t temp_mask(std::numeric_limits<uint_fast64_t>::max());
+  uint_fast8_t kill_mask(0xFF);
   DataPacket::ErrorType mask(static_cast<DataPacket::ErrorType>(temp_mask));
 
   std::stringstream ss("");
@@ -54,7 +56,7 @@ int main(int argc, char *argv[]){
     filename=argv[1];
   }else{
     char opt(' ');
-    while(( opt=getopt(argc, argv, "w:f:s:e:m:cta") )!=-1){
+    while(( opt=getopt(argc, argv, "w:f:s:e:m:k:cta") )!=-1){
       switch(opt){
       case 'w':
         words_per_line=atoi(optarg);
@@ -69,9 +71,11 @@ int main(int argc, char *argv[]){
         end_entry=atoi(optarg);
         break;
       case 'm':
-	temp_mask=strtol(optarg, NULL, 0);
-	mask=static_cast<DataPacket::ErrorType>(temp_mask);
+	mask=static_cast<DataPacket::ErrorType>(GetNumber(optarg));
         break;
+      case 'k':
+	kill_mask=GetNumber(optarg);
+	break;
       case 'c':
         count_mode=true;
         analysis_mode=false;
@@ -183,7 +187,7 @@ int main(int argc, char *argv[]){
       for(; entry<=end_entry && FindStartOfNextPacket(ifs, packet); ++entry){
         GetRestOfPacket(ifs, packet);
         data_packet.SetData(packet);
-        data_packet.Print(words_per_line, entry, text_mode);
+        data_packet.Print(words_per_line, entry, kill_mask, text_mode);
       }
     }
     ifs.close();
@@ -267,4 +271,8 @@ void GetRestOfPacket(std::ifstream& ifs, svu& packet){
   }else{
     GetRestOfPCPacket(ifs, packet);
   }
+}
+
+uint_fast64_t GetNumber(const std::string& input){
+  return strtol(input.c_str(), NULL, 0);
 }

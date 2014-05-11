@@ -58,7 +58,7 @@ namespace Packet{
     svu GetODMBTrailer(const unsigned) const;
     svu GetDDUTrailer() const;
 
-    void Print(const unsigned, const unsigned, const bool=false) const;
+    void Print(const unsigned, const unsigned, const uint_fast64_t, const bool=false) const;
 
     std::vector<bool> GetDMBType() const;
 
@@ -101,6 +101,7 @@ namespace Packet{
     void PrintODMB(const std::string& uncat,
                    const unsigned odmb,
                    const unsigned words_per_line,
+		   const uint_fast64_t kill_mask,
                    const unsigned text_mode) const;
     void PrintHeader(const std::vector<std::string>&, const unsigned words_per_line) const;
 
