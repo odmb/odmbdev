@@ -21,7 +21,12 @@ ulimit -c unlimited
 
 # BUILD_HOME, XDAQ_ROOT and ROOTSYS should be set. Their default values are:
 # export BUILD_HOME=${BUILD_HOME:-$PWD/${0:h}/../../..}
-export BUILD_HOME=${BUILD_HOME:-$HOME/CMS/TriDAS}
+current_path=`pwd -P`
+if [[ $current_path == *TriDAS* ]]; then
+    export BUILD_HOME=`echo $current_path | sed -r 's|(TriDAS).*$|\1|'`
+else
+    export BUILD_HOME=`dirname ${current_path}`/TriDAS
+fi
 export XDAQ_ROOT=${XDAQ_ROOT:-$HOME/XDAQ}
 export ROOTSYS=${ROOTSYS:-$HOME/ROOT/root}
 
