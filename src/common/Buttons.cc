@@ -2294,8 +2294,9 @@ namespace emu {
     
     void SYSMON::respond(xgi::Input * in, ostringstream & out) { // TD
       out << "********** System Monitoring **********" << endl;
-      int slot = Manager::getSlotNumber();
-      unsigned int odmb_id = vme_wrapper_->VMERead(0x4100, slot, "Checking ODMB version");
+            
+int slot = Manager::getSlotNumber();
+      /*unsigned int odmb_id = vme_wrapper_->VMERead(0x4100, slot, "Checking ODMB version");
       unsigned int odmb_version = odmb_id >> 12u;
       unsigned int read_addr_vec[9] = {0x7150, 0x7120, 0x7000, 0x7160, 0x7140, 0x7100, 0x7130, 0x7110, 0x7170};
       string description[9] = {"C\t -  Thermistor 1 temperature", odmb_version<=3?"C\t -  Thermistor 2 temperature":"mA\t -  IPPIB: Current for PPIB", "C\t -  FPGA temperature", 
@@ -2332,6 +2333,9 @@ namespace emu {
         //out << "R  " << FixLength(read_addr & 0xffff) << "        " << description[i] << ": " << setprecision(precision[i]) << result2[i] << endl;      
         out << fix_width(result2[i], 4) << " " << description[i]<< endl;
       }
+      */
+      string s_sysmon=vme_wrapper_->SYSMONReport(slot);
+      out << s_sysmon;
       out<<endl;
     }
 
@@ -2701,7 +2705,7 @@ namespace emu {
         }
       } // end power-off/on test
       vme_wrapper_->VMEWrite(addr_turn_on,0xFF,slot,"Power-on all DCFEBs"); // just to be safe
-      usleep(700000);
+      usleep(900000);
 
       //2) Test ADCs
       vector <int> hexes;
