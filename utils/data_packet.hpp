@@ -101,7 +101,7 @@ namespace Packet{
     void PrintODMB(const std::string& uncat,
                    const unsigned odmb,
                    const unsigned words_per_line,
-		   const uint_fast64_t kill_mask,
+                   const uint_fast64_t kill_mask,
                    const unsigned text_mode) const;
     void PrintHeader(const std::vector<std::string>&, const unsigned words_per_line) const;
 

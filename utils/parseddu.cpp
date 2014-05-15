@@ -71,11 +71,11 @@ int main(int argc, char *argv[]){
         end_entry=atoi(optarg);
         break;
       case 'm':
-	mask=static_cast<DataPacket::ErrorType>(GetNumber(optarg));
+        mask=static_cast<DataPacket::ErrorType>(GetNumber(optarg));
         break;
       case 'k':
-	kill_mask=GetNumber(optarg);
-	break;
+        kill_mask=GetNumber(optarg);
+        break;
       case 'c':
         count_mode=true;
         analysis_mode=false;
@@ -118,11 +118,11 @@ int main(int argc, char *argv[]){
       for(; entry<=end_entry && FindStartOfNextPacket(ifs, packet); ++entry){
         GetRestOfPacket(ifs, packet);
         data_packet.SetData(packet);
-	
-	const std::vector<bool> is_odmb(data_packet.GetDMBType());
+        
+        const std::vector<bool> is_odmb(data_packet.GetDMBType());
         const DataPacket::ErrorType this_type(static_cast<DataPacket::ErrorType>(mask & data_packet.GetPacketType()));
-	type_record.push_back(std::make_pair(std::make_pair(this_type, is_odmb), entry));
-	
+        type_record.push_back(std::make_pair(std::make_pair(this_type, is_odmb), entry));
+        
         if(type_counter.find(this_type)==type_counter.end()){
           type_counter[this_type]=1;
         }else{
@@ -130,54 +130,54 @@ int main(int argc, char *argv[]){
         }
       }
       for(unsigned i(0); i<type_record.size(); ++i){
-	const DataPacket::ErrorType last((i==0)?(DataPacket::kGood):(type_record.at(i-1).first.first));
-	const DataPacket::ErrorType ups=static_cast<DataPacket::ErrorType>(type_record.at(i).first.first & (~last));
-	const DataPacket::ErrorType downs=static_cast<DataPacket::ErrorType>((~type_record.at(i).first.first) & last);
+        const DataPacket::ErrorType last((i==0)?(DataPacket::kGood):(type_record.at(i-1).first.first));
+        const DataPacket::ErrorType ups=static_cast<DataPacket::ErrorType>(type_record.at(i).first.first & (~last));
+        const DataPacket::ErrorType downs=static_cast<DataPacket::ErrorType>((~type_record.at(i).first.first) & last);
 
-	bool have_dmb(false), have_odmb(false);
-	for(unsigned dmb(0); dmb<type_record.at(i).first.second.size(); ++dmb){
-	  if(type_record.at(i).first.second.at(dmb)){
-	    have_odmb=true;
-	  }else{
-	    have_dmb=true;
-	  }
-	}
-	std::string packet_type("ODMB");
-	if(have_odmb){
-	  if(have_dmb){
-	    packet_type="ODMB+DMB";
-	  }else{
-	    packet_type="    ODMB";
-	  }
-	}else{
-	  if(have_dmb){
-	    packet_type="     DMB";
-	  }else{
-	    packet_type="   Empty";
-	  }
-	}
+        bool have_dmb(false), have_odmb(false);
+        for(unsigned dmb(0); dmb<type_record.at(i).first.second.size(); ++dmb){
+          if(type_record.at(i).first.second.at(dmb)){
+            have_odmb=true;
+          }else{
+            have_dmb=true;
+          }
+        }
+        std::string packet_type("ODMB");
+        if(have_odmb){
+          if(have_dmb){
+            packet_type="ODMB+DMB";
+          }else{
+            packet_type="    ODMB";
+          }
+        }else{
+          if(have_dmb){
+            packet_type="     DMB";
+          }else{
+            packet_type="   Empty";
+          }
+        }
 
-	if(ups | downs){
-	  std::cout << packet_type << " packet " << std::dec << std::setw(8) << std::setfill(' ') << type_record.at(i).second
-		    << " turns on " << std::hex << std::setw(9) << std::setfill('0')
-		    << ups << " and turns off " << std::hex << std::setw(9) << std::setfill('0')
-		    << downs << " (now at " << std::hex << std::setw(9) << std::setfill('0')
-		    << type_record.at(i).first.first << ")." << std::endl;
-	}
+        if(ups | downs){
+          std::cout << packet_type << " packet " << std::dec << std::setw(8) << std::setfill(' ') << type_record.at(i).second
+                    << " turns on " << std::hex << std::setw(9) << std::setfill('0')
+                    << ups << " and turns off " << std::hex << std::setw(9) << std::setfill('0')
+                    << downs << " (now at " << std::hex << std::setw(9) << std::setfill('0')
+                    << type_record.at(i).first.first << ")." << std::endl;
+        }
       }
       
       std::cout << std::dec << std::setw(8) << std::setfill(' ') << entry-start_entry
-		<< " total packets:" <<std::endl;
+                << " total packets:" <<std::endl;
       for(std::map<DataPacket::ErrorType, unsigned>::iterator it(type_counter.begin());
-	  it!=type_counter.end(); ++it){
-	std::cout << std::setw(8) << std::dec << std::setfill(' ') << it->second
-		  << " packets of type " << std::setw(9) << std::setfill('0') << std::hex
-		  << it->first << std::endl;
+          it!=type_counter.end(); ++it){
+        std::cout << std::setw(8) << std::dec << std::setfill(' ') << it->second
+                  << " packets of type " << std::setw(9) << std::setfill('0') << std::hex
+                  << it->first << std::endl;
       }
     }else if(count_mode){
       unsigned event_count(0);
       for(entry=0; FindStartOfNextPacket(ifs, packet); ++entry){
-	GetRestOfPacket(ifs, packet);
+        GetRestOfPacket(ifs, packet);
         ++event_count;
       }
       std::cout << std::dec << event_count << " total events." << std::endl;
