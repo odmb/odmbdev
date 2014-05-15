@@ -737,14 +737,14 @@ namespace Packet{
     if(l1as.size()){
       bool found_24_bit(false);
       uint_fast32_t to_match((*(l1as.begin())).first);
-      for(std::set<l1a_t>::iterator l1a(l1as.begin()); l1a!=l1as.end(); ++l1a){
+      for(std::set<l1a_t>::reverse_iterator l1a(l1as.rbegin()); l1a!=l1as.rend(); ++l1a){
         if(l1a->second==24){
           to_match=l1a->first;
           found_24_bit=true;
           break;
         }
       }
-      for(std::set<l1a_t>::iterator l1a(l1as.begin()); !found_24_bit && l1a!=l1as.end(); ++l1a){
+      for(std::set<l1a_t>::reverse_iterator l1a(l1as.rbegin()); !found_24_bit && l1a!=l1as.rend(); ++l1a){
         if(l1a->second==12){
           to_match=l1a->first;
           break;
