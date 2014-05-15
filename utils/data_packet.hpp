@@ -108,6 +108,8 @@ namespace Packet{
     void FindDCFEBData(const unsigned) const;
     void FindDDUTrailer() const;
 
+    bool IsDCFEB(const unsigned, const unsigned) const;
+
     svu GetComponent(const unsigned, const unsigned) const;
     void PrintComponent(const std::string&, const unsigned,
                         const unsigned, const unsigned,

@@ -445,6 +445,8 @@ namespace Packet{
                              const unsigned words_per_line,
                              const uint_fast64_t kill_mask,
                              const unsigned text_mode) const{
+    Parse();
+    const std::vector<unsigned> dcfebs(GetValidDCFEBs(odmb));
     const std::string dcfeb_text(GetDCFEBText(odmb));
     std::ostringstream oss("");
     const bool is_odmb(GetDMBType().at(odmb));
@@ -479,7 +481,7 @@ namespace Packet{
       }
       for(unsigned dcfeb(0); dcfeb+1<num_dcfebs; ++dcfeb){
         std::ostringstream oss2("");
-        oss2 << "DCFEB " << dcfeb+1;
+        oss2 << (IsDCFEB(odmb, dcfeb)?"DCFEB ":"CFEB ") << ((dcfeb<dcfebs.size())?dcfebs.at(dcfeb):'?');
         if(GetBit(kill_mask, 1)){
           PrintComponent(oss2.str(), dcfeb_start_.at(odmb).at(dcfeb),
                          dcfeb_end_.at(odmb).at(dcfeb), words_per_line, text_mode);
@@ -490,7 +492,7 @@ namespace Packet{
         }
       }
       std::ostringstream oss2("");
-      oss2 << "DCFEB " << num_dcfebs;
+      oss2 << (IsDCFEB(odmb, num_dcfebs-1)?"DCFEB ":"CFEB ") << ((num_dcfebs<=dcfebs.size())?dcfebs.at(num_dcfebs-1):'?');
       if(GetBit(kill_mask, 1)){
         PrintComponent(oss2.str(), dcfeb_start_.at(odmb).at(num_dcfebs-1),
                        dcfeb_end_.at(odmb).at(num_dcfebs-1), words_per_line, text_mode);
@@ -866,6 +868,19 @@ namespace Packet{
       }
     }
     return is_odmb;
+  }
+
+  bool DataPacket::IsDCFEB(const unsigned odmb,
+                           const unsigned cfeb) const{
+    if(odmb<dcfeb_end_.size() && cfeb<dcfeb_end_.at(odmb).size()){
+      if(dcfeb_end_.at(odmb).at(cfeb)>0){
+        return full_packet_.at(dcfeb_end_.at(odmb).at(cfeb)-1)==0x7FFFu;
+      }else{
+        return false;
+      }
+    }else{
+      return false;
+    }
   }
 
   std::string DataPacket::GetODMBText() const{
