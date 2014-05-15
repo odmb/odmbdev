@@ -56,7 +56,7 @@ int main(int argc, char *argv[]){
     filename=argv[1];
   }else{
     char opt(' ');
-    while(( opt=getopt(argc, argv, "w:f:s:e:m:k:cta") )!=-1){
+    while(( opt=getopt(argc, argv, "w:f:s:e:m:p:cta") )!=-1){
       switch(opt){
       case 'w':
         words_per_line=GetNumber(optarg);
