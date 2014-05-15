@@ -10,7 +10,7 @@
   -e: Sets the last event to parse and process.
   -t: Text-only mode. Turns off colorization of parsed key words in output.
   -m: Set error bitmask.
-  -k: Set 5 bit kill bitmask indicating which components to print (DDU, ODMB, ALCT+OTMB, DCFEBs, uncategorized)
+  -p: Set 5 bit print bitmask indicating which components to print (DDU, ODMB, ALCT+OTMB, DCFEBs, uncategorized). All on by default.
   -w: Sets the number of words to print per line. Default is 20.
   -c: Counting mode. Counts number of packets without further processing
   -a: Analysis mode. Analyzes events without printing
@@ -18,7 +18,7 @@
   If only one command line option is given (without a "-"), it is used as a file name and a diagnostic report is produced.
 
   Author: Adam Dishaw (ald77@physics.ucsb.edu)
-  Last modified: 2014-05-11
+  Last modified: 2014-05-15
 */
 
 #include <cstdlib>
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]){
       case 'm':
         mask=static_cast<DataPacket::ErrorType>(GetNumber(optarg));
         break;
-      case 'k':
+      case 'p':
         kill_mask=GetNumber(optarg);
         break;
       case 'c':
