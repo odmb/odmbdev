@@ -1,5 +1,6 @@
 #include "data_packet.hpp"
 #include <cmath>
+#include <set>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -61,7 +62,7 @@ namespace Packet{
 
   void PrintWithStars(const std::string& text, const unsigned full_width){
     const unsigned spares(full_width-text.length());
-    if(spares>=2){
+    if(spares>=2 && full_width>text.length()){
       for(unsigned i(0); i<3 && i<spares-1; ++i) std::cout << '*';
       std::cout << ' ' << text;
       if(spares>=6){
@@ -166,6 +167,7 @@ namespace Packet{
   
   void DataPacket::Parse() const{
     if(!parsed_){
+      dcfeb_l1as_.clear();
       FindDDUHeader();
       FindDDUTrailer();
       FindAllODMBHeadersAndTrailers();
@@ -327,12 +329,10 @@ namespace Packet{
     dcfeb_end_.at(packet).clear();
     std::vector<unsigned> temp_dcfeb_end(0);
     for(unsigned index(low+99); index<upper_bound; ++index){
-      const bool good_here((InRange(full_packet_.at(index-2), 0x7000u, 0x700Fu)
-                            || InRange(full_packet_.at(index-2), 0x7000u, 0x7FFFu))
+      const bool good_here(InRange(full_packet_.at(index-2), 0x7000u, 0x7FFFu)
                            && InRange(full_packet_.at(index-1), 0x7000u, 0x7FFFu));
       const bool good_earlier(index<low+102
-                              || ((InRange(full_packet_.at(index-102), 0x7000u, 0x700Fu)
-                                   || InRange(full_packet_.at(index-102), 0x7000u, 0x7FFFu))
+                              || (InRange(full_packet_.at(index-102), 0x7000u, 0x7FFFu)
                                   && InRange(full_packet_.at(index-101), 0x7000u, 0x7FFFu))
                               || (InRange(full_packet_.at(index-102), 0xD000u, 0xDFFFu)
                                   && InRange(full_packet_.at(index-101), 0xD000u, 0xDFFFu)));
@@ -349,6 +349,12 @@ namespace Packet{
     for(unsigned dcfeb(7); dcfeb<temp_dcfeb_end.size(); dcfeb+=8){
       dcfeb_start_.at(packet).push_back(temp_dcfeb_end.at(dcfeb-7)-100);
       dcfeb_end_.at(packet).push_back(temp_dcfeb_end.at(dcfeb));
+    }
+    for(unsigned time_sample(0); time_sample<temp_dcfeb_end.size(); ++time_sample){
+      const unsigned loc(temp_dcfeb_end.at(time_sample)-2);
+      if(loc>=low){
+        dcfeb_l1as_.push_back(l1a_t((full_packet_.at(loc) >> 6) & 0x3F, 6));
+      }
     }
   }
 
@@ -649,86 +655,139 @@ namespace Packet{
     }
   }
 
-  std::vector<std::pair<uint_fast32_t, bool> > DataPacket::GetL1As() const{
+  std::vector<DataPacket::l1a_t> DataPacket::GetL1As() const{
     Parse();
-    std::vector<std::pair<uint_fast32_t, bool> > l1as(0);
+    std::vector<l1a_t> l1as(0);
     if(ddu_header_end_-ddu_header_start_==3){
-      l1as.push_back(std::make_pair(full_packet_.at(ddu_header_start_+2) & 0xFFFFu, true));
+      l1as.push_back(l1a_t(full_packet_.at(ddu_header_start_+2) & 0xFFFFu, 24));
     }else if(ddu_header_end_-ddu_header_start_>=4){
       const uint_fast8_t first_8_bits(full_packet_.at(ddu_header_start_+3) & 0xFFu);
       const uint_fast16_t last_16_bits(full_packet_.at(ddu_header_start_+2) & 0xFFFFu);
-      l1as.push_back(std::make_pair((first_8_bits << 16) | last_16_bits, true));
+      l1as.push_back(l1a_t((first_8_bits << 16) | last_16_bits, 24));
     }
     for(unsigned packet(0); packet<odmb_header_start_.size(); ++packet){
       if(odmb_header_end_.at(packet)-odmb_header_start_.at(packet)==1){
-        l1as.push_back(std::make_pair(full_packet_.at(odmb_header_start_.at(packet)) & 0xFFFu, true));
+        l1as.push_back(l1a_t(full_packet_.at(odmb_header_start_.at(packet)) & 0xFFFu, 24));
       }else if(odmb_header_end_.at(packet)-odmb_header_start_.at(packet)>=2){
         const uint_fast16_t first_12_bits(full_packet_.at(odmb_header_start_.at(packet)+1) & 0xFFFu);
         const uint_fast16_t last_12_bits(full_packet_.at(odmb_header_start_.at(packet)) & 0xFFFu);
-        l1as.push_back(std::make_pair((first_12_bits << 12) | last_12_bits, true));
+        l1as.push_back(l1a_t((first_12_bits << 12) | last_12_bits, 24));
       }
       if(alct_end_.at(packet)-alct_start_.at(packet)>=3){
-        l1as.push_back(std::make_pair(full_packet_.at(alct_start_.at(packet)+2) & 0xFFFu, false));
+        l1as.push_back(l1a_t(full_packet_.at(alct_start_.at(packet)+2) & 0xFFFu, 12));
       }
       if(otmb_end_.at(packet)-otmb_start_.at(packet)>=3){
-        l1as.push_back(std::make_pair(full_packet_.at(otmb_start_.at(packet)+2) & 0xFFFu, false));
+        l1as.push_back(l1a_t(full_packet_.at(otmb_start_.at(packet)+2) & 0xFFFu, 12));
       }
+    }
+    for(unsigned time_sample(0); time_sample<dcfeb_l1as_.size(); ++time_sample){
+      l1as.push_back(dcfeb_l1as_.at(time_sample));
     }
     return l1as;
   }
 
   bool DataPacket::HasL1AMismatch() const{
-    const std::vector<std::pair<uint_fast32_t, bool> > l1as(GetL1As());
+    const std::vector<l1a_t> l1as(GetL1As());
     if(l1as.size()){
+      bool has_mismatch(false);
+      bool found_24_bit(false);
       uint_fast32_t to_match(l1as.at(0).first);
       for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
-        if(l1as.at(l1a).second){
-          to_match=l1as.at(0).first;
+        if(l1as.at(l1a).second==24){
+          to_match=l1as.at(l1a).first;
+          found_24_bit=true;
           break;
         }
       }
-      const uint_fast16_t to_match_12_bits(to_match & 0xFFFu);
-      for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
-        if((l1as.at(l1a).second && l1as.at(l1a).first!=to_match)
-           || (!l1as.at(l1a).second && l1as.at(l1a).first!=to_match_12_bits)){
-          return true;
+      for(unsigned l1a(0); !found_24_bit && l1a<l1as.size(); ++l1a){
+        if(l1as.at(l1a).second==12){
+          to_match=l1as.at(l1a).first;
+          break;
         }
       }
-      return false;
+      const uint_fast16_t to_match_12_bits(l1as.at(0).first & 0xFFFu);
+      const uint_fast8_t to_match_6_bits(l1as.at(0).first & 0x3Fu);
+      for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
+        bool is_match(false);
+        switch(l1as.at(l1a).second){
+        case 24:
+          is_match=(l1as.at(l1a).first==to_match);
+          break;
+        case 12:
+          is_match=(l1as.at(l1a).first==to_match_12_bits);
+          break;
+        case 6:
+          is_match=(l1as.at(l1a).first==to_match_6_bits);
+          break;
+        default:
+          is_match=false;
+          break;
+        }
+        has_mismatch|=(!is_match);
+      }
+      return has_mismatch;
     }else{
       return true;
     }
   }
 
   std::string DataPacket::GetL1AText(const bool text_mode) const{
-    const std::vector<std::pair<uint_fast32_t, bool> > l1as(GetL1As());
+    const std::vector<l1a_t> all_l1as(GetL1As());
+    const std::set<l1a_t> l1as(GetUniques(all_l1as));
     if(l1as.size()){
-      uint_fast32_t to_match(l1as.at(0).first);
-      for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
-        if(l1as.at(l1a).second){
-          to_match=l1as.at(0).first;
+      bool found_24_bit(false);
+      uint_fast32_t to_match((*(l1as.begin())).first);
+      for(std::set<l1a_t>::iterator l1a(l1as.begin()); l1a!=l1as.end(); ++l1a){
+        if(l1a->second==24){
+          to_match=l1a->first;
+          found_24_bit=true;
           break;
         }
       }
-      const uint_fast16_t to_match_12_bits(l1as.at(0).first & 0xFFFu);
+      for(std::set<l1a_t>::iterator l1a(l1as.begin()); !found_24_bit && l1a!=l1as.end(); ++l1a){
+        if(l1a->second==12){
+          to_match=l1a->first;
+          break;
+        }
+      }
+      const uint_fast16_t to_match_12_bits(to_match & 0xFFFu);
+      const uint_fast8_t to_match_6_bits(to_match & 0x3Fu);
       std::ostringstream oss("");
       if(HasL1AMismatch()){
         oss << "L1As=(";
-        for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
-          const bool is_match(l1as.at(l1a).second?(l1as.at(l1a).first==to_match):(l1as.at(l1a).first==to_match_12_bits));
+        for(std::set<l1a_t>::reverse_iterator l1a(l1as.rbegin()); l1a!=l1as.rend(); ++l1a){
+          bool is_match(false);
+          switch(l1a->second){
+          case 24:
+            is_match=(l1a->first==to_match);
+            break;
+          case 12:
+            is_match=(l1a->first==to_match_12_bits);
+            break;
+          case 6:
+            is_match=(l1a->first==to_match_6_bits);
+            break;
+          default:
+            is_match=false;
+            break;
+          }
           if(!is_match && !text_mode){
-            if(l1a!=0){
+            if(l1a!=l1as.rbegin()){
               oss << ", " << io::bold << io::bg_red << io::fg_white
-                  << l1as.at(l1a).first << io::normal;
+                  << std::dec << l1a->first << io::normal
+                  << io::bold << io::bg_red << io::fg_white
+                  << "=0x" << std::hex << l1a->first << io::normal;
             }else{
               oss << io::bold << io::bg_red << io::fg_white
-                  << l1as.at(l1a).first << io::normal;
+                  << std::dec << l1a->first << io::normal
+                  << io::bold << io::bg_red << io::fg_white
+                  << "=0x" << std::hex <<l1a->first << io::normal;
             }
           }else{
-            if(l1a!=0){
-              oss << ", " << l1as.at(l1a).first;
+            if(l1a!=l1as.rbegin()){
+              oss << ", " << std::dec << l1a->first << "=0x" << std::hex << l1a->first;
             }else{
-              oss << l1as.at(l1a).first;
+              oss << std::dec << l1a->first << "=0x" << std::hex << l1a->first;
             }
           }
         }

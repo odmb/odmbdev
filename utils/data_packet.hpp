@@ -2,7 +2,9 @@
 #define H_DATAPACKET
 
 #include <vector>
+#include <set>
 #include <string>
+#include <algorithm>
 #include "stdint.h"
 
 namespace Packet{
@@ -33,6 +35,15 @@ namespace Packet{
                                                                const t2& low,
                                                                const t3& high){
     return x>=low && x<=high;
+  }
+
+  template<typename T>
+  std::set<T> GetUniques(const std::vector<T>& vec){
+    std::set<T> set;
+    for(unsigned i(0); i<vec.size(); ++i){
+      set.insert(vec.at(i));
+    }
+    return set;
   }
 
   bool AllInRange(const svu&, const unsigned, const unsigned,
@@ -71,6 +82,8 @@ namespace Packet{
     ErrorType GetPacketType() const;
 
   private:
+    typedef std::pair<uint_fast32_t, unsigned> l1a_t;
+
     svu full_packet_;
     mutable std::vector<bool> colorize_;
     mutable unsigned ddu_header_start_, ddu_header_end_;
@@ -80,6 +93,7 @@ namespace Packet{
     mutable std::vector<std::vector<unsigned> > dcfeb_start_, dcfeb_end_;
     mutable std::vector<unsigned> odmb_trailer_start_, odmb_trailer_end_;
     mutable unsigned ddu_trailer_start_, ddu_trailer_end_;
+    mutable std::vector<l1a_t> dcfeb_l1as_;
     mutable bool parsed_;
 
     void Parse() const;
@@ -119,7 +133,7 @@ namespace Packet{
     std::vector<unsigned> GetValidDCFEBs(const unsigned) const;
     std::string GetDCFEBText(const unsigned) const;
 
-    std::vector<std::pair<uint_fast32_t, bool> > GetL1As() const;
+    std::vector<l1a_t> GetL1As() const;
     std::string GetL1AText(const bool=false) const;
     std::string GetODMBText() const;
 
