@@ -59,16 +59,16 @@ int main(int argc, char *argv[]){
     while(( opt=getopt(argc, argv, "w:f:s:e:m:k:cta") )!=-1){
       switch(opt){
       case 'w':
-        words_per_line=atoi(optarg);
+        words_per_line=GetNumber(optarg);
         break;
       case 'f':
         filename=optarg;
         break;
       case 's':
-        start_entry=atoi(optarg);
+        start_entry=GetNumber(optarg);
         break;
       case 'e':
-        end_entry=atoi(optarg);
+        end_entry=GetNumber(optarg);
         break;
       case 'm':
         mask=static_cast<DataPacket::ErrorType>(GetNumber(optarg));
