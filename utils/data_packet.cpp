@@ -255,6 +255,18 @@ namespace Packet{
       }
     }
   }
+
+  bool DataPacket::IsALCT(const unsigned start, const unsigned end) const{
+    if(start<end && start<full_packet_.size()){
+      if(full_packet_.at(start)==0xDB0Au){
+        return true;
+      }else{
+        return false;
+      }
+    }else{
+      return false;
+    }
+  }
   
   void DataPacket::FindALCTandOTMBData(const unsigned packet) const{
     const unsigned low(odmb_header_end_.at(packet));
@@ -465,13 +477,15 @@ namespace Packet{
                      words_per_line, text_mode);
     }
     if(GetBit(kill_mask, 2)){
-      PrintComponent("ALCT", alct_start_.at(odmb), alct_end_.at(odmb), words_per_line, text_mode);
+      const std::string name(IsALCT(alct_start_.at(odmb), alct_end_.at(odmb))?"ALCT":"OTMB");
+      PrintComponent(name, alct_start_.at(odmb), alct_end_.at(odmb), words_per_line, text_mode);
     }
     if(GetBit(kill_mask, 0)){
       PrintComponent(uncat, alct_end_.at(odmb), otmb_start_.at(odmb), words_per_line, text_mode);
     }
     if(GetBit(kill_mask, 2)){
-      PrintComponent("OTMB", otmb_start_.at(odmb), otmb_end_.at(odmb), words_per_line, text_mode);
+      const std::string name(IsALCT(otmb_start_.at(odmb), otmb_end_.at(odmb))?"ALCT":"OTMB");
+      PrintComponent(name, otmb_start_.at(odmb), otmb_end_.at(odmb), words_per_line, text_mode);
     }
     const unsigned num_dcfebs(dcfeb_start_.at(odmb).size());
     if(num_dcfebs>0){

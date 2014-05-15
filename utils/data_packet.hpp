@@ -109,6 +109,7 @@ namespace Packet{
     void FindDDUTrailer() const;
 
     bool IsDCFEB(const unsigned, const unsigned) const;
+    bool IsALCT(const unsigned, const unsigned) const;
 
     svu GetComponent(const unsigned, const unsigned) const;
     void PrintComponent(const std::string&, const unsigned,
