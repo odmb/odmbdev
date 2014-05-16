@@ -4,7 +4,7 @@
 #include <vector>
 #include <set>
 #include <string>
-#include <algorithm>
+#include <utility>
 #include "stdint.h"
 
 namespace Packet{
@@ -75,14 +75,18 @@ namespace Packet{
 
     enum ErrorType{
       kGood               = 0x000000000u,
-      kDDU                = 0x0FFFFFFFFu,
+      kDDUStatus          = 0x0FFFFFFFFu,
       kUncategorizedWords = 0x100000000u,
       kL1AMismatch        = 0x200000000u
     };
     ErrorType GetPacketType() const;
 
+    enum ComponentType{
+      kDDU, kODMB, kALCT, kOTMB, kDCFEB
+    };
+
   private:
-    typedef std::pair<uint_fast32_t, unsigned> l1a_t;
+    typedef std::pair<ComponentType, uint_fast32_t> l1a_t;
 
     svu full_packet_;
     mutable std::vector<bool> colorize_;

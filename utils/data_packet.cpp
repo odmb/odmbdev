@@ -3,6 +3,8 @@
 #include <set>
 #include <vector>
 #include <string>
+#include <utility>
+#include <algorithm>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -365,7 +367,7 @@ namespace Packet{
     for(unsigned time_sample(0); time_sample<temp_dcfeb_end.size(); ++time_sample){
       const unsigned loc(temp_dcfeb_end.at(time_sample)-2);
       if(loc>=low){
-        dcfeb_l1as_.push_back(l1a_t((full_packet_.at(loc) >> 6) & 0x3F, 6));
+        dcfeb_l1as_.push_back(l1a_t(kDCFEB, (full_packet_.at(loc) >> 6) & 0x3F));
       }
     }
   }
@@ -675,25 +677,25 @@ namespace Packet{
     Parse();
     std::vector<l1a_t> l1as(0);
     if(ddu_header_end_-ddu_header_start_==3){
-      l1as.push_back(l1a_t(full_packet_.at(ddu_header_start_+2) & 0xFFFFu, 24));
+      l1as.push_back(l1a_t(kDDU, full_packet_.at(ddu_header_start_+2) & 0xFFFFu));
     }else if(ddu_header_end_-ddu_header_start_>=4){
       const uint_fast8_t first_8_bits(full_packet_.at(ddu_header_start_+3) & 0xFFu);
       const uint_fast16_t last_16_bits(full_packet_.at(ddu_header_start_+2) & 0xFFFFu);
-      l1as.push_back(l1a_t((first_8_bits << 16) | last_16_bits, 24));
+      l1as.push_back(l1a_t(kDDU, (first_8_bits << 16) | last_16_bits));
     }
     for(unsigned packet(0); packet<odmb_header_start_.size(); ++packet){
       if(odmb_header_end_.at(packet)-odmb_header_start_.at(packet)==1){
-        l1as.push_back(l1a_t(full_packet_.at(odmb_header_start_.at(packet)) & 0xFFFu, 24));
+        l1as.push_back(l1a_t(kODMB, full_packet_.at(odmb_header_start_.at(packet)) & 0xFFFu));
       }else if(odmb_header_end_.at(packet)-odmb_header_start_.at(packet)>=2){
         const uint_fast16_t first_12_bits(full_packet_.at(odmb_header_start_.at(packet)+1) & 0xFFFu);
         const uint_fast16_t last_12_bits(full_packet_.at(odmb_header_start_.at(packet)) & 0xFFFu);
-        l1as.push_back(l1a_t((first_12_bits << 12) | last_12_bits, 24));
+        l1as.push_back(l1a_t(kODMB, (first_12_bits << 12) | last_12_bits));
       }
       if(alct_end_.at(packet)-alct_start_.at(packet)>=3){
-        l1as.push_back(l1a_t(full_packet_.at(alct_start_.at(packet)+2) & 0xFFFu, 12));
+        l1as.push_back(l1a_t(kALCT, full_packet_.at(alct_start_.at(packet)+2) & 0xFFFu));
       }
       if(otmb_end_.at(packet)-otmb_start_.at(packet)>=3){
-        l1as.push_back(l1a_t(full_packet_.at(otmb_start_.at(packet)+2) & 0xFFFu, 12));
+        l1as.push_back(l1a_t(kOTMB, full_packet_.at(otmb_start_.at(packet)+2) & 0xFFFu));
       }
     }
     for(unsigned time_sample(0); time_sample<dcfeb_l1as_.size(); ++time_sample){
@@ -706,34 +708,22 @@ namespace Packet{
     const std::vector<l1a_t> l1as(GetL1As());
     if(l1as.size()){
       bool has_mismatch(false);
-      bool found_24_bit(false);
-      uint_fast32_t to_match(l1as.at(0).first);
-      for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
-        if(l1as.at(l1a).second==24){
-          to_match=l1as.at(l1a).first;
-          found_24_bit=true;
-          break;
-        }
-      }
-      for(unsigned l1a(0); !found_24_bit && l1a<l1as.size(); ++l1a){
-        if(l1as.at(l1a).second==12){
-          to_match=l1as.at(l1a).first;
-          break;
-        }
-      }
-      const uint_fast16_t to_match_12_bits(l1as.at(0).first & 0xFFFu);
-      const uint_fast8_t to_match_6_bits(l1as.at(0).first & 0x3Fu);
-      for(unsigned l1a(0); l1a<l1as.size(); ++l1a){
+      const uint_fast32_t to_match_24_bits(std::min_element(l1as.begin(), l1as.end())->second & 0xFFFFFFu);
+      const uint_fast16_t to_match_12_bits(to_match_24_bits & 0xFFFu);
+      const uint_fast8_t to_match_6_bits(to_match_24_bits & 0x3Fu);
+      for(std::vector<l1a_t>::const_iterator l1a(l1as.begin()); l1a!=l1as.end(); ++l1a){
         bool is_match(false);
-        switch(l1as.at(l1a).second){
-        case 24:
-          is_match=(l1as.at(l1a).first==to_match);
+        switch(l1a->first){
+        case kDDU:
+        case kODMB:
+          is_match=(l1a->second==to_match_24_bits);
           break;
-        case 12:
-          is_match=(l1as.at(l1a).first==to_match_12_bits);
+        case kALCT:
+        case kOTMB:
+          is_match=(l1a->second==to_match_12_bits);
           break;
-        case 6:
-          is_match=(l1as.at(l1a).first==to_match_6_bits);
+        case kDCFEB:
+          is_match=(l1a->second==to_match_6_bits);
           break;
         default:
           is_match=false;
@@ -748,68 +738,72 @@ namespace Packet{
   }
 
   std::string DataPacket::GetL1AText(const bool text_mode) const{
-    const std::vector<l1a_t> all_l1as(GetL1As());
-    const std::set<l1a_t> l1as(GetUniques(all_l1as));
+    const std::vector<l1a_t> l1as(GetL1As());
     if(l1as.size()){
-      bool found_24_bit(false);
-      uint_fast32_t to_match((*(l1as.begin())).first);
-      for(std::set<l1a_t>::reverse_iterator l1a(l1as.rbegin()); l1a!=l1as.rend(); ++l1a){
-        if(l1a->second==24){
-          to_match=l1a->first;
-          found_24_bit=true;
-          break;
-        }
-      }
-      for(std::set<l1a_t>::reverse_iterator l1a(l1as.rbegin()); !found_24_bit && l1a!=l1as.rend(); ++l1a){
-        if(l1a->second==12){
-          to_match=l1a->first;
-          break;
-        }
-      }
-      const uint_fast16_t to_match_12_bits(to_match & 0xFFFu);
-      const uint_fast8_t to_match_6_bits(to_match & 0x3Fu);
+      const uint_fast32_t to_match_24_bits(((std::min_element(l1as.begin(), l1as.end()))->second) & 0xFFFFFFu);
+      const uint_fast16_t to_match_12_bits(to_match_24_bits & 0xFFFu);
+      const uint_fast8_t to_match_6_bits(to_match_24_bits & 0x3Fu);
       std::ostringstream oss("");
       if(HasL1AMismatch()){
+        std::set<l1a_t> unique_l1as;
         oss << "L1As=(";
-        for(std::set<l1a_t>::reverse_iterator l1a(l1as.rbegin()); l1a!=l1as.rend(); ++l1a){
+        for(std::vector<l1a_t>::const_iterator l1a(l1as.begin()); l1a!=l1as.end(); ++l1a){
+          const std::pair<std::set<l1a_t>::iterator, bool> is_unique(unique_l1as.insert(*l1a));
           bool is_match(false);
-          switch(l1a->second){
-          case 24:
-            is_match=(l1a->first==to_match);
+          std::string name("");
+          switch(l1a->first){
+          case kDDU:
+            is_match=(l1a->second==to_match_24_bits);
+            name="DDU";
             break;
-          case 12:
-            is_match=(l1a->first==to_match_12_bits);
+          case kODMB:
+            is_match=(l1a->second==to_match_24_bits);
+            name="(O)DMB";
             break;
-          case 6:
-            is_match=(l1a->first==to_match_6_bits);
+          case kALCT:
+            is_match=(l1a->second==to_match_12_bits);
+            name="ALCT";
+            break;
+          case kOTMB:
+            is_match=(l1a->second==to_match_12_bits);
+            name="(O)TMB";
+            break;
+          case kDCFEB:
+            is_match=(l1a->second==to_match_6_bits);
+            name="(D)CFEB";
             break;
           default:
             is_match=false;
+            name="???";
             break;
           }
-          if(!is_match && !text_mode){
-            if(l1a!=l1as.rbegin()){
-              oss << ", " << io::bold << io::bg_red << io::fg_white
-                  << std::dec << l1a->first << io::normal
-                  << io::bold << io::bg_red << io::fg_white
-                  << "=0x" << std::hex << l1a->first << io::normal;
+          if(!is_match && (is_unique.second || is_unique.first->first!=kDCFEB)){
+            if(!text_mode){
+              if(l1a!=l1as.begin()){
+                oss << ", " << io::bold << io::bg_red << io::fg_white << name << '='
+                    << std::dec << l1a->second << "=0x" << std::hex << l1a->second << io::normal;
+              }else{
+                oss << io::bold << io::bg_red << io::fg_white << name << '='
+                    << std::dec << l1a->second << "=0x" << std::hex << l1a->second << io::normal;
+              }
             }else{
-              oss << io::bold << io::bg_red << io::fg_white
-                  << std::dec << l1a->first << io::normal
-                  << io::bold << io::bg_red << io::fg_white
-                  << "=0x" << std::hex <<l1a->first << io::normal;
+              if(l1a!=l1as.begin()){
+                oss << ", " << name << '=' << std::dec << l1a->second << "=0x" << std::hex << l1a->second;
+              }else{
+                oss << name << '=' << std::dec << l1a->second << "=0x" << std::hex << l1a->second;
+              }
             }
-          }else{
-            if(l1a!=l1as.rbegin()){
-              oss << ", " << std::dec << l1a->first << "=0x" << std::hex << l1a->first;
+          }else if(is_unique.second){
+            if(l1a!=l1as.begin()){
+              oss << ", " << name << '=' << std::dec << l1a->second << "=0x" << std::hex << l1a->second;
             }else{
-              oss << std::dec << l1a->first << "=0x" << std::hex << l1a->first;
+              oss << name << '=' << std::dec << l1a->second << "=0x" << std::hex << l1a->second;
             }
           }
         }
         oss << ")";
       }else{
-        oss << "L1A=" << to_match << " (0x" << std::hex << to_match << ")";
+        oss << "L1A=" << to_match_24_bits << " (0x" << std::hex << to_match_24_bits << ")";
       }
       return oss.str();
     }else{
