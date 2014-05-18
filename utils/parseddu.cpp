@@ -2,7 +2,8 @@
   DDU parsing script
   Parses CSC raw files for either single event or whole file diagnostic report. The diagnostic
   report produces a 34 bit error-code for each event containing, from MSB to LSB, an uncategorized
-  words error bit, a 4-bit L1A mismatch error (ODMB, ALCT, OTMB, DCFEB), and the 32 bit DDU status
+  words error bit, an empty ODMB error bit, a 4-bit L1A mismatch error (ODMB, ALCT, OTMB, DCFEB),
+  and the 32 bit DDU status
 
   Command line options:
   -f: Sets input file.

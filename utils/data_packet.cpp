@@ -176,6 +176,7 @@ namespace Packet{
   DataPacket::ErrorType DataPacket::GetPacketType() const{
     Parse();
     return static_cast<ErrorType>((HasUncategorizedWords()?kUncategorizedWords:kGood)
+                                  | (HasEmptyODMB()?kEmptyODMB:kGood)
                                   | (HasODMBL1AMismatch()?kODMBL1AMismatch:kGood)
                                   | (HasALCTL1AMismatch()?kALCTL1AMismatch:kGood)
                                   | (HasOTMBL1AMismatch()?kOTMBL1AMismatch:kGood)
@@ -985,5 +986,17 @@ namespace Packet{
       oss << "No (O)DMBs";
     }
     return oss.str();
+  }
+
+  bool DataPacket::HasEmptyODMB() const{
+    Parse();
+    for(unsigned odmb(0); odmb<odmb_header_start_.size(); ++odmb){
+      if(alct_start_.at(odmb)==alct_end_.at(odmb)
+         && otmb_start_.at(odmb)==otmb_end_.at(odmb)
+         && dcfeb_start_.at(odmb).size()==0){
+        return true;
+      }
+    }
+    return false;
   }
 }

@@ -80,7 +80,8 @@ namespace Packet{
       kOTMBL1AMismatch    = 0x0200000000u,
       kALCTL1AMismatch    = 0x0400000000u,
       kODMBL1AMismatch    = 0x0800000000u,
-      kUncategorizedWords = 0x1000000000u
+      kEmptyODMB          = 0x1000000000u,
+      kUncategorizedWords = 0x2000000000u
     };
     ErrorType GetPacketType() const;
 
@@ -156,6 +157,8 @@ namespace Packet{
     bool HasUncategorizedWords() const;
 
     uint_fast32_t GetDDUStatus() const;
+
+    bool HasEmptyODMB() const;
   };
 }
 
