@@ -1,8 +1,8 @@
 /*
   DDU parsing script
   Parses CSC raw files for either single event or whole file diagnostic report. The diagnostic
-  report produces a 34 bit error-code for each event containing, from MSB to LSB, an L1A
-  mismatch error bit, an uncategorized word error bit, and the 32 bit DDU status
+  report produces a 34 bit error-code for each event containing, from MSB to LSB, an uncategorized
+  words error bit, a 4-bit L1A mismatch error (ODMB, ALCT, OTMB, DCFEB), and the 32 bit DDU status
 
   Command line options:
   -f: Sets input file.
@@ -18,7 +18,7 @@
   If only one command line option is given (without a "-"), it is used as a file name and a diagnostic report is produced.
 
   Author: Adam Dishaw (ald77@physics.ucsb.edu)
-  Last modified: 2014-05-15
+  Last modified: 2014-05-18
 */
 
 #include <cstdlib>
@@ -159,9 +159,9 @@ int main(int argc, char *argv[]){
 
         if(ups | downs){
           std::cout << packet_type << " packet " << std::dec << std::setw(8) << std::setfill(' ') << type_record.at(i).second
-                    << " turns on " << std::hex << std::setw(9) << std::setfill('0')
-                    << ups << " and turns off " << std::hex << std::setw(9) << std::setfill('0')
-                    << downs << " (now at " << std::hex << std::setw(9) << std::setfill('0')
+                    << " turns on " << std::hex << std::setw(10) << std::setfill('0')
+                    << ups << " and turns off " << std::hex << std::setw(10) << std::setfill('0')
+                    << downs << " (now at " << std::hex << std::setw(10) << std::setfill('0')
                     << type_record.at(i).first.first << ")." << std::endl;
         }
       }
@@ -171,7 +171,7 @@ int main(int argc, char *argv[]){
       for(std::map<DataPacket::ErrorType, unsigned>::iterator it(type_counter.begin());
           it!=type_counter.end(); ++it){
         std::cout << std::setw(8) << std::dec << std::setfill(' ') << it->second
-                  << " packets of type " << std::setw(9) << std::setfill('0') << std::hex
+                  << " packets of type " << std::setw(10) << std::setfill('0') << std::hex
                   << it->first << std::endl;
       }
     }else if(count_mode){

@@ -87,7 +87,13 @@ namespace Packet{
     dcfeb_start_(0), dcfeb_end_(0),
     odmb_trailer_start_(0), odmb_trailer_end_(0),
     ddu_trailer_start_(-1), ddu_trailer_end_(-1),
-    parsed_(false){
+    dcfeb_l1as_(0),
+    odmb_l1a_mismatch_(false),
+    alct_l1a_mismatch_(false),
+    otmb_l1a_mismatch_(false),
+    dcfeb_l1a_mismatch_(false),
+    parsed_(false),
+    checked_l1as_(false){
   }
 
   DataPacket::DataPacket(const svu& packet_in):
@@ -100,11 +106,18 @@ namespace Packet{
     dcfeb_start_(0), dcfeb_end_(0),
     odmb_trailer_start_(0), odmb_trailer_end_(0),
     ddu_trailer_start_(-1), ddu_trailer_end_(-1),
-    parsed_(false){
+    dcfeb_l1as_(0),
+    odmb_l1a_mismatch_(false),
+    alct_l1a_mismatch_(false),
+    otmb_l1a_mismatch_(false),
+    dcfeb_l1a_mismatch_(false),
+    parsed_(false),
+    checked_l1as_(false){
   }
 
   void DataPacket::SetData(const svu& packet_in){
     parsed_=false;
+    checked_l1as_=false;
     colorize_=std::vector<bool>(packet_in.size(), false);
     full_packet_=packet_in;
   }
@@ -162,8 +175,11 @@ namespace Packet{
 
   DataPacket::ErrorType DataPacket::GetPacketType() const{
     Parse();
-    return static_cast<ErrorType>((HasL1AMismatch()?kL1AMismatch:kGood)
-                                  | (HasUncategorizedWords()?kUncategorizedWords:kGood)
+    return static_cast<ErrorType>((HasUncategorizedWords()?kUncategorizedWords:kGood)
+                                  | (HasODMBL1AMismatch()?kODMBL1AMismatch:kGood)
+                                  | (HasALCTL1AMismatch()?kALCTL1AMismatch:kGood)
+                                  | (HasOTMBL1AMismatch()?kOTMBL1AMismatch:kGood)
+                                  | (HasDCFEBL1AMismatch()?kDCFEBL1AMismatch:kGood)
                                   | GetDDUStatus());
   }
   
@@ -705,35 +721,99 @@ namespace Packet{
   }
 
   bool DataPacket::HasL1AMismatch() const{
-    const std::vector<l1a_t> l1as(GetL1As());
-    if(l1as.size()){
-      bool has_mismatch(false);
-      const uint_fast32_t to_match_24_bits(std::min_element(l1as.begin(), l1as.end())->second & 0xFFFFFFu);
-      const uint_fast16_t to_match_12_bits(to_match_24_bits & 0xFFFu);
-      const uint_fast8_t to_match_6_bits(to_match_24_bits & 0x3Fu);
-      for(std::vector<l1a_t>::const_iterator l1a(l1as.begin()); l1a!=l1as.end(); ++l1a){
-        bool is_match(false);
-        switch(l1a->first){
-        case kDDU:
-        case kODMB:
-          is_match=(l1a->second==to_match_24_bits);
-          break;
-        case kALCT:
-        case kOTMB:
-          is_match=(l1a->second==to_match_12_bits);
-          break;
-        case kDCFEB:
-          is_match=(l1a->second==to_match_6_bits);
-          break;
-        default:
-          is_match=false;
-          break;
+    Parse();
+    if(!checked_l1as_){
+      checked_l1as_=true;
+      odmb_l1a_mismatch_=false;
+      alct_l1a_mismatch_=false;
+      otmb_l1a_mismatch_=false;
+      dcfeb_l1a_mismatch_=false;
+      const std::vector<l1a_t> l1as(GetL1As());
+      if(l1as.size()){
+        bool has_mismatch(false);
+        const uint_fast32_t to_match_24_bits(std::min_element(l1as.begin(), l1as.end())->second & 0xFFFFFFu);
+        const uint_fast16_t to_match_12_bits(to_match_24_bits & 0xFFFu);
+        const uint_fast8_t to_match_6_bits(to_match_24_bits & 0x3Fu);
+        for(std::vector<l1a_t>::const_iterator l1a(l1as.begin()); l1a!=l1as.end(); ++l1a){
+          bool is_match(false);
+          switch(l1a->first){
+          case kDDU:
+          case kODMB:
+            if(l1a->second==to_match_24_bits){
+              is_match=true;
+            }else{
+              is_match=false;
+              odmb_l1a_mismatch_=true;
+            }
+            break;
+          case kALCT:
+            if(l1a->second==to_match_12_bits){
+              is_match=true;
+            }else{
+              is_match=false;
+              alct_l1a_mismatch_=true;
+            }
+            break;
+          case kOTMB:
+            if(l1a->second==to_match_12_bits){
+              is_match=true;
+            }else{
+              is_match=false;
+              otmb_l1a_mismatch_=true;
+            }
+            break;
+          case kDCFEB:
+            if(l1a->second==to_match_6_bits){
+              is_match=true;
+            }else{
+              is_match=false;
+              dcfeb_l1a_mismatch_=true;
+            }
+            break;
+          default:
+            is_match=false;
+            break;
+          }
+          has_mismatch|=(!is_match);
         }
-        has_mismatch|=(!is_match);
+        return has_mismatch;
+      }else{
+        return true;
       }
-      return has_mismatch;
     }else{
-      return true;
+      return odmb_l1a_mismatch_ | alct_l1a_mismatch_ | otmb_l1a_mismatch_ | dcfeb_l1a_mismatch_;
+    }
+  }
+
+  bool DataPacket::HasODMBL1AMismatch() const{
+    if(HasL1AMismatch()){
+      return odmb_l1a_mismatch_;
+    }else{
+      return false;
+    }
+  }
+
+  bool DataPacket::HasALCTL1AMismatch() const{
+    if(HasL1AMismatch()){
+      return alct_l1a_mismatch_;
+    }else{
+      return false;
+    }
+  }
+
+  bool DataPacket::HasOTMBL1AMismatch() const{
+    if(HasL1AMismatch()){
+      return otmb_l1a_mismatch_;
+    }else{
+      return false;
+    }
+  }
+
+  bool DataPacket::HasDCFEBL1AMismatch() const{
+    if(HasL1AMismatch()){
+      return dcfeb_l1a_mismatch_;
+    }else{
+      return false;
     }
   }
 

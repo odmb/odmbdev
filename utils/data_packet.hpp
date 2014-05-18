@@ -74,10 +74,13 @@ namespace Packet{
     std::vector<bool> GetDMBType() const;
 
     enum ErrorType{
-      kGood               = 0x000000000u,
-      kDDUStatus          = 0x0FFFFFFFFu,
-      kUncategorizedWords = 0x100000000u,
-      kL1AMismatch        = 0x200000000u
+      kGood               = 0x0000000000u,
+      kDDUStatus          = 0x00FFFFFFFFu,
+      kDCFEBL1AMismatch   = 0x0100000000u,
+      kOTMBL1AMismatch    = 0x0200000000u,
+      kALCTL1AMismatch    = 0x0400000000u,
+      kODMBL1AMismatch    = 0x0800000000u,
+      kUncategorizedWords = 0x1000000000u
     };
     ErrorType GetPacketType() const;
 
@@ -98,7 +101,8 @@ namespace Packet{
     mutable std::vector<unsigned> odmb_trailer_start_, odmb_trailer_end_;
     mutable unsigned ddu_trailer_start_, ddu_trailer_end_;
     mutable std::vector<l1a_t> dcfeb_l1as_;
-    mutable bool parsed_;
+    mutable bool odmb_l1a_mismatch_, alct_l1a_mismatch_, otmb_l1a_mismatch_, dcfeb_l1a_mismatch_;
+    mutable bool parsed_, checked_l1as_;
 
     void Parse() const;
 
@@ -136,6 +140,11 @@ namespace Packet{
     unsigned short GetContainingRanges(const unsigned) const;
 
     bool HasL1AMismatch() const;
+
+    bool HasODMBL1AMismatch() const;
+    bool HasALCTL1AMismatch() const;
+    bool HasOTMBL1AMismatch() const;
+    bool HasDCFEBL1AMismatch() const;
 
     std::vector<unsigned> GetValidDCFEBs(const unsigned) const;
     std::string GetDCFEBText(const unsigned) const;
