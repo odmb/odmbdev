@@ -181,7 +181,7 @@ namespace Packet{
                                   | (HasALCTL1AMismatch()?kALCTL1AMismatch:kGood)
                                   | (HasOTMBL1AMismatch()?kOTMBL1AMismatch:kGood)
                                   | (HasDCFEBL1AMismatch()?kDCFEBL1AMismatch:kGood)
-                                  | GetDDUStatus());
+                                  | (GetDDUStatus() << 8));
   }
   
   void DataPacket::Parse() const{

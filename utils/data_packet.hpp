@@ -75,13 +75,13 @@ namespace Packet{
 
     enum ErrorType{
       kGood               = 0x0000000000u,
-      kDDUStatus          = 0x00FFFFFFFFu,
-      kDCFEBL1AMismatch   = 0x0100000000u,
-      kOTMBL1AMismatch    = 0x0200000000u,
-      kALCTL1AMismatch    = 0x0400000000u,
-      kODMBL1AMismatch    = 0x0800000000u,
-      kEmptyODMB          = 0x1000000000u,
-      kUncategorizedWords = 0x2000000000u
+      kDDUStatus          = 0xFFFFFFFF00u,
+      kDCFEBL1AMismatch   = 0x0000000001u,
+      kOTMBL1AMismatch    = 0x0000000002u,
+      kALCTL1AMismatch    = 0x0000000004u,
+      kODMBL1AMismatch    = 0x0000000008u,
+      kEmptyODMB          = 0x0000000010u,
+      kUncategorizedWords = 0x0000000020u
     };
     ErrorType GetPacketType() const;
 
