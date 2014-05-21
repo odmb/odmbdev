@@ -359,21 +359,18 @@ namespace Packet{
     dcfeb_start_.at(packet).clear();
     dcfeb_end_.at(packet).clear();
     std::vector<unsigned> temp_dcfeb_end(0);
-    for(unsigned index(low+99); index<upper_bound; ++index){
-      const bool good_here(InRange(full_packet_.at(index-2), 0x7000u, 0x7FFFu)
-                           && InRange(full_packet_.at(index-1), 0x7000u, 0x7FFFu));
-      const bool good_earlier(index<low+102
-                              || (InRange(full_packet_.at(index-102), 0x7000u, 0x7FFFu)
-                                  && InRange(full_packet_.at(index-101), 0x7000u, 0x7FFFu))
-                              || (InRange(full_packet_.at(index-102), 0xD000u, 0xDFFFu)
-                                  && InRange(full_packet_.at(index-101), 0xD000u, 0xDFFFu)));
-      const bool found_7fff(full_packet_.at(index)==0x7FFFu);
-
-      if(good_here && (good_earlier || found_7fff)){
+    for(unsigned index(low+3); index<upper_bound; ++index){
+      if(InRange(full_packet_.at(index-2), 0x7000u, 0x7FFFu)
+         && InRange(full_packet_.at(index-1), 0x7000u, 0x7FFFu)
+         && (full_packet_.at(index)==0x7FFFu
+             || ((full_packet_.at(index-3)^full_packet_.at(index))==0x7FFF))){
         temp_dcfeb_end.push_back(index+1);
         colorize_.at(index-2)=true;
         colorize_.at(index-1)=true;
-        if(found_7fff) colorize_.at(index)=true;
+        colorize_.at(index)=true;
+        if(full_packet_.at(index)!=0x7FFFu){
+          colorize_.at(index-3)=true;
+        }
         index+=99;
       }
     }
