@@ -5,54 +5,10 @@
 #include <set>
 #include <string>
 #include <utility>
-#include "stdint.h"
+#include <stdint.h>
+#include "utils.hpp"
 
 namespace Packet{
-  namespace io{
-    const std::string bold("\033[1m");
-    const std::string fg_black("\033[30m");
-    const std::string fg_red("\033[31m");
-    const std::string fg_green("\033[32m");
-    const std::string fg_yellow("\033[33m");
-    const std::string fg_blue("\033[34m");
-    const std::string fg_magenta("\033[35m");
-    const std::string fg_cyan("\033[36m");
-    const std::string fg_white("\033[37m");
-    const std::string bg_black("\033[40m");
-    const std::string bg_red("\033[41m");
-    const std::string bg_green("\033[42m");
-    const std::string bg_yellow("\033[43m");
-    const std::string bg_blue("\033[44m");
-    const std::string bg_magenta("\033[45m");
-    const std::string bg_cyan("\033[46m");
-    const std::string bg_white("\033[47m");
-    const std::string normal("\033[0m");
-  }
-
-  typedef std::vector<uint16_t> svu;
-
-  template<typename t1, typename t2, typename t3> bool InRange(const t1& x,
-                                                               const t2& low,
-                                                               const t3& high){
-    return x>=low && x<=high;
-  }
-
-  template<typename T>
-  std::set<T> GetUniques(const std::vector<T>& vec){
-    std::set<T> set;
-    for(unsigned i(0); i<vec.size(); ++i){
-      set.insert(vec.at(i));
-    }
-    return set;
-  }
-
-  bool AllInRange(const svu&, const unsigned, const unsigned,
-                  const uint16_t, const uint16_t);
-  void PutInRange(unsigned&, unsigned&, const unsigned, const unsigned);
-  bool GetBit(const unsigned, const unsigned);
-  
-  void PrintWithStars(const std::string&, const unsigned);
-
   class DataPacket{
   public:
     DataPacket();
@@ -89,6 +45,9 @@ namespace Packet{
       kDDU, kODMB, kALCT, kOTMB, kDCFEB
     };
 
+    std::vector<std::pair<unsigned, std::vector<dcfeb_data> > > GetValidDCFEBData() const;
+    uint_fast32_t GetL1A() const;
+
   private:
     typedef std::pair<ComponentType, uint_fast32_t> l1a_t;
 
@@ -102,8 +61,9 @@ namespace Packet{
     mutable std::vector<unsigned> odmb_trailer_start_, odmb_trailer_end_;
     mutable unsigned ddu_trailer_start_, ddu_trailer_end_;
     mutable std::vector<l1a_t> dcfeb_l1as_;
+    mutable std::vector<std::pair<unsigned, std::vector<dcfeb_data> > > dcfeb_data_;
     mutable bool odmb_l1a_mismatch_, alct_l1a_mismatch_, otmb_l1a_mismatch_, dcfeb_l1a_mismatch_;
-    mutable bool parsed_, checked_l1as_;
+    mutable bool parsed_, unpacked_, checked_l1as_;
 
     void Parse() const;
 
@@ -159,6 +119,8 @@ namespace Packet{
     uint_fast32_t GetDDUStatus() const;
 
     bool HasEmptyODMB() const;
+
+    void Unpack() const;
   };
 }
 

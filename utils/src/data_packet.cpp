@@ -5,21 +5,14 @@
 #include <string>
 #include <utility>
 #include <algorithm>
+#include <numeric>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <stdint.h>
+#include "utils.hpp"
 
 namespace Packet{
-  bool AllInRange(const svu& vec, const unsigned start, const unsigned end,
-                  const uint16_t low, const uint16_t high){
-    bool all_in_range(true);
-    for(unsigned index(start); index<vec.size() && index<end && all_in_range; ++index){
-      if(!InRange(vec.at(index), low, high)) all_in_range=false;
-    }
-    return all_in_range;
-  }
-
   void DataPacket::PrintBuffer(const svu& buffer, const unsigned words_per_line,
                                const unsigned start, const bool text_mode) const{
     std::cout << std::hex << std::setfill('0');
@@ -47,36 +40,6 @@ namespace Packet{
     }
   }
 
-  void PutInRange(unsigned& a, unsigned& b, const unsigned min, const unsigned max){
-    if(max<=min){
-      a=max;
-      b=max;
-    }else{
-      if(a<min || a>max) a=min;
-      if(b<min || b>max) b=min;
-      if(b<a) a=b;
-    }
-  }
-
-  bool GetBit(const unsigned x, const unsigned bit){
-    return (x>>bit) & 1u;
-  }
-
-  void PrintWithStars(const std::string& text, const unsigned full_width){
-    const unsigned spares(full_width-text.length());
-    if(spares>=2 && full_width>text.length()){
-      for(unsigned i(0); i<3 && i<spares-1; ++i) std::cout << '*';
-      std::cout << ' ' << text;
-      if(spares>=6){
-        std::cout << ' ';
-        for(unsigned i(0); i<spares-5; ++i) std::cout << '*';
-      }
-      std::cout << std::endl;
-    }else{
-      std::cout << text << std::endl;
-    }
-  }
-
   DataPacket::DataPacket():
     full_packet_(0),
     colorize_(),
@@ -93,6 +56,7 @@ namespace Packet{
     otmb_l1a_mismatch_(false),
     dcfeb_l1a_mismatch_(false),
     parsed_(false),
+    unpacked_(false),
     checked_l1as_(false){
   }
 
@@ -112,11 +76,13 @@ namespace Packet{
     otmb_l1a_mismatch_(false),
     dcfeb_l1a_mismatch_(false),
     parsed_(false),
+    unpacked_(false),
     checked_l1as_(false){
   }
 
   void DataPacket::SetData(const svu& packet_in){
     parsed_=false;
+    unpacked_=false;
     checked_l1as_=false;
     colorize_=std::vector<bool>(packet_in.size(), false);
     full_packet_=packet_in;
@@ -196,6 +162,7 @@ namespace Packet{
         FindDCFEBData(packet);
       }
       parsed_=true;
+      Unpack();
     }
   }
 
@@ -995,5 +962,52 @@ namespace Packet{
       }
     }
     return false;
+  }
+
+  void DataPacket::Unpack() const{
+    if(!unpacked_){
+      Parse();
+      dcfeb_data_.clear();
+      const unsigned num_time_samples(8);
+      const unsigned num_strips(16);
+      const unsigned num_layers(6);
+      const unsigned num_vals(num_time_samples*num_strips*num_layers);
+      std::vector<dcfeb_data> vals(num_vals);
+      for(unsigned odmb(0); odmb<dcfeb_start_.size(); ++odmb){
+        const std::vector<unsigned> dcfebs(GetValidDCFEBs(odmb));
+        for(unsigned dcfeb(0); dcfeb<dcfeb_start_.at(odmb).size(); ++dcfeb){
+          const unsigned real_dcfeb(dcfeb<dcfebs.size()?dcfebs.at(dcfeb):0);
+          if(dcfeb_end_.at(odmb).at(dcfeb)-dcfeb_start_.at(odmb).at(dcfeb)!=(num_time_samples*(num_strips*num_layers+4u))){
+            break;
+          }
+          if(full_packet_.at(dcfeb_end_.at(odmb).at(dcfeb)-1)!=0x7FFFu) continue;
+          for(unsigned time_sample(0); time_sample<num_time_samples; ++time_sample){
+            for(unsigned strip(0); strip<num_strips; ++strip){
+              for(unsigned layer(0); layer<num_layers; ++layer){
+                const unsigned offset((num_strips*num_layers+4u)*time_sample+num_layers*strip+layer);
+                const unsigned packet_index(dcfeb_start_.at(odmb).at(dcfeb)+offset);
+                const unsigned flat_index(num_strips*num_layers*time_sample+num_layers*strip+layer);
+                vals.at(flat_index)=std::make_pair(full_packet_.at(packet_index) & 0xFFFu,
+                                                   std::make_pair(time_sample,
+                                                                  std::make_pair(strip, layer)));
+              }
+            }
+          }
+
+          dcfeb_data_.push_back(std::make_pair(real_dcfeb, vals));
+        }
+      }
+      unpacked_=true;
+    }
+  }
+
+  std::vector<std::pair<unsigned, std::vector<dcfeb_data> > > DataPacket::GetValidDCFEBData() const{
+    Unpack();
+    return dcfeb_data_;
+  }
+
+  uint_fast32_t DataPacket::GetL1A() const{
+    const std::vector<l1a_t> l1as(GetL1As());
+    return std::min_element(l1as.begin(), l1as.end())->second & 0xFFFFFFu;
   }
 }
