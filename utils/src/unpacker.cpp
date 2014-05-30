@@ -1,8 +1,10 @@
 #include "unpacker.hpp"
+#include <cmath>
 #include <vector>
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
+#include <numeric>
 #include "TCanvas.h"
 #include "TH2D.h"
 

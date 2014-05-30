@@ -56,13 +56,12 @@ bool GetBit(const unsigned, const unsigned);
 void PrintWithStars(const std::string&, const unsigned);
 
 template<typename T>
-typename T::value_type Sum(T begin, T end){
-  //Performs Kahan summation (more precise than naive summation for long lists of numbers)
-  typename T::value_type sum(0.0);
-  volatile typename T::value_type correction(0.0);
+double Sum(T begin, T end){
+  double sum(0.0);
+  volatile double correction(0.0);
   for(; begin!=end; ++begin){
-    const typename T::value_type corrected_val(*begin-correction);
-    const typename T::value_type temp_sum(sum+corrected_val);
+    const double corrected_val(*begin-correction);
+    const double temp_sum(sum+corrected_val);
     correction=(temp_sum-sum)-corrected_val;
     sum=temp_sum;
   }
@@ -70,16 +69,16 @@ typename T::value_type Sum(T begin, T end){
 }
 
 template<typename T>
-typename T::value_type Mean(T begin, T end){
+double Mean(T begin, T end){
   return Sum(begin, end)/static_cast<double>(std::distance(begin,end));
 }
 
 template<typename T>
-typename T::value_type Variance(T begin, T end){
-  const typename T::value_type mean(Mean(begin, end));
-  std::vector<typename T::value_type> residuals_squared(0);
+double Variance(T begin, T end){
+  const double mean(Mean(begin, end));
+  std::vector<double> residuals_squared(0);
   for(T it(begin); it!=end; ++it){
-    const typename T::value_type residual(*it-mean);
+    const double residual(*it-mean);
     residuals_squared.push_back(residual*residual);
   }
   return Sum(residuals_squared.begin(), residuals_squared.end())/static_cast<double>(std::distance(begin,end));
