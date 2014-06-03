@@ -49,14 +49,31 @@ namespace Packet{
   void Unpacker::CalcCutoff() const{
     if(!cutoff_cached_){
       std::sort(data_.begin(), data_.end(), std::greater<dcfeb_data>());
-      std::vector<uint_fast16_t> plain_data(data_.size());
-      for(unsigned i(0); i<data_.size(); ++i){
-        plain_data.at(i)=data_.at(i).first;
+
+      for(unsigned cut(1); cut<=64 && cut<=data_.size(); ++cut){
+        std::vector<bool> part_of_set(cut, false);
+        part_of_set.at(0)=true;
+        bool last_changed(true);
+        while(last_changed){
+          last_changed=false;
+
+          for(unsigned check(0); check<cut; ++check){
+            if(!part_of_set.at(check)) continue;
+            for(unsigned to_add(0); to_add<cut; ++to_add){
+              if(!part_of_set.at(to_add) && IsNeighbor(data_.at(to_add), data_.at(check))){
+                part_of_set.at(to_add)=true;
+                last_changed=true;
+              }
+            }
+          }
+        }
+        bool all_in(true);
+        for(unsigned i(0); i<part_of_set.size(); ++i){
+          if(!part_of_set.at(i)) all_in=false;
+        }
+        if(all_in) cutoff_=cut;
       }
-  
-      for(cutoff_=0;
-          plain_data.at(cutoff_)-Mean(plain_data.begin()+cutoff_, plain_data.end())>3.21552019394337*sqrt(Variance(plain_data.begin()+cutoff_, plain_data.end()));
-          ++cutoff_);
+
       cutoff_cached_=true;
     }
   }
@@ -101,7 +118,7 @@ namespace Packet{
     const unsigned short dt(std::abs(a.second.first-b.second.first));
     const unsigned short ds(std::abs(a.second.second.first-b.second.second.first));
     const unsigned short dl(std::abs(a.second.second.second-b.second.second.second));
-    return (dt==0 && ds<=1 && dl<=1) || (dt==1 && ds==0 && dl==0);
+    return dt<=1 && ds<=1 && dl<=1;
   }
 
   float Unpacker::GetAverageLayer() const{
