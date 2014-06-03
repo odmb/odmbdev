@@ -1,10 +1,12 @@
 #include "unpacker.hpp"
 #include <cmath>
 #include <vector>
+#include <utility>
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
 #include <numeric>
+#include <stdexcept>
 #include "TCanvas.h"
 #include "TH2D.h"
 
@@ -12,7 +14,10 @@ namespace Packet{
   Unpacker::Unpacker():
     data_(0),
     cutoff_(0),
-    cutoff_cached_(false){
+    cutoff_cached_(false),
+    min_cached_(false),
+    max_cached_(false),
+    delta_cached_(false){
   }
 
   Unpacker::Unpacker(const std::vector<dcfeb_data>& data, const uint_fast32_t l1a_in, const unsigned dcfeb_in):
@@ -20,7 +25,10 @@ namespace Packet{
     l1a_(l1a_in),
     dcfeb_(dcfeb_in),
     cutoff_(0),
-    cutoff_cached_(false){
+    cutoff_cached_(false),
+    min_cached_(false),
+    max_cached_(false),
+    delta_cached_(false){
   }
 
   void Unpacker::SetData(const std::vector<dcfeb_data>& data, const uint_fast32_t l1a_in, const unsigned dcfeb_in){
@@ -28,6 +36,9 @@ namespace Packet{
     l1a_=l1a_in;
     dcfeb_=dcfeb_in;
     cutoff_cached_=false;
+    min_cached_=false;
+    max_cached_=false;
+    delta_cached_=false;
   }
 
   unsigned Unpacker::GetCutoff() const{
@@ -83,7 +94,7 @@ namespace Packet{
 
   float Unpacker::GetMuonPedestalRatio() const{
     CalcCutoff();
-    return GetMuonAverage()/GetPedestalAverage();
+    return GetMuonPeak()/GetPedestalAverage();
   }
 
   bool Unpacker::IsNeighbor(const dcfeb_data& a, const dcfeb_data& b) const{
@@ -224,5 +235,133 @@ namespace Packet{
                 << ' ' << std::setw(8) << static_cast<unsigned>(data_.at(i).second.second.second+1)
                 << std::endl;
     }
+  }
+
+  float Unpacker::GetMin() const{
+    if(!min_cached_){
+      CalcCutoff();
+      min_=data_.size()?data_.at(data_.size()-1).first:0.0;
+      min_cached_=true;
+    }
+    return min_;
+  }
+
+  float Unpacker::GetMax() const{
+    if(!max_cached_){
+      CalcCutoff();
+      max_=data_.size()?data_.at(0).first:0.0;
+      max_cached_=true;
+    }
+    return max_;
+  }
+
+  float Unpacker::GetDelta() const{
+    if(!delta_cached_){
+      const float min(GetMin());
+      const float max(GetMax());
+      delta_=(max>min)?(max-min):0.0;
+      delta_cached_=true;
+    }
+    return delta_;
+  }
+
+  float Unpacker::GetQuantileOf(const float value) const{
+    CalcCutoff();
+    switch(data_.size()){
+    case 0: return 0.5;
+    case 1:
+      if(value<normalize(data_.at(0).first)){
+        return 0.0;
+      }else if(value>normalize(data_.at(0).first)){
+        return 1.0;
+      }else{
+        return 0.5;
+      }
+    default:
+      if(value<normalize(data_.at(data_.size()-1).first)){
+        return 0.0;
+      }else if(value>normalize(data_.at(0).first)){
+        return 1.0;
+      }else{
+        unsigned i(0), j(data_.size()-1);
+        while(i<data_.size() && normalize(data_.at(i).first)>value) ++i;
+        if(i==data_.size() || (i>0 && normalize(data_.at(i).first)<value)) --i;
+        while(j>0 && normalize(data_.at(j).first)<value) --j;
+        if(normalize(data_.at(j).first)>value && j<data_.size()-1) ++j;
+        if(normalize(data_.at(i).first)==value && normalize(data_.at(j).first)==value){
+          return 1.0-0.5*(i+j)/(data_.size()-1);
+        }else if(normalize(data_.at(i).first)>value && normalize(data_.at(j).first)<value){
+          const float xi((value-normalize(data_.at(j).first))/(normalize(data_.at(i).first)-normalize(data_.at(j).first)));
+          return 1.0-(xi*i+(1.0-xi)*j)/(data_.size()-1);
+        }else{
+          throw std::logic_error("Value not bracketed properly.");
+          return -1.0;
+        }
+      }
+    }
+  }
+  
+  float Unpacker::GetValueOf(const float quantile) const{
+    CalcCutoff();
+    const float delta(GetDelta());
+    if(data_.size()==0 || delta==0.0){
+      return 0.5;
+    }else{
+      if(quantile<=0.0){
+        return normalize(data_.at(data_.size()-1).first);
+      }else if(quantile>=1.0){
+        return normalize(data_.at(0).first);
+      }else{
+        const float index((1.0-quantile)*(data_.size()-1));
+        const unsigned fl(floor(index));
+        const unsigned ce(ceil(index));
+        if(fl==ce || normalize(data_.at(fl).first)==normalize(data_.at(ce).first)){
+          return normalize(data_.at(fl).first);
+        }else{
+          const float xce((index-fl)/(ce-fl));
+          return xce*normalize(data_.at(ce).first)+(1.0-xce)*normalize(data_.at(fl).first);
+        }
+      }
+    }
+  }
+
+  float Unpacker::normalize(const uint_least16_t val) const{
+    return (GetDelta()>0.0)?(val-GetMin())/GetDelta():0.5;
+  }
+
+  std::vector<std::pair<float, float> > Unpacker::GetValuesAndQuantiles() const{
+    std::vector<std::pair<float, float> > ret(data_.size(), std::pair<float, float>(0.0, 0.0));
+    if(data_.size()==1){
+      ret=std::vector<std::pair<float, float> >(1, std::pair<float, float>(normalize(data_.at(0).first), 0.5));
+    }else{
+      for(unsigned i(0); i<data_.size(); ++i){
+	ret.at(i)=std::pair<float, float>(normalize(data_.at(i).first), 1.0-static_cast<float>(i)/(data_.size()-1));
+      }
+    }
+    return ret;
+  }
+
+  std::vector<float> Unpacker::GetValues() const{
+    std::vector<float> values(data_.size(),0.0);
+    for(unsigned i(0); i<data_.size(); ++i){
+      values.at(i)=normalize(data_.at(i).first);
+    }
+    return values;
+  }
+
+  std::vector<float> Unpacker::GetQuantiles() const{
+    std::vector<float> quantiles(data_.size(),0.0);
+    if(data_.size()==1){
+      quantiles.at(0)=0.5;
+    }else{
+      for(unsigned i(0); i<data_.size(); ++i){
+	quantiles.at(i)=static_cast<float>(i)/(data_.size()-1);
+      }
+    }
+    return quantiles;
+  }
+
+  bool Unpacker::LooksLikeAMuon() const{
+    return GetCutoff()>4 && GetMuonPedestalRatio()>1.1 && GetValueOf(0.5)<0.4;
   }
 }

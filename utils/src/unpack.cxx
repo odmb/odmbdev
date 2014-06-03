@@ -90,8 +90,14 @@ int main(int argc, char *argv[]){
     TFile file((filename+".root").c_str(),"recreate");
     file.cd();
     TTree tree("unpack","unpack");
+    TTree tree2("data","data");
     uint16_t l1a(0), dcfeb(0), cutoff(0);
     float muon_peak(0.0), muon_average(0.0), pedestal_average(0.0), muon_pedestal_ratio(0.0), average_layer(0.0), average_strip(0.0), average_time_bin(0.0);
+    float value000(0.0), value005(0.0), value010(0.0), value015(0.0), value020(0.0), value025(0.0), value030(0.0), value035(0.0), value040(0.0), value045(0.0), value050(0.0), value055(0.0), value060(0.0), value065(0.0), value070(0.0), value075(0.0), value080(0.0), value085(0.0), value090(0.0), value095(0.0), value100(0.0);
+    float quantile000(0.0), quantile005(0.0), quantile010(0.0), quantile015(0.0), quantile020(0.0), quantile025(0.0), quantile030(0.0), quantile035(0.0), quantile040(0.0), quantile045(0.0), quantile050(0.0), quantile055(0.0), quantile060(0.0), quantile065(0.0), quantile070(0.0), quantile075(0.0), quantile080(0.0), quantile085(0.0), quantile090(0.0), quantile095(0.0), quantile100(0.0);
+    float this_value(0.0), this_quantile(0.0);
+    bool has_muon(false);
+
     tree.Branch("l1a", &l1a);
     tree.Branch("dcfeb", &dcfeb);
     tree.Branch("cutoff", &cutoff);
@@ -102,6 +108,54 @@ int main(int argc, char *argv[]){
     tree.Branch("average_layer", &average_layer);
     tree.Branch("average_strip", &average_strip);
     tree.Branch("average_time_bin", &average_time_bin);
+    tree.Branch("value000", &value000);
+    tree.Branch("value005", &value005);
+    tree.Branch("value010", &value010);
+    tree.Branch("value015", &value015);
+    tree.Branch("value020", &value020);
+    tree.Branch("value025", &value025);
+    tree.Branch("value030", &value030);
+    tree.Branch("value035", &value035);
+    tree.Branch("value040", &value040);
+    tree.Branch("value045", &value045);
+    tree.Branch("value050", &value050);
+    tree.Branch("value055", &value055);
+    tree.Branch("value060", &value060);
+    tree.Branch("value065", &value065);
+    tree.Branch("value070", &value070);
+    tree.Branch("value075", &value075);
+    tree.Branch("value080", &value080);
+    tree.Branch("value085", &value085);
+    tree.Branch("value090", &value090);
+    tree.Branch("value095", &value095);
+    tree.Branch("value100", &value100);
+    tree.Branch("quantile000", &quantile000);
+    tree.Branch("quantile005", &quantile005);
+    tree.Branch("quantile010", &quantile010);
+    tree.Branch("quantile015", &quantile015);
+    tree.Branch("quantile020", &quantile020);
+    tree.Branch("quantile025", &quantile025);
+    tree.Branch("quantile030", &quantile030);
+    tree.Branch("quantile035", &quantile035);
+    tree.Branch("quantile040", &quantile040);
+    tree.Branch("quantile045", &quantile045);
+    tree.Branch("quantile050", &quantile050);
+    tree.Branch("quantile055", &quantile055);
+    tree.Branch("quantile060", &quantile060);
+    tree.Branch("quantile065", &quantile065);
+    tree.Branch("quantile070", &quantile070);
+    tree.Branch("quantile075", &quantile075);
+    tree.Branch("quantile080", &quantile080);
+    tree.Branch("quantile085", &quantile085);
+    tree.Branch("quantile090", &quantile090);
+    tree.Branch("quantile095", &quantile095);
+    tree.Branch("quantile100", &quantile100);
+    tree.Branch("has_muon", &has_muon);
+    tree2.Branch("l1a", &l1a);
+    tree2.Branch("dcfeb", &dcfeb);
+    tree2.Branch("value", &this_value);
+    tree2.Branch("quantile", &this_quantile);
+
     for(; entry<=end_entry && FindStartOfNextPacket(ifs, packet); ++entry){
       GetRestOfPacket(ifs, packet);
       data_packet.SetData(packet);
@@ -118,7 +172,57 @@ int main(int argc, char *argv[]){
         average_layer=unpacker.GetAverageLayer();
         average_strip=unpacker.GetAverageStrip();
         average_time_bin=unpacker.GetAverageTimeBin();
+	value000=unpacker.GetValueOf(0.00);
+	value005=unpacker.GetValueOf(0.05);
+	value010=unpacker.GetValueOf(0.10);
+	value015=unpacker.GetValueOf(0.15);
+	value020=unpacker.GetValueOf(0.20);
+	value025=unpacker.GetValueOf(0.25);
+	value030=unpacker.GetValueOf(0.30);
+	value035=unpacker.GetValueOf(0.35);
+	value040=unpacker.GetValueOf(0.40);
+	value045=unpacker.GetValueOf(0.45);
+	value050=unpacker.GetValueOf(0.50);
+	value055=unpacker.GetValueOf(0.55);
+	value060=unpacker.GetValueOf(0.60);
+	value065=unpacker.GetValueOf(0.65);
+	value070=unpacker.GetValueOf(0.70);
+	value075=unpacker.GetValueOf(0.75);
+	value080=unpacker.GetValueOf(0.80);
+	value085=unpacker.GetValueOf(0.85);
+	value090=unpacker.GetValueOf(0.90);
+	value095=unpacker.GetValueOf(0.95);
+	value100=unpacker.GetValueOf(1.00);
+	quantile000=unpacker.GetQuantileOf(0.00);
+	quantile005=unpacker.GetQuantileOf(0.05);
+	quantile010=unpacker.GetQuantileOf(0.10);
+	quantile015=unpacker.GetQuantileOf(0.15);
+	quantile020=unpacker.GetQuantileOf(0.20);
+	quantile025=unpacker.GetQuantileOf(0.25);
+	quantile030=unpacker.GetQuantileOf(0.30);
+	quantile035=unpacker.GetQuantileOf(0.35);
+	quantile040=unpacker.GetQuantileOf(0.40);
+	quantile045=unpacker.GetQuantileOf(0.45);
+	quantile050=unpacker.GetQuantileOf(0.50);
+	quantile055=unpacker.GetQuantileOf(0.55);
+	quantile060=unpacker.GetQuantileOf(0.60);
+	quantile065=unpacker.GetQuantileOf(0.65);
+	quantile070=unpacker.GetQuantileOf(0.70);
+	quantile075=unpacker.GetQuantileOf(0.75);
+	quantile080=unpacker.GetQuantileOf(0.80);
+	quantile085=unpacker.GetQuantileOf(0.85);
+	quantile090=unpacker.GetQuantileOf(0.90);
+	quantile095=unpacker.GetQuantileOf(0.95);
+	quantile100=unpacker.GetQuantileOf(1.00);
+	has_muon=unpacker.LooksLikeAMuon();
         tree.Fill();
+
+	const std::vector<std::pair<float, float> > vqs(unpacker.GetValuesAndQuantiles());
+	for(unsigned i(0); i<vqs.size(); ++i){
+	  this_value=vqs.at(i).first;
+	  this_quantile=vqs.at(i).second;
+	  tree2.Fill();
+	}
         /*std::cout << ' ' << std::setw(8) << unpacker.l1a()
           << ' ' << std::setw(8) << unpacker.dcfeb()
           << ' ' << std::setw(8) << unpacker.GetCutoff()
