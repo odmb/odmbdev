@@ -1,6 +1,7 @@
 #include "emu/odmbdev/Buttons.h" 
 #include "emu/odmbdev/utils.h"
 #include "emu/odmbdev/Manager.h"
+#include "emu/odmbdev/unpacker.h"
 
 #include "emu/pc/Crate.h"
 #include "emu/pc/VMEController.h"
@@ -3057,6 +3058,196 @@ int slot = Manager::getSlotNumber();
 
       out << out_local.str();
       UpdateLog(vme_wrapper_, slot, out_local);
+    }
+
+    PipelineDepthScan::PipelineDepthScan(Crate* crate, emu::odmbdev::Manager* manager):
+      ThreeTextBoxAction(crate, manager, "Pipeline Depth Scan","50 70","0x1", "100", "Range","Mask","Time",
+			 "width: 128px;", "width: 64px;", "width: 64px;", "width: 32px;"){
+    }
+
+    void PipelineDepthScan::respond(xgi::Input* in, std::ostringstream& out,
+				    const std::string& textBoxContent_in){
+      //The usual administrative overhead...
+      ThreeTextBoxAction::respond(in, out, textBoxContent_in);
+      const unsigned slot(Manager::getSlotNumber());
+      string hdr("******* Pipeline Depth Scan *******");
+      JustifyHdr(hdr);
+      out << hdr << std::endl;
+
+      //Read the text boxes
+      double run_time(strtod(textBoxContent3.c_str(), NULL));
+      if(run_time<0.0) run_time=0.0;
+      char* end_pointer;
+      const unsigned lower_depth(strtoul(textBoxContent.c_str(), &end_pointer, 0));
+      const unsigned upper_depth(strtoul(end_pointer, NULL, 0));
+      const uint_fast16_t mask(strtoul(textBoxContent2.c_str(), NULL, 0));
+
+      //Find the best depth, passing on interesting work to GetBestDepth
+      for(unsigned dcfeb(1); dcfeb<=7; ++dcfeb){
+	if(mask & (1 << (dcfeb-1))){
+	  const uint_fast16_t best_depth(GetBestDepth(slot, dcfeb, lower_depth, upper_depth, run_time, out));
+	  out << "DCFEB " << dcfeb << " best depth: " << best_depth << std::endl;
+	  std::cout << "DCFEB " << dcfeb << " best depth: " << best_depth << std::endl;
+	}
+      }
+    }
+
+    uint_fast16_t PipelineDepthScan::GetBestDepth(const unsigned slot, const unsigned dcfeb, const uint_fast16_t lower_depth,
+						  const uint_fast16_t upper_depth, const double run_time,
+						  std::ostringstream& out){
+      const uint_fast16_t kill_addr(0x401Cu);
+      const uint_fast16_t fifo_rst_addr(0x5020u);
+
+      const uint_fast16_t original_kill(vme_wrapper_->VMERead(kill_addr, slot, "Get starting list of killed devices."));
+
+      //The value that gets returned at the end
+      uint_fast16_t best_depth(lower_depth);
+
+      //Don't bother running if told to run on null set
+      if(lower_depth<upper_depth){
+	//Pipeline depth is read/written with only 9 bits
+	const unsigned num_depth_bits(9);
+
+	Packet::Unpacker unpacker;
+	float best_score(std::numeric_limits<float>::max());
+
+	//To avoid timeouts later
+	time_t start_time(0), now(0);
+	time(&start_time);
+	now=start_time;
+
+	//Scan over depths
+	for(uint_fast16_t depth(lower_depth);
+	    depth<=upper_depth && depth<(1ul << num_depth_bits);
+	    ++depth){
+	  //Figure out when to move on to next depth
+	  const float numerator(static_cast<float>(depth-lower_depth+1));
+	  const float denominator(static_cast<float>(upper_depth-lower_depth+1));
+	  const double time_limit((numerator/denominator)*run_time);
+
+	  //Set pipeline depth and reset FIFOs
+	  vme_wrapper_->VMEWrite(kill_addr, 0xFFFFu, slot, "Kill all devices.");
+	  SetPipelineDepth(dcfeb, depth, slot);
+	  vme_wrapper_->VMEWrite(fifo_rst_addr, 0xFFFFu, slot, "Reset DCFEB FIFOs.");
+	  vme_wrapper_->VMEWrite(kill_addr, 0, slot, "Unkill all devices.");
+
+	  std::vector<float> time_bins(0);
+	  unsigned muons(0);
+	
+	  //Get as many muons as possible in time limit
+	  while(difftime(now, start_time)<=time_limit){
+	    std::vector<uint_least16_t> words(GetDCFEBPacket(start_time, time_limit, slot));
+
+	    //Don't process partial packets
+	    //Should check packet is well formed as unpacker blindly thinks everything is valid data...
+	    if(words.size()>=800){
+	      unpacker.SetData(words, 0, dcfeb);
+
+	      //Quality check to avoid processing noise or looking at events where unpacker doesn't know where the muon is
+	      if(unpacker.LooksLikeAMuon()){
+		const float time_bin(unpacker.GetAverageTimeBin());
+		time_bins.push_back(time_bin);
+	      }
+
+	      //Sanity check to make sure we're not discarding too many muons
+	      ++muons;
+	    }
+
+	    time(&now);
+	  }//End of muon loop
+
+	  //Want to find depth with average time_bin closest to middle=4.5 where not all muons look like junk
+	  const float score(GetScore(time_bins, muons));
+	  //Need to adjust this later as it can fail to find an optimum, but at least the failure mode is easy to notice
+	  if(score<best_score && static_cast<float>(muons)/time_bins.size()>0.4){
+	    best_score=score;
+	    best_depth=depth;
+	  }
+	  
+	  //Print results
+	  std::ostringstream oss("");
+	  oss << "DCFEB " << dcfeb << std::endl
+	      << "Pipeline depth: " << depth << std::endl
+	      << "Total muons: " << muons << std::endl
+	      << "Used muons: " << time_bins.size() << std::endl
+	      << "Average time bin: " << Mean(time_bins.begin(), time_bins.end()) << std::endl
+	      << "Score: " << score << std::endl;
+	  const std::string the_string(oss.str());
+	  std::cout << the_string;
+	  out << the_string;
+	}//End of depth loop
+      }//end if(lower_depth<upper_depth)
+      vme_wrapper_->VMEWrite(kill_addr, original_kill, slot, "Reset kill.");
+      return best_depth;
+    }
+
+    std::vector<uint_least16_t> PipelineDepthScan::GetDCFEBPacket(const time_t start_time, const double time_limit,
+								  const unsigned slot){
+      //N.B.: This function accumes you've already selected the correct DCFEB FIFO, taken care of necessary resets, etc.
+      const uint_fast16_t rd_num_words_addr(0x500Cu);
+      const uint_fast16_t rd_word_addr(0x5000u);
+
+      uint_fast16_t words_in_fifo(vme_wrapper_->VMERead(rd_num_words_addr, slot, "Read number of words in FIFO."));
+
+      //Wait for 802 words or timeout
+      time_t now;
+      time(&now);
+      while(words_in_fifo<802 && difftime(now, start_time)<=time_limit){
+	words_in_fifo=vme_wrapper_->VMERead(rd_num_words_addr, slot, "Read number of words in FIFO.");
+	//std::cout << "QQQ: " << words_in_fifo << std::endl;
+	time(&now);
+      }
+
+      //Discard the L1A...
+      vme_wrapper_->VMERead(rd_word_addr, slot, "Discard word from FIFO.");
+      vme_wrapper_->VMERead(rd_word_addr, slot, "Discard word from FIFO.");
+
+      //Don't read more words than there are in the FIFO
+      const unsigned words_to_read((words_in_fifo>=802)?800:((words_in_fifo>=2)?(words_in_fifo-2):0));
+
+      //Get the words out of the FIFO
+      std::vector<uint_least16_t> words(words_to_read);
+      for(unsigned word(0); word<words_to_read; ++word){
+	words.at(word)=vme_wrapper_->VMERead(rd_word_addr, slot, "Read word from FIFO.");
+      }
+
+      return words;
+    }
+
+    void PipelineDepthScan::SetPipelineDepth(const unsigned dcfeb, const uint_fast16_t depth, const unsigned slot){
+      const uint_fast16_t select_dcfeb_addr(0x1020);
+      const uint_fast16_t shift_instr_addr(0x191C);
+      const uint_fast16_t hdr_tlr_8bit_addr(0x170C);
+      const uint_fast16_t hdr_tlr_10bit_addr(0x190C);
+
+      const uint_fast16_t dcfeb_instr_addr(0x3C2);
+      const uint_fast16_t dcfeb_data_addr(0x3C3);
+
+      const uint_fast8_t pipeline_depth_addr(16);
+      const uint_fast8_t pipeline_reset_addr(15);
+
+      //Set the pipeline depth
+      vme_wrapper_->VMEWrite(select_dcfeb_addr, (1u << (dcfeb-1)), slot, "Select DCFEB.");      
+      vme_wrapper_->VMEWrite(shift_instr_addr, dcfeb_instr_addr, slot, "Set instruction register.");
+      vme_wrapper_->VMEWrite(hdr_tlr_8bit_addr, pipeline_depth_addr, slot, "Shift the set pipeline instruction.");
+      vme_wrapper_->VMEWrite(shift_instr_addr, dcfeb_data_addr, slot, "Set data register.");
+      vme_wrapper_->VMEWrite(hdr_tlr_10bit_addr, depth, slot, "Shift the pipeline depth.");
+      
+      //Restart the pipeline
+      vme_wrapper_->VMEWrite(shift_instr_addr, dcfeb_instr_addr, slot, "Set instruction register.");
+      vme_wrapper_->VMEWrite(hdr_tlr_8bit_addr, pipeline_reset_addr, slot, "Restart pipeline.");      
+    }
+
+    double PipelineDepthScan::GetScore(const std::vector<float>& time_bins, const unsigned muons){
+      double score(0.0);
+      for(std::vector<float>::const_iterator time_bin(time_bins.begin());
+	  time_bin!=time_bins.end();
+	  ++time_bin){
+	const double delta((*time_bin)-4.5);
+	score+=delta*delta;
+      }
+      score+=3.5*3.5*(muons-time_bins.size());
+      return score/(muons>0?muons:1);
     }
 
     LVMBtest_dos::LVMBtest_dos(Crate* crate, emu::odmbdev::Manager* manager):

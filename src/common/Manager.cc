@@ -166,6 +166,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<HardReset>(crate);
       addActionByTypename<ReprogramDCFEB>(crate);
       addActionByTypename<LVMBtest_dos>(crate, this);
+      addActionByTypename<PipelineDepthScan>(crate, this);
       
       // putButtonsInGroup( "Routine Tests" );
       // addActionByTypename<RoutineTest_ShortCosmicsRun>(crate, this);

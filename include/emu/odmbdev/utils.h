@@ -33,6 +33,28 @@ namespace emu{
     std::string FixLength(unsigned int Number, unsigned int Length, bool isHex);
     void UpdateLog(VMEWrapper* vme_wrapper, unsigned int slot, std::ostringstream& out_local);
     void JustifyHdr(string &hdr);
+
+    namespace Packet{
+      typedef std::pair<uint_least16_t, std::pair<uint_least8_t, std::pair<uint_least8_t, uint_least8_t> > > dcfeb_data;
+    }
+
+    template<typename T>
+      double Sum(T begin, T end){
+      double sum(0.0);
+      volatile double correction(0.0);
+      for(; begin!=end; ++begin){
+	const double corrected_val(*begin-correction);
+	const double temp_sum(sum+corrected_val);
+	correction=(temp_sum-sum)-corrected_val;
+	sum=temp_sum;
+      }
+      return sum;
+    }
+    
+    template<typename T>
+      double Mean(T begin, T end){
+      return Sum(begin, end)/static_cast<double>(std::distance(begin,end));
+    }
   }
 }
 

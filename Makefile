@@ -40,7 +40,8 @@ Sources = \
 	TextBoxAction.cc \
         RadioButtonAction.cc \
         VMEWrapper.cc \
-        JTAGWrapper.cc
+        JTAGWrapper.cc \
+	unpacker.cc
 #	Spy.cc
 TestSources =
 TestIncludeDirs =

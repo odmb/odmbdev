@@ -472,6 +472,26 @@ namespace emu { namespace odmbdev {
       void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     };
    
+    
+    /**************************************************************************
+     * PipelineDepthScan
+     *
+     * Scans over DCFEB pipeline depths
+     **************************************************************************/
+    class PipelineDepthScan:
+    public ThreeTextBoxAction{
+    public:
+      PipelineDepthScan(Crate* crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input* in, std::ostringstream& out, const std::string& textBoxContent_in);
+      uint_fast16_t GetBestDepth(const unsigned slot, const unsigned device,
+				 const uint_fast16_t lower_depth, const uint_fast16_t upper_depth,
+				 const double run_time, std::ostringstream& out);
+      std::vector<uint_least16_t> GetDCFEBPacket(const time_t start_time, const double time_limit,
+						 const unsigned slot);
+      void SetPipelineDepth(const unsigned dcfeb, const uint_fast16_t depth, const unsigned slot);
+      double GetScore(const std::vector<float>& time_bins, const unsigned muons);
+    };
+
     /**************************************************************************
      * DCFEBPulses
      *
