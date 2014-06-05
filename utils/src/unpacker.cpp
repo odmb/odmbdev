@@ -80,7 +80,7 @@ namespace Packet{
 
   float Unpacker::GetMuonPeak() const{
     CalcCutoff();
-    return data_.size()?data_.at(0).first:0.0;
+    return data_.size()?data_.at(0).first:0;
   }
 
   float Unpacker::GetMuonAverage() const{
@@ -257,7 +257,7 @@ namespace Packet{
   float Unpacker::GetMin() const{
     if(!min_cached_){
       CalcCutoff();
-      min_=data_.size()?data_.at(data_.size()-1).first:0.0;
+      min_=data_.size()?data_.at(data_.size()-1).first:0;
       min_cached_=true;
     }
     return min_;
@@ -266,7 +266,7 @@ namespace Packet{
   float Unpacker::GetMax() const{
     if(!max_cached_){
       CalcCutoff();
-      max_=data_.size()?data_.at(0).first:0.0;
+      max_=data_.size()?data_.at(0).first:0;
       max_cached_=true;
     }
     return max_;
@@ -276,7 +276,7 @@ namespace Packet{
     if(!delta_cached_){
       const float min(GetMin());
       const float max(GetMax());
-      delta_=(max>min)?(max-min):0.0;
+      delta_=(max>min)?static_cast<unsigned>(max-min):0;
       delta_cached_=true;
     }
     return delta_;
@@ -330,8 +330,8 @@ namespace Packet{
         return normalize(data_.at(0).first);
       }else{
         const float index((1.0-quantile)*(data_.size()-1));
-        const unsigned fl(floor(index));
-        const unsigned ce(ceil(index));
+        const unsigned fl(static_cast<unsigned>(floor(index)));
+        const unsigned ce(static_cast<unsigned>(ceil(index)));
         if(fl==ce || normalize(data_.at(fl).first)==normalize(data_.at(ce).first)){
           return normalize(data_.at(fl).first);
         }else{

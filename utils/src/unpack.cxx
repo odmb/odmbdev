@@ -223,6 +223,14 @@ int main(int argc, char *argv[]){
 	  this_quantile=vqs.at(i).second;
 	  tree2.Fill();
 	}
+
+	/*for(double x(0.0); x<=1.0; x+=0.0001){
+	  std::cout << ' ' << std::setw(16) << x
+		    << ' ' << std::setw(16) << unpacker.GetValueOf(x)
+		    << ' ' << std::setw(16) << unpacker.GetQuantileOf(x) << std::endl;
+		    }*/
+
+	std::cout << unpacker.l1a() << ' ' << unpacker.LooksLikeAMuon() << std::endl;
         /*std::cout << ' ' << std::setw(8) << unpacker.l1a()
           << ' ' << std::setw(8) << unpacker.dcfeb()
           << ' ' << std::setw(8) << unpacker.GetCutoff()

@@ -342,7 +342,7 @@ namespace emu{
       }
 
       bool Unpacker::LooksLikeAMuon() const{
-        return GetCutoff()>4 && GetMuonPedestalRatio()>1.1 && GetValueOf(0.5)<0.4;
+	return GetValueOf((768.0-10.0)/768.0)>0.5 && GetValueOf((768.0-16.0*8.0+2.0)/768.0)<0.5;
       }
 
       std::vector<dcfeb_data> Unpacker::TranslateRawWords(const std::vector<uint_least16_t>& data){

@@ -3061,7 +3061,7 @@ int slot = Manager::getSlotNumber();
     }
 
     PipelineDepthScan::PipelineDepthScan(Crate* crate, emu::odmbdev::Manager* manager):
-      ThreeTextBoxAction(crate, manager, "Pipeline Depth Scan","50 70","0x1", "100", "Range","Mask","Time",
+      ThreeTextBoxAction(crate, manager, "Pipeline Depth Scan","57 68","0x1", "100", "Range","Mask","Time",
 			 "width: 128px;", "width: 64px;", "width: 64px;", "width: 32px;"){
     }
 
@@ -3125,10 +3125,32 @@ int slot = Manager::getSlotNumber();
 	  const float denominator(static_cast<float>(upper_depth-lower_depth+1));
 	  const double time_limit((numerator/denominator)*run_time);
 
+	  //QQQ
 	  //Set pipeline depth and reset FIFOs
 	  vme_wrapper_->VMEWrite(kill_addr, 0xFFFFu, slot, "Kill all devices.");
-	  SetPipelineDepth(dcfeb, depth, slot);
-	  vme_wrapper_->VMEWrite(fifo_rst_addr, 0xFFFFu, slot, "Reset DCFEB FIFOs.");
+	  //SetPipelineDepth(dcfeb, depth, slot);
+	  for(std::vector<DAQMB*>::iterator dmb(dmbs_.begin());
+	      dmb!=dmbs_.end();
+	      ++dmb){
+	    //std::cout << "AAA" << std::endl;
+	    //std::cout << (*dmb)->GetHardwareVersion() << ' ' << (*dmb)->slot() << ' ' << slot << std::endl;
+	    if((*dmb)->GetHardwareVersion()==2 && static_cast<unsigned>((*dmb)->slot())==slot){
+	      //std::cout << "BBB" << std::endl;
+	      std::vector<CFEB> cfebs((*dmb)->cfebs());
+	      for(std::vector<CFEB>::iterator cfeb(cfebs.begin());
+		  cfeb!=cfebs.end();
+		  ++cfeb){
+		//std::cout << "CCC" << std::endl;
+		//std::cout << cfeb->number() << ' ' << dcfeb << std::endl;
+		if(true || static_cast<unsigned>(cfeb->number())==dcfeb){
+		  //std::cout << "DDD" << std::endl;
+		  (*dmb)->dcfeb_set_PipelineDepth(*cfeb, depth);
+		  (*dmb)->Pipeline_Restart(*cfeb);
+		}
+	      }
+	    }
+	    }
+	  vme_wrapper_->VMEWrite(fifo_rst_addr, 0x7Fu, slot, "Reset DCFEB FIFOs.");
 	  vme_wrapper_->VMEWrite(kill_addr, 0, slot, "Unkill all devices.");
 
 	  std::vector<float> time_bins(0);
@@ -3136,21 +3158,27 @@ int slot = Manager::getSlotNumber();
 	
 	  //Get as many muons as possible in time limit
 	  while(difftime(now, start_time)<=time_limit){
+	    vme_wrapper_->VMEWrite(0x5010, 1, slot, "Select DCFEB FIFO.");
 	    std::vector<uint_least16_t> words(GetDCFEBPacket(start_time, time_limit, slot));
 
 	    //Don't process partial packets
-	    //Should check packet is well formed as unpacker blindly thinks everything is valid data...
 	    if(words.size()>=800){
-	      unpacker.SetData(words, 0, dcfeb);
-
-	      //Quality check to avoid processing noise or looking at events where unpacker doesn't know where the muon is
-	      if(unpacker.LooksLikeAMuon()){
-		const float time_bin(unpacker.GetAverageTimeBin());
-		time_bins.push_back(time_bin);
+	      if(words.at(799)!=0x7FFFu){
+		vme_wrapper_->VMEWrite(0x5020, 0xFFFF, slot, "Should not be needed.");
+	      }else{
+		unpacker.SetData(words, 0, dcfeb);
+		//if(unpacker.GetMax()==0xFFFu) std::cout << "BAD!!!" << std::endl;
+		//unpacker.PrintData();
+		
+		//Quality check to avoid processing noise or looking at events where unpacker doesn't know where the muon is
+		if(unpacker.LooksLikeAMuon()){
+		  const float time_bin(unpacker.GetAverageTimeBin());
+		  time_bins.push_back(time_bin);
+		}
+		
+		//Sanity check to make sure we're not discarding too many muons
+		++muons;
 	      }
-
-	      //Sanity check to make sure we're not discarding too many muons
-	      ++muons;
 	    }
 
 	    time(&now);
@@ -3194,13 +3222,14 @@ int slot = Manager::getSlotNumber();
       time(&now);
       while(words_in_fifo<802 && difftime(now, start_time)<=time_limit){
 	words_in_fifo=vme_wrapper_->VMERead(rd_num_words_addr, slot, "Read number of words in FIFO.");
-	//std::cout << "QQQ: " << words_in_fifo << std::endl;
 	time(&now);
       }
 
       //Discard the L1A...
-      vme_wrapper_->VMERead(rd_word_addr, slot, "Discard word from FIFO.");
-      vme_wrapper_->VMERead(rd_word_addr, slot, "Discard word from FIFO.");
+      const unsigned x1(vme_wrapper_->VMERead(rd_word_addr, slot, "Discard word from FIFO."));
+      const unsigned x2(vme_wrapper_->VMERead(rd_word_addr, slot, "Discard word from FIFO."));
+      if(false && x1==x2){}
+      //std::cout << std::hex << std::setw(8) << x1 << ' ' << std::setw(8) << x2 << std::dec << std::endl;
 
       //Don't read more words than there are in the FIFO
       const unsigned words_to_read((words_in_fifo>=802)?800:((words_in_fifo>=2)?(words_in_fifo-2):0));
@@ -3227,15 +3256,23 @@ int slot = Manager::getSlotNumber();
       const uint_fast8_t pipeline_reset_addr(15);
 
       //Set the pipeline depth
+      usleep(1000);
       vme_wrapper_->VMEWrite(select_dcfeb_addr, (1u << (dcfeb-1)), slot, "Select DCFEB.");      
+      usleep(1000);
       vme_wrapper_->VMEWrite(shift_instr_addr, dcfeb_instr_addr, slot, "Set instruction register.");
+      usleep(1000);
       vme_wrapper_->VMEWrite(hdr_tlr_8bit_addr, pipeline_depth_addr, slot, "Shift the set pipeline instruction.");
+      usleep(1000);
       vme_wrapper_->VMEWrite(shift_instr_addr, dcfeb_data_addr, slot, "Set data register.");
+      usleep(1000);
       vme_wrapper_->VMEWrite(hdr_tlr_10bit_addr, depth, slot, "Shift the pipeline depth.");
+      usleep(1000);
       
       //Restart the pipeline
       vme_wrapper_->VMEWrite(shift_instr_addr, dcfeb_instr_addr, slot, "Set instruction register.");
+      usleep(1000);
       vme_wrapper_->VMEWrite(hdr_tlr_8bit_addr, pipeline_reset_addr, slot, "Restart pipeline.");      
+      usleep(1000);
     }
 
     double PipelineDepthScan::GetScore(const std::vector<float>& time_bins, const unsigned muons){
