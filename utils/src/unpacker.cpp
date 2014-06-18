@@ -6,9 +6,14 @@
 #include <iostream>
 #include <iomanip>
 #include <numeric>
+#include <string>
 #include <stdexcept>
 #include "TCanvas.h"
+#include "TStyle.h"
+#include "TH1D.h"
 #include "TH2D.h"
+#include "TString.h"
+#include "TLegend.h"
 
 namespace Packet{
   Unpacker::Unpacker():
@@ -172,9 +177,49 @@ namespace Packet{
     }
   }
 
-  void Unpacker::MakePlot(const std::string& file) const{
+TString Unpacker::RoundNumber(double num, int decimals, int length){
+  double neg = 1; if(num<0) neg = -1;
+  num /= neg; num += 0.5*pow(10.,-decimals);
+  int num_int = (int)num;
+  int num_dec = (int)((1+num-num_int)*pow(10.,decimals));
+  TString s_dec = ""; s_dec += num_dec; s_dec.Remove(0,1);
+  TString result=""; 
+  if(neg<0) result+="-";
+  result+= num_int;
+  if(decimals>0) {
+    result+="."; result+=s_dec;
+  }
+  
+  TString afterdot = result;
+  afterdot.Remove(0,afterdot.First(".")+1);
+  for(int i=0; i<decimals-afterdot.Length(); i++)
+    result += "0";
+
+  while(result.Sizeof() < length) result = " " + result;
+  return result;
+}
+
+  void Unpacker::MakePlot(std::string file){
+    gStyle->SetOptStat(0);              // No Stats box
+    gStyle->SetPalette(1);              // Decent colors for 2D plots
     TCanvas canvas;
     canvas.Divide(4,2);
+
+    TH1D *h1d[8][6];
+    double mean[8][6], rms[8][6];
+    int colors[] = {kBlue+3, kBlue+1, kBlue-7, kGreen-7, kGreen+1, kGreen+3};
+    TString hname, htitle;
+    for(int layer(0); layer<6; layer++){
+      for(int time(0); time<8; time++){
+	mean[time][layer] = 0; rms[time][layer] = 0;
+	hname = "histo"; hname += time; hname += layer; 
+	htitle = "Time sample "; htitle += time+1; htitle += ";Strip;ADC count";
+	h1d[time][layer] = new TH1D(hname, htitle, 16, 0.5, 16.5);
+	h1d[time][layer]->SetLineColor(colors[layer]);
+	h1d[time][layer]->SetLineWidth(2);
+      }
+    }
+
     TH2D h1("h1","Time Sample 1;Strip;Layer", 16, 0.5, 16.5, 6, 0.5, 6.5);
     TH2D h2("h2","Time Sample 2;Strip;Layer", 16, 0.5, 16.5, 6, 0.5, 6.5);
     TH2D h3("h3","Time Sample 3;Strip;Layer", 16, 0.5, 16.5, 6, 0.5, 6.5);
@@ -190,6 +235,10 @@ namespace Packet{
       const int time(data_.at(i).second.first+1);
       const int strip(data_.at(i).second.second.first+1);
       const int layer(data_.at(i).second.second.second+1);
+      
+      h1d[time-1][layer-1]->Fill(strip, value);
+      mean[time-1][layer-1] += value;
+      rms[time-1][layer-1] += value*value;
       TH2D* h(NULL);
       switch(time){
       case 1: h=&h1; break;
@@ -228,7 +277,45 @@ namespace Packet{
     }
     canvas.cd(0);
     canvas.Print(file.c_str());
-  }
+
+    // Legend
+    const double legX = 0.65, legY = 0.89;
+    const double legW = 0.18, legH = 0.2;
+    TLegend leg(legX, legY-legH, legX+legW, legY);
+    leg.SetTextSize(0.056); leg.SetFillColor(0); leg.SetFillStyle(0); leg.SetBorderSize(0);
+    leg.SetTextFont(132);
+    for(int layer(0); layer<6; layer++){
+      htitle = "Layer "; htitle += layer+1;
+      leg.AddEntry(h1d[0][layer], htitle);
+    }
+    std::cout<<std::endl<<std::endl<<"Time sample ->  ";
+    for(int time(0); time<8; time++){     
+      std::cout<<" "<<time+1<<"\t";
+      canvas.cd(time+1);
+      for(int layer(0); layer<6; layer++){
+	if(layer==0) {
+	  h1d[time][0]->SetMinimum(min_val);
+	  h1d[time][0]->SetMaximum(max_val*1.1);
+	  h1d[time][layer]->Draw();
+	  if(time==0) leg.Draw();
+	} else h1d[time][layer]->Draw("same");
+      }
+    }
+    file.replace(0,7,"onedim");
+    canvas.cd(0);
+    canvas.Print(file.c_str());
+
+    std::cout<<std::endl<<"============================================================================="<<std::endl;
+    for(int layer(0); layer<6; layer++){
+      std::cout<<"Layer "<<layer+1<<":   \t";
+      for(int time(0); time<8; time++){
+	h1d[time][layer]->Delete();
+	rms[time][layer] = sqrt(16*rms[time][layer]-mean[time][layer]*mean[time][layer])/15;
+	std::cout << RoundNumber(rms[time][layer],0,4).Data() << ",\t";
+      }
+      std::cout<<std::endl;
+    }
+}
 
   void Unpacker::PrintData() const{
     CalcCutoff();

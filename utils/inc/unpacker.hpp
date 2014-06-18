@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include "utils.hpp"
+#include "TString.h"
 
 namespace Packet{
   class Unpacker{
@@ -37,7 +38,8 @@ namespace Packet{
     const unsigned& dcfeb() const{return dcfeb_;}
     unsigned& dcfeb(){return dcfeb_;}
 
-    void MakePlot(const std::string& file) const;
+    TString RoundNumber(double num, int decimals, int length);
+    void MakePlot(std::string file);
     void PrintData() const;
 
   private:

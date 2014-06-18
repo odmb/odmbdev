@@ -230,7 +230,7 @@ int main(int argc, char *argv[]){
 		    << ' ' << std::setw(16) << unpacker.GetQuantileOf(x) << std::endl;
 		    }*/
 
-	std::cout << unpacker.l1a() << ' ' << unpacker.LooksLikeAMuon() << std::endl;
+	//std::cout << unpacker.l1a() << ' ' << unpacker.LooksLikeAMuon() << std::endl;
         /*std::cout << ' ' << std::setw(8) << unpacker.l1a()
           << ' ' << std::setw(8) << unpacker.dcfeb()
           << ' ' << std::setw(8) << unpacker.GetCutoff()
