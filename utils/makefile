@@ -31,11 +31,11 @@ $(LIBFILE): $(OBJECTS)
 
 $(MAKEDIR)/%.d: $(SRCDIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -MM -MG -MF $@ $< 
-	sed -i '' 's#$*.o#$(OBJDIR)/$*.o $(MAKEDIR)/$*.d#g' $@
+	sed -i'' 's#$*.o#$(OBJDIR)/$*.o $(MAKEDIR)/$*.d#g' $@
 
 $(MAKEDIR)/%.d: $(SRCDIR)/%.cxx
 	$(CXX) $(CXXFLAGS) -MM -MG -MF $@ $< 
-	sed -i '' 's#$*.o#$(OBJDIR)/$*.o $(MAKEDIR)/$*.d#g' $@
+	sed -i'' 's#$*.o#$(OBJDIR)/$*.o $(MAKEDIR)/$*.d#g' $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -o $@ -c $<

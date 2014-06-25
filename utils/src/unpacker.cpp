@@ -180,8 +180,8 @@ namespace Packet{
 TString Unpacker::RoundNumber(double num, int decimals, int length){
   double neg = 1; if(num<0) neg = -1;
   num /= neg; num += 0.5*pow(10.,-decimals);
-  int num_int = (int)num;
-  int num_dec = (int)((1+num-num_int)*pow(10.,decimals));
+  int num_int = static_cast<int>(num);
+  int num_dec = static_cast<int>((1+num-num_int)*pow(10.,decimals));
   TString s_dec = ""; s_dec += num_dec; s_dec.Remove(0,1);
   TString result=""; 
   if(neg<0) result+="-";
