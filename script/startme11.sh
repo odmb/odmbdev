@@ -48,7 +48,7 @@ print "    LD_LIBRARY_PATH    = $LD_LIBRARY_PATH"
 print
 
 OPTIONS="\
- -h emume11.cern.ch \
+ -h csc-pc.cms904 \
  -p 9991 \
  -c ${BUILD_HOME}/emu/odmbdev/xml/EmuME11Dev.xml \
  -e ${BUILD_HOME}/emu/odmbdev/xml/EmuME11Dev.profile"

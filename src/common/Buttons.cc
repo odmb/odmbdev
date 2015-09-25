@@ -3988,7 +3988,7 @@ namespace emu {
 	      }
 
 	      cout<<"Programming ODMB on slot "<<slot<<" with MCS file "<<filename1.c_str()<<"...\n";
-	      while (!(*dmb)->odmb_program_eprom(filename1.c_str())) {
+	      while (!((*dmb)->odmb_program_eprom_poll(filename1.c_str()))) {
 		singleLoadFailCount++;
 		if (singleLoadFailCount > 2) {
 		  cout << "3 consecutive fails!  bailing!" << endl; 
@@ -4033,7 +4033,7 @@ namespace emu {
 		    
 	      // Now we load the other FW .mcs file
 	      cout<<"Programming ODMB on slot "<<slot<<" with MCS file "<<filename2.c_str()<<"...\n";
-	      while (!(*dmb)->odmb_program_eprom(filename2.c_str())) {
+	      while (!(*dmb)->odmb_program_eprom_poll(filename2.c_str())) {
 		singleLoadFailCount++;
 		if (singleLoadFailCount > 2) {
 		  cout << "3 consecutive fails!  bailing!" << endl; 
