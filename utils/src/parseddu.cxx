@@ -111,7 +111,7 @@ int main(int argc, char *argv[]){
     svu packet(0);
     unsigned entry(1);
     if(analysis_mode){
-      const unsigned DDU_shift(8);
+      const unsigned DDU_shift(12);
       std::map<DataPacket::ErrorType, unsigned> type_counter;
       std::vector<std::pair<std::pair<DataPacket::ErrorType, std::vector<bool> >, unsigned> > type_record(0);
       for(entry=1; entry<start_entry && FindStartOfNextPacket(ifs, packet); ++entry){
@@ -166,7 +166,9 @@ int main(int argc, char *argv[]){
         const uint_fast64_t now_other(now & ~(now_DDU << DDU_shift));
 
         if(ups | downs){
-          std::cout << packet_type << " packet " << std::dec << std::setw(8) << std::setfill(' ') << type_record.at(i).second << " turns on " << std::hex << std::setfill('0') << std::setw(8) << ups_DDU <<  '_' << std::setw(2) << ups_other << " and turns off " << std::setw(8) << downs_DDU << '_' << std::setw(2) << downs_other << " (now at " << std::setw(8) << now_DDU << '_' << std::setw(2) << now_other << ")." << std::endl;
+          std::cout << packet_type << " packet " << std::dec << std::setw(8) << std::setfill(' ') << type_record.at(i).second
+		    << " turns on " << std::hex << std::setfill('0') << std::setw(8) << ups_DDU <<  '_' << std::setw(3) << ups_other
+		    << " and turns off " << std::setw(8) << downs_DDU << '_' << std::setw(3) << downs_other << " (now at " << std::setw(8) << now_DDU << '_' << std::setw(3) << now_other << ")." << std::endl;
         }
       }
       
@@ -178,7 +180,7 @@ int main(int argc, char *argv[]){
         const uint_fast64_t other_bits(it->first & ~(DDU_bits << DDU_shift));
         std::cout << std::setw(8) << std::dec << std::setfill(' ') << it->second
                   << " packets of type " << std::setfill('0') << std::hex
-                  << std::setw(8) << DDU_bits << '_' << std::setw(2) << other_bits << std::endl;
+                  << std::setw(8) << DDU_bits << '_' << std::setw(3) << other_bits << std::endl;
       }
     }else if(count_mode){
       unsigned event_count(0);

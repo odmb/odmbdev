@@ -32,12 +32,16 @@ namespace Packet{
     enum ErrorType{
       kGood               = 0x0000000000u,
       kDDUStatus          = 0xFFFFFFFF00u,
-      kDCFEBL1AMismatch   = 0x0000000001u,
-      kOTMBL1AMismatch    = 0x0000000002u,
-      kALCTL1AMismatch    = 0x0000000004u,
-      kODMBL1AMismatch    = 0x0000000008u,
-      kEmptyODMB          = 0x0000000010u,
-      kUncategorizedWords = 0x0000000020u
+      kDCFEBBXNMismatch   = 0x0000000001u,
+      kOTMBBXNMismatch    = 0x0000000002u,
+      kALCTBXNMismatch    = 0x0000000004u,
+      kODMBBXNMismatch    = 0x0000000008u,
+      kDCFEBL1AMismatch   = 0x0000000010u,
+      kOTMBL1AMismatch    = 0x0000000020u,
+      kALCTL1AMismatch    = 0x0000000040u,
+      kODMBL1AMismatch    = 0x0000000080u,
+      kEmptyODMB          = 0x0000000100u,
+      kUncategorizedWords = 0x0000000200u
     };
     ErrorType GetPacketType() const;
 
@@ -47,6 +51,7 @@ namespace Packet{
 
     std::vector<std::pair<unsigned, std::vector<dcfeb_data> > > GetValidDCFEBData() const;
     uint_fast32_t GetL1A() const;
+    uint_fast32_t GetBXN() const;
 
   private:
     typedef std::pair<ComponentType, uint_fast32_t> l1a_t;
@@ -62,8 +67,9 @@ namespace Packet{
     mutable unsigned ddu_trailer_start_, ddu_trailer_end_;
     mutable std::vector<l1a_t> dcfeb_l1as_;
     mutable std::vector<std::pair<unsigned, std::vector<dcfeb_data> > > dcfeb_data_;
+    mutable bool odmb_bxn_mismatch_, alct_bxn_mismatch_, otmb_bxn_mismatch_, dcfeb_bxn_mismatch_;
     mutable bool odmb_l1a_mismatch_, alct_l1a_mismatch_, otmb_l1a_mismatch_, dcfeb_l1a_mismatch_;
-    mutable bool parsed_, unpacked_, checked_l1as_;
+    mutable bool parsed_, unpacked_, checked_l1as_, checked_bxns_;
 
     void Parse() const;
 
@@ -101,17 +107,25 @@ namespace Packet{
     unsigned short GetContainingRanges(const unsigned) const;
 
     bool HasL1AMismatch() const;
+    bool HasBXNMismatch() const;
 
     bool HasODMBL1AMismatch() const;
     bool HasALCTL1AMismatch() const;
     bool HasOTMBL1AMismatch() const;
     bool HasDCFEBL1AMismatch() const;
 
+    bool HasODMBBXNMismatch() const;
+    bool HasALCTBXNMismatch() const;
+    bool HasOTMBBXNMismatch() const;
+    bool HasDCFEBBXNMismatch() const;
+
     std::vector<unsigned> GetValidDCFEBs(const unsigned) const;
     std::string GetDCFEBText(const unsigned) const;
 
     std::vector<l1a_t> GetL1As() const;
+    std::vector<l1a_t> GetBXNs() const;
     std::string GetL1AText(const bool=false) const;
+    std::string GetBXNText(const bool=false) const;
     std::string GetODMBText() const;
 
     bool HasUncategorizedWords() const;

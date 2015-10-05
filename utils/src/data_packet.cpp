@@ -51,13 +51,18 @@ namespace Packet{
     odmb_trailer_start_(0), odmb_trailer_end_(0),
     ddu_trailer_start_(-1), ddu_trailer_end_(-1),
     dcfeb_l1as_(0),
+    odmb_bxn_mismatch_(false),
+    alct_bxn_mismatch_(false),
+    otmb_bxn_mismatch_(false),
+    dcfeb_bxn_mismatch_(false),
     odmb_l1a_mismatch_(false),
     alct_l1a_mismatch_(false),
     otmb_l1a_mismatch_(false),
     dcfeb_l1a_mismatch_(false),
     parsed_(false),
     unpacked_(false),
-    checked_l1as_(false){
+    checked_l1as_(false),
+    checked_bxns_(false){
   }
 
   DataPacket::DataPacket(const svu& packet_in):
@@ -71,19 +76,25 @@ namespace Packet{
     odmb_trailer_start_(0), odmb_trailer_end_(0),
     ddu_trailer_start_(-1), ddu_trailer_end_(-1),
     dcfeb_l1as_(0),
+    odmb_bxn_mismatch_(false),
+    alct_bxn_mismatch_(false),
+    otmb_bxn_mismatch_(false),
+    dcfeb_bxn_mismatch_(false),
     odmb_l1a_mismatch_(false),
     alct_l1a_mismatch_(false),
     otmb_l1a_mismatch_(false),
     dcfeb_l1a_mismatch_(false),
     parsed_(false),
     unpacked_(false),
-    checked_l1as_(false){
+    checked_l1as_(false),
+    checked_bxns_(false){
   }
 
   void DataPacket::SetData(const svu& packet_in){
     parsed_=false;
     unpacked_=false;
     checked_l1as_=false;
+    checked_bxns_=false;
     colorize_=std::vector<bool>(packet_in.size(), false);
     full_packet_=packet_in;
   }
@@ -143,11 +154,15 @@ namespace Packet{
     Parse();
     return static_cast<ErrorType>((HasUncategorizedWords()?kUncategorizedWords:kGood)
                                   | (HasEmptyODMB()?kEmptyODMB:kGood)
+                                  | (HasODMBBXNMismatch()?kODMBBXNMismatch:kGood)
+                                  | (HasALCTBXNMismatch()?kALCTBXNMismatch:kGood)
+                                  | (HasOTMBBXNMismatch()?kOTMBBXNMismatch:kGood)
+                                  | (HasDCFEBBXNMismatch()?kDCFEBBXNMismatch:kGood)
                                   | (HasODMBL1AMismatch()?kODMBL1AMismatch:kGood)
                                   | (HasALCTL1AMismatch()?kALCTL1AMismatch:kGood)
                                   | (HasOTMBL1AMismatch()?kOTMBL1AMismatch:kGood)
                                   | (HasDCFEBL1AMismatch()?kDCFEBL1AMismatch:kGood)
-                                  | (GetDDUStatus() << 8));
+                                  | (GetDDUStatus() << 12));
   }
   
   void DataPacket::Parse() const{
@@ -533,11 +548,13 @@ namespace Packet{
     std::ostringstream event_text("");
     event_text << "Event " << std::dec << entry << " (0x" << std::hex << entry << std::dec << ')';
     const std::string l1a_text(GetL1AText(text_mode));
+    const std::string bxn_text(GetBXNText(text_mode));
     const std::string dmb_text(GetODMBText());
 
     std::vector<std::string> header_parts(0);
     header_parts.push_back(event_text.str());
     header_parts.push_back(l1a_text);
+    header_parts.push_back(bxn_text);
     header_parts.push_back(dmb_text);
     PrintHeader(header_parts, words_per_line);
 
@@ -685,6 +702,26 @@ namespace Packet{
     return l1as;
   }
 
+  std::vector<DataPacket::l1a_t> DataPacket::GetBXNs() const{
+    Parse();
+    std::vector<l1a_t> bxns(0);
+    if(ddu_header_end_-ddu_header_start_>=2){
+      bxns.push_back(l1a_t(kDDU, (full_packet_.at(ddu_header_start_+1) & 0xFFF0u) >> 4));
+    }
+    for(size_t packet(0); packet<odmb_header_start_.size(); ++packet){
+      if(odmb_header_end_.at(packet)-odmb_header_start_.at(packet)>=4){
+	bxns.push_back(l1a_t(kODMB, full_packet_.at(odmb_header_start_.at(packet)+3) & 0x0FFFu));
+      }
+      if(alct_end_.at(packet)-alct_start_.at(packet)>=2){
+	bxns.push_back(l1a_t(kALCT, full_packet_.at(alct_start_.at(packet)+1) & 0x0FFFu));
+      }
+      if(otmb_end_.at(packet)-otmb_start_.at(packet)>=2){
+	bxns.push_back(l1a_t(kOTMB, full_packet_.at(otmb_start_.at(packet)+1) & 0x0FFFu));
+      }
+    }
+    return bxns;
+  }
+
   bool DataPacket::HasL1AMismatch() const{
     Parse();
     if(!checked_l1as_){
@@ -750,6 +787,62 @@ namespace Packet{
     }
   }
 
+  bool DataPacket::HasBXNMismatch() const{
+    Parse();
+    if(!checked_bxns_){
+      checked_bxns_=true;
+      odmb_bxn_mismatch_=false;
+      alct_bxn_mismatch_=false;
+      otmb_bxn_mismatch_=false;
+      dcfeb_bxn_mismatch_=false;
+      const std::vector<l1a_t> bxns(GetBXNs());
+      if(bxns.size()){
+	bool has_mismatch(false);
+	const uint_fast16_t to_match_12_bits(std::min_element(bxns.begin(), bxns.end())->second & 0xFFFu);
+	for(std::vector<l1a_t>::const_iterator bxn(bxns.begin()); bxn!=bxns.end(); ++bxn){
+	  bool is_match(false);
+	  switch(bxn->first){
+	  case kDDU:
+	  case kODMB:
+	    if(bxn->second==to_match_12_bits){
+	      is_match=true;
+	    }else{
+	      is_match=false;
+	      odmb_bxn_mismatch_=true;
+	    }
+	    break;
+	  case kALCT:
+	    if(bxn->second==to_match_12_bits){
+	      is_match=true;
+	    }else{
+	      is_match=false;
+	      alct_bxn_mismatch_=true;
+	    }
+	    break;
+	  case kOTMB:
+	    if(bxn->second==to_match_12_bits){
+	      is_match=true;
+	    }else{
+	      is_match=false;
+	      otmb_bxn_mismatch_=true;
+	    }
+	    break;
+	  case kDCFEB:
+	  default:
+	    is_match=false;
+	    break;
+	  }
+	  has_mismatch|=(!is_match);
+	}
+	return has_mismatch;
+      }else{
+	return true;
+      }
+    }else{
+      return odmb_bxn_mismatch_ | alct_bxn_mismatch_ | otmb_bxn_mismatch_ | dcfeb_bxn_mismatch_;
+    }
+  }
+
   bool DataPacket::HasODMBL1AMismatch() const{
     if(HasL1AMismatch()){
       return odmb_l1a_mismatch_;
@@ -777,6 +870,38 @@ namespace Packet{
   bool DataPacket::HasDCFEBL1AMismatch() const{
     if(HasL1AMismatch()){
       return dcfeb_l1a_mismatch_;
+    }else{
+      return false;
+    }
+  }
+
+  bool DataPacket::HasODMBBXNMismatch() const{
+    if(HasBXNMismatch()){
+      return odmb_bxn_mismatch_;
+    }else{
+      return false;
+    }
+  }
+
+  bool DataPacket::HasALCTBXNMismatch() const{
+    if(HasBXNMismatch()){
+      return alct_bxn_mismatch_;
+    }else{
+      return false;
+    }
+  }
+
+  bool DataPacket::HasOTMBBXNMismatch() const{
+    if(HasBXNMismatch()){
+      return otmb_bxn_mismatch_;
+    }else{
+      return false;
+    }
+  }
+
+  bool DataPacket::HasDCFEBBXNMismatch() const{
+    if(HasBXNMismatch()){
+      return dcfeb_bxn_mismatch_;
     }else{
       return false;
     }
@@ -853,6 +978,60 @@ namespace Packet{
       return oss.str();
     }else{
       return "No L1As";
+    }
+  }
+
+  std::string DataPacket::GetBXNText(const bool text_mode) const{
+    const std::vector<l1a_t> bxns(GetBXNs());
+    if(bxns.size()){
+      const uint_fast16_t to_match_12_bits(((std::min_element(bxns.begin(), bxns.end()))->second) & 0xFFFu);
+      std::ostringstream oss("");
+      if(HasBXNMismatch()){
+	std::set<l1a_t> unique_bxns;
+	oss << "BXNs=(";
+	for(std::vector<l1a_t>::const_iterator bxn(bxns.begin()); bxn!=bxns.end(); ++bxn){
+	  const std::pair<std::set<l1a_t>::iterator, bool> is_unique(unique_bxns.insert(*bxn));
+	  bool is_match = (bxn->second == to_match_12_bits);
+	  std::string name("");
+	  switch(bxn->first){
+	  case kDDU: name="DDU"; break;
+	  case kODMB: name="(O)DMB"; break;
+	  case kALCT: name="ALCT"; break;
+	  case kOTMB: name="(O)TMB"; break;
+	  case kDCFEB: name="(D)CFEB"; break;
+	  default: name="???"; break;
+	  }
+          if(!is_match && (is_unique.second || is_unique.first->first!=kDCFEB)){
+            if(!text_mode){
+              if(bxn!=bxns.begin()){
+                oss << ", " << io::bold << io::bg_red << io::fg_white << name << '='
+                    << std::dec << bxn->second << "=0x" << std::hex << bxn->second << io::normal;
+              }else{
+                oss << io::bold << io::bg_red << io::fg_white << name << '='
+                    << std::dec << bxn->second << "=0x" << std::hex << bxn->second << io::normal;
+              }
+            }else{
+              if(bxn!=bxns.begin()){
+                oss << ", " << name << '=' << std::dec << bxn->second << "=0x" << std::hex << bxn->second;
+              }else{
+                oss << name << '=' << std::dec << bxn->second << "=0x" << std::hex << bxn->second;
+              }
+            }
+          }else if(is_unique.second){
+            if(bxn!=bxns.begin()){
+              oss << ", " << name << '=' << std::dec << bxn->second << "=0x" << std::hex << bxn->second;
+            }else{
+              oss << name << '=' << std::dec << bxn->second << "=0x" << std::hex << bxn->second;
+            }
+          }
+        }
+        oss << ")";
+      }else{
+        oss << "BXN=" << to_match_12_bits << " (0x" << std::hex << to_match_12_bits << ")";
+      }
+      return oss.str();
+    }else{
+      return "No BXNs";
     }
   }
 
@@ -1009,5 +1188,10 @@ namespace Packet{
   uint_fast32_t DataPacket::GetL1A() const{
     const std::vector<l1a_t> l1as(GetL1As());
     return std::min_element(l1as.begin(), l1as.end())->second & 0xFFFFFFu;
+  }
+
+  uint_fast32_t DataPacket::GetBXN() const{
+    const std::vector<l1a_t> bxns(GetBXNs());
+    return std::min_element(bxns.begin(), bxns.end())->second & 0xFFFFFFu;
   }
 }
