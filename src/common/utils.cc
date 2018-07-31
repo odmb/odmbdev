@@ -38,8 +38,8 @@ namespace emu{ namespace odmbdev{
   std::string withoutSpecialChars(const std::string& s)
   {
     std::string sout = s;
-    char chars[10] = " /#\t\n";
-    for (int i = 0; i < 5; ++i)
+    char chars[10] = " #\t\n";
+    for (int i = 0; i < 4; ++i)
       {
 	char c = chars[i];
 	while(sout.find(c,0) != std::string::npos) sout.erase(sout.find(c,0),1);

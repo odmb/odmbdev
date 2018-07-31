@@ -143,7 +143,7 @@ namespace emu { namespace odmbdev {
       //addActionByTypename<BC0>(crate);
       //addActionByTypename<ReadBackUserCodes>(crate);
       //addActionByTypename<CommonUtilities_setupDDU>(crate);
-      addActionByTypename<BurnInTest>(crate);
+      //addActionByTypename<BurnInTest>(crate);
       addActionByTypename<LoadMCSviaBPI>(crate, this);
       
       putButtonsInGroup("Production Tests");
@@ -151,7 +151,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<ChangeSlotNumber>(crate, this);
       addActionByTypename<MasterTest>(crate, this);
       addActionByTypename<LVMBtest>(crate, this);
-      addActionByTypename<LVMB904>(crate, this);
+      //addActionByTypename<LVMB904>(crate, this);
       addActionByTypename<DCFEBJTAGcontrol>(crate, this);
       addActionByTypename<DCFEBFiber>(crate, this);
       addActionByTypename<DCFEBPulses>(crate, this);
@@ -166,7 +166,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<HardReset>(crate);
       addActionByTypename<ReprogramDCFEB>(crate);
       addActionByTypename<LVMBtest_dos>(crate, this);
-      addActionByTypename<PipelineDepthScan>(crate, this);
+      //addActionByTypename<PipelineDepthScan>(crate, this);
       
       // putButtonsInGroup( "Routine Tests" );
       // addActionByTypename<RoutineTest_ShortCosmicsRun>(crate, this);

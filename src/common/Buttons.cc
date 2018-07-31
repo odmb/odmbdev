@@ -2630,7 +2630,7 @@ namespace emu {
     }
 
     ReadODMBVitals::ReadODMBVitals(Crate* crate) :
-      ButtonAction(crate, "ODMB Vitals"){
+      ButtonAction(crate, "ODMB Vitalss"){
     }
 
     void ReadODMBVitals::respond(xgi::Input* in, ostringstream& out){
@@ -3232,6 +3232,7 @@ namespace emu {
 	//VMEresult = vme_wrapper_->VMERead(addr_read_dcfeb,slot,"Read selected DCFEB");
 	// Set instruction register to *Read UserCode*
 	vme_wrapper_->VMEWrite(addr_set_int_reg,reg_user_code,slot,"Set instruction register to *Read UserCode*");
+	usleep(1000);
 	// Shift 16 lower bits
 	vme_wrapper_->VMEWrite(addr_read_hdr,data,slot,"Shift 16 lower bits");
 	// Read first half of UserCode
@@ -3241,6 +3242,7 @@ namespace emu {
 	string firmwareVersion = s_result.substr(1,1)+"."+s_result.substr(2,2);
 	// Shift 16 upper bits
 	vme_wrapper_->VMEWrite(addr_read_tlr,data,slot,"Shift 16 upper bits");
+	usleep(1000);
 	// Read second half of UserCode
 	VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read second half of UserCode");
 	// check to see if DCFEB is connected

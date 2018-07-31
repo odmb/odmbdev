@@ -32,6 +32,7 @@ if [[ ${#DISTRIB_ID} -gt 0 ]]; then
 elif [[ -f /etc/issue ]]; then
     XDAQ_PLATFORM=${XDAQ_PLATFORM}_$(/bin/sed -n -e 's/[^0-9]*\([0-9]\).[0-9][^0-9]*/slc\1/p' /etc/issue)
 fi
+#XDAQ_PLATFORM=x86_64_slc5
 export XDAQ_PLATFORM
 export XDAQ_DOCUMENT_ROOT=${XDAQ_ROOT}/htdocs
 export LD_LIBRARY_PATH=$ROOTSYS/lib:$XDAQ_ROOT/lib
@@ -48,7 +49,7 @@ print "    LD_LIBRARY_PATH    = $LD_LIBRARY_PATH"
 print
 
 OPTIONS="\
- -h csc-pc.cms904 \
+ -h vmepc-e1x07-26-01.cms904 \
  -p 9991 \
  -c ${BUILD_HOME}/emu/odmbdev/xml/EmuME11Dev.xml \
  -e ${BUILD_HOME}/emu/odmbdev/xml/EmuME11Dev.profile"

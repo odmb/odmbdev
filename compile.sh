@@ -11,9 +11,23 @@ else
     export BUILD_HOME=`dirname ${current_path}`/TriDAS
 fi
 
+
 export XDAQ_ROOT=/opt/xdaq
 export XDAQ_OS=linux
-export XDAQ_PLATFORM=x86_64_slc5
+export XDAQ_PLATFORM=x86_64_slc6
+
+echo
+echo "Environment variables:"
+echo "    BUILD_HOME         = $BUILD_HOME"
+echo "    XDAQ_ROOT          = $XDAQ_ROOT"
+echo "    XDAQ_OS            = $XDAQ_OS"
+echo "    XDAQ_PLATFORM      = $XDAQ_PLATFORM"
+echo "    XDAQ_DOCUMENT_ROOT = $XDAQ_DOCUMENT_ROOT"
+echo "    ROOTSYS            = $ROOTSYS"
+echo "    LD_LIBRARY_PATH    = $LD_LIBRARY_PATH"
+echo
+
+
 
 tmp_file_build="makefile_errors_and_warnings_temporary_collision_free_long_unambiguous_name_build.log"
 tmp_file_install="makefile_errors_and_warnings_temporary_collision_free_long_unambiguous_name_install.log"
