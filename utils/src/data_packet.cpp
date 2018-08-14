@@ -211,6 +211,44 @@ namespace Packet{
     }
   }
 
+  unsigned DataPacket::CRCfunc(const unsigned reg, const unsigned word) const{
+    bool out_bit[24];
+	unsigned out(0);
+    out_bit[0] = GetBit(reg,16); out_bit[1] = GetBit(reg,17);
+    out_bit[2] = GetBit(reg,18); out_bit[3] = GetBit(reg,19);
+    out_bit[4] = GetBit(reg,20);
+    out_bit[5] = GetBit(word,0) xor GetBit(reg,0) xor GetBit(reg,21);
+    for(int i = 6; i < 21; i++) {
+    	out_bit[i] = GetBit(word,i-6) xor GetBit(word,i-5) xor GetBit(reg,i-6) xor GetBit(reg,i-5);
+  	}
+    out_bit[21] = GetBit(reg,15) xor GetBit(word,15);
+    out_bit[22] = 0;
+    out_bit[23] = 0;
+    for(int i = 0; i < 11; i++) {
+    	out_bit[22] = out_bit[22] xor out_bit[i];
+    	out_bit[23] = out_bit[23] xor out_bit[i+11];
+    	}
+    for(int i = 0; i < 24; i++) out += pow(2,i)*out_bit[i];
+    return out;
+  }
+
+  void DataPacket::PrintCRCValue() const{
+    int crc_reg = 0;
+	for(unsigned index(12); index < full_packet_.size()-16; index++){
+		crc_reg = CRCfunc(crc_reg,full_packet_.at(index));
+		}
+	int out1(0), out2(0);
+	out1 += GetBit(crc_reg,22)*pow(2,11);
+	out2 += GetBit(crc_reg,23)*pow(2,11);
+	for(int i=0; i < 11; i ++) {
+		out1 += GetBit(crc_reg,i)*pow(2,i);
+		out2 += GetBit(crc_reg,i+11)*pow(2,i);
+		}
+	std::cout << "Packet CRC Values: ";
+	std::cout << std::hex <<  out1  << " " << out2 << std::endl << std::endl;
+	return;
+  }
+
   bool DataPacket::FindODMBHeader(const unsigned low, const unsigned high) const{
     const unsigned upper(full_packet_.size()<high?full_packet_.size():high);
     for(unsigned index(low); index+7<upper; ++index){
@@ -593,6 +631,7 @@ namespace Packet{
     if(GetBit(kill_mask, 4)){
       PrintComponent("DDU Trailer", ddu_trailer_start_,
                      ddu_trailer_end_, words_per_line, text_mode);
+	  PrintCRCValue(); 
     }
     if(GetBit(kill_mask, 0)){
       PrintComponent(uncat, ddu_trailer_end_, full_packet_.size(),

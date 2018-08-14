@@ -74,6 +74,8 @@ namespace Packet{
     void Parse() const;
 
     void FindDDUHeader() const;
+    void PrintCRCValue() const;
+    unsigned CRCfunc(const unsigned, const unsigned) const;
     
     void FindAllODMBHeadersAndTrailers() const;
     void FixNumberOfODMBPackets() const;

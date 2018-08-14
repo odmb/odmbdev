@@ -280,7 +280,7 @@ namespace emu { namespace odmbdev {
            << endl 
            << endl
 	//<< h1()
-           << "<h1><FONT COLOR=\"FF0000\"> O</FONT><FONT COLOR=\"0000FF\">DMB</FONT> Test Routines - UCSB </h1>"
+           << "<h1><FONT COLOR=\"FF0000\"> O</FONT><FONT COLOR=\"0074BA\">DMB</FONT> Test Routines - UCSB </h1>"
 	//<< h1()
            << endl << endl;
 

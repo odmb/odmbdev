@@ -2630,7 +2630,7 @@ namespace emu {
     }
 
     ReadODMBVitals::ReadODMBVitals(Crate* crate) :
-      ButtonAction(crate, "ODMB Vitalss"){
+      ButtonAction(crate, "ODMB Vitals"){
     }
 
     void ReadODMBVitals::respond(xgi::Input* in, ostringstream& out){
@@ -3219,7 +3219,7 @@ namespace emu {
       unsigned int addr_read_tlr = (0x001F08);
       unsigned int addr_shift_ht = (0x00170C);
       unsigned int addr_shift_dr_12(0x001B0C);
-      unsigned int addr_read_tdo = (0x001F14);
+      unsigned int addr_read_tdo = (0x001014);
       unsigned short int DCFEB_number[7] = {0x1, 0x2, 0x4, 0x08, 0x10, 0x20,0x40};
       unsigned int nConnected(0);
       unsigned short int start(0x0), end(0xFFF);
