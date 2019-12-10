@@ -97,6 +97,34 @@ namespace emu { namespace odmbdev {
       unsigned int formatted_result(result);
       return formatted_result;
     }
+    unsigned int VMEWrapper::xdcfeb_JTAGShift(unsigned short int IR, unsigned short int DR, unsigned int nBits, unsigned short int hdr_tlr_code, unsigned int slot) {
+      this->VMEWrite(0x1934, IR, slot, "Set instruction register");
+      this->VMEWrite(0x1F30, 0xFFFF, slot, "Bypass instructions");
+      this->VMEWrite(0x1F30, 0xFFFF, slot, "Bypass instructions");
+      this->VMEWrite(0x1F30, 0xFFFF, slot, "Bypass instructions");
+      this->VMEWrite(0x1330, 0xF, slot, "Bypass instructions");
+      unsigned int addr_data_shift(0x1);
+      addr_data_shift = (addr_data_shift<<4)|(nBits-1);
+      addr_data_shift = (addr_data_shift<<8)|0x0004; 
+      // depending on nBits to shift
+      this->VMEWrite(addr_data_shift, DR, slot, "Shift data");
+      usleep(100);
+      unsigned short int VMEresult;
+      VMEresult = this->VMERead(0x1014, slot, "Read TDO register");
+      this->VMEWrite(0x1308, 0x0, slot, "Bypass unused registers");
+      usleep(100);
+      unsigned int formatted_result(VMEresult>>(16-nBits));
+      return formatted_result;
+    }
+    unsigned int VMEWrapper::xdcfeb_JTAGRead (unsigned short int DR, unsigned int nBits, unsigned int slot) {
+      unsigned int result;
+      result = this->xdcfeb_JTAGShift(0x3C2, DR, 8, 0xC, slot);
+      result = this->xdcfeb_JTAGShift(0x3C3, 0, nBits, 0xC, slot);
+      /*unsigned short int VMEresult;
+	VMEresult = this->VMERead(0x1014, slot, "Read TDO register");*/
+      unsigned int formatted_result(result);
+      return formatted_result;
+    }
     string VMEWrapper::ODMBVitals(unsigned int slot) {
       string message;
       unsigned int qpll_lock(this->VMERead(0x3124,slot,"Read QPLL lock"));
