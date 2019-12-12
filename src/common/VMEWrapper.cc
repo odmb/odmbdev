@@ -102,7 +102,7 @@ namespace emu { namespace odmbdev {
       this->VMEWrite(0x1F30, 0xFFFF, slot, "Bypass instructions");
       this->VMEWrite(0x1F30, 0xFFFF, slot, "Bypass instructions");
       this->VMEWrite(0x1F30, 0xFFFF, slot, "Bypass instructions");
-      this->VMEWrite(0x1330, 0xF, slot, "Bypass instructions");
+      this->VMEWrite(0x1338, 0xF, slot, "Bypass instructions");
       unsigned int addr_data_shift(0x1);
       addr_data_shift = (addr_data_shift<<4)|(nBits-1);
       addr_data_shift = (addr_data_shift<<8)|0x0004; 

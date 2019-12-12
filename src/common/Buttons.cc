@@ -3100,7 +3100,7 @@ namespace emu {
       // unsigned short dr_bc0(61);
       unsigned short injpls(0x1), extpls(0x2), l1a_match(0x4), bc0(0x20);
       unsigned short int VMEresult;
-      vector<unsigned int> n_injpls_reads(7,0), n_etxpls_reads(7,0), n_l1a_match_reads(7,0), n_bc0_reads(7,0);
+      vector<unsigned int> n_injpls_reads(7,0), n_extpls_reads(7,0), n_l1a_match_reads(7,0), n_bc0_reads(7,0);
       // vector<unsigned int> n_bc0_reads(7,0);
       vector<bool> dcfeb_connected(7,false);
       unsigned int nConnected(0);
@@ -3150,13 +3150,13 @@ namespace emu {
 	vme_wrapper_->VMEWrite(addr_sel_dcfeb, dcfeb_bit, slot, "Select DCFEB");
 	if (!is_xdcfeb) {
 		n_injpls_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_injpls,12,slot);
-		n_etxpls_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_extpls,12,slot);
+		n_extpls_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_extpls,12,slot);
 		n_l1a_match_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_l1a_match,12,slot);
 		n_bc0_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_bc0,12,slot);
 	}
 	else {
 		n_injpls_reads[dcfeb]=vme_wrapper_->xdcfeb_JTAGRead(dr_injpls,12,slot);
-		n_etxpls_reads[dcfeb]=vme_wrapper_->xdcfeb_JTAGRead(dr_extpls,12,slot);
+		n_extpls_reads[dcfeb]=vme_wrapper_->xdcfeb_JTAGRead(dr_extpls,12,slot);
 		n_l1a_match_reads[dcfeb]=vme_wrapper_->xdcfeb_JTAGRead(dr_l1a_match,12,slot);
 		n_bc0_reads[dcfeb]=vme_wrapper_->xdcfeb_JTAGRead(dr_bc0,12,slot);
 	}
@@ -3171,11 +3171,9 @@ namespace emu {
 	  if(n_l1a_match_reads[dcfeb]!=repeatNumber) nFails++;
 	*/
 	if (n_injpls_reads[dcfeb]>repeatNumber/5*4) nPassed[0]++;
- 	if (n_etxpls_reads[dcfeb]>repeatNumber/5*4) nPassed[1]++;
+ 	if (n_extpls_reads[dcfeb]>repeatNumber/5*4) nPassed[1]++;
  	if (n_bc0_reads[dcfeb]>repeatNumber/5*4) nPassed[2]++;
  	if (n_l1a_match_reads[dcfeb]>repeatNumber/5*4) nPassed[3]++;
-	out_local << "DEBUG INFO: number INJPLS reads: " << n_injpls_reads[dcfeb] << ", "
-		  << "number EXTPLS reads: " << n_extpls_reads[dcfeb] << "." << endl;
       }
       unsigned int nFailedSignals(0);
       for (unsigned int signal(0); signal<4; signal++) {
@@ -3188,7 +3186,7 @@ namespace emu {
 	if (!dcfeb_connected[dcfeb]) continue;
 	out_local << "DCFEB " << dcfeb+1 << ": "; 
 	out_local << "INJPLS " << n_injpls_reads[dcfeb] << "/" << repeatNumber << ", "
-		  << "EXTPLS: " << n_etxpls_reads[dcfeb] << "/" << repeatNumber << ", "
+		  << "EXTPLS: " << n_extpls_reads[dcfeb] << "/" << repeatNumber << ", "
 		  << "BC0: " << n_bc0_reads[dcfeb] << "/" << repeatNumber << ", "
 		  << "L1A_MATCH: " << n_l1a_match_reads[dcfeb] << "/" << repeatNumber << "." << endl;      
 	// out_local << "BC0 Result: " << n_bc0_reads << endl;      
@@ -3225,6 +3223,7 @@ namespace emu {
       unsigned short int reg_val_sel = 0x3C3;
       unsigned short int VMEresult;
       //addresses
+      unsigned int addr_jtag_reset = (0x1018);
       unsigned int addr_sel_dcfeb = (0x001020);
       unsigned int addr_set_int_reg = (0x00191C);
       unsigned int addr_read_hdr = (0x001F04);
@@ -3236,6 +3235,7 @@ namespace emu {
       unsigned int addr_instr_shift_header = (0x001034);
       unsigned int addr_instr_shift_noheadtail = (0x001030);
       unsigned int addr_instr_shift_tailer = (0x001038);
+      unsigned int addr_datar_shift_header = (0x001004);
       unsigned int addr_datar_shift_noheadtail = (0x001000);
       unsigned int addr_datar_shift_tailer = (0x001008);
       unsigned short int DCFEB_number[7] = {0x1, 0x2, 0x4, 0x08, 0x10, 0x20,0x40};
@@ -3245,6 +3245,7 @@ namespace emu {
 
       for (int d = 0; d < 7; d++){ // Loop over all DCFEBs
 	// Select DCFEB (one bit per DCFEB)
+	vme_wrapper_->VMEWrite(addr_jtag_reset,0,slot,"JTAG Reset command");
 	vme_wrapper_->VMEWrite(addr_sel_dcfeb,DCFEB_number[d],slot,"Select DCFEB (one bit per DCFEB)");
 	if (!is_xdcfeb) {
 		// Read selected DCFEB
@@ -3275,11 +3276,12 @@ namespace emu {
 	else {
 		//xDCFEB
 		// Set instruction register to *Read UserCode*
-		// Eventually, make this cleaner, 3c8fff... << 2 = f23fff...
-		vme_wrapper_->VMEWrite(addr_instr_shift_header|0x0d00,(unsigned short)0x3c8f,slot,"Set instruction register to *Read UserCode*");
+		// Eventually, make this cleaner 
+		vme_wrapper_->VMEWrite(addr_instr_shift_header|0x0900,(unsigned short)0x3c8,slot,"Set instruction register to *Read UserCode*");
 		vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
 		vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
-		vme_wrapper_->VMEWrite(addr_instr_shift_tailer|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		vme_wrapper_->VMEWrite(addr_instr_shift_tailer|0x0300,(unsigned short)0xf,slot,"Bypass instructions on other devices");
 		usleep(1000);
 		// Shift 16 lower bits
 		vme_wrapper_->VMEWrite(addr_read_hdr,data,slot,"Shift 16 lower bits");
@@ -3306,29 +3308,68 @@ namespace emu {
 	}
 	if (repeatNumber==0) continue; // default: just read UserCodes; subsequent section not updated for xDCFEB
 	for(unsigned int repNum=0; repNum<repeatNumber; ++repNum){ // repeat the test repNum times
-	  // Set instruction register to *Device select*
-	  vme_wrapper_->VMEWrite(addr_set_int_reg,reg_dev_sel,slot,"Set instruction register to *Device select*");
-	  // Set device register to *ADC mask*
-	  vme_wrapper_->VMEWrite(addr_shift_ht,reg_dev_val,slot,"Set device register to *ADC mask*");
-	  // Set IR to *Value select*
-	  vme_wrapper_->VMEWrite(addr_set_int_reg,reg_val_sel,slot,"Set IR to *Value select*");
-	  vector<string> tdi;
-	  vector<string> tdo;	     
-	  vme_wrapper_->VMEWrite(addr_shift_dr_12,0x0,slot,"Set DR, shift 12 bits");
-	  usleep(100);
-	  for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
-	    v_nJTAGshifts[d]++;
-	    // Set DR, shift 12 bits
-	    vme_wrapper_->VMEWrite(addr_shift_dr_12,reg_val_shft,slot,"Set DR, shift 12 bits");
-	    usleep(100);
-	    tdi.push_back(FixLength(reg_val_shft, 3, true));
-	    // Read TDO
-	    VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read TDO");
-	    usleep(100);
-	    tdo.push_back(FixLength(VMEresult, 4, true));
-	    if (reg_val_shft == start) continue;
-	    if (tdo[reg_val_shft].substr(0,3) == tdi[reg_val_shft-1]) v_nShiftReads[d]++;
-	  } // loop over words to shift
+	  if (!is_xdcfeb) {
+		  // Set instruction register to *Device select*
+		  vme_wrapper_->VMEWrite(addr_set_int_reg,reg_dev_sel,slot,"Set instruction register to *Device select*");
+		  // Set device register to *ADC mask*
+		  vme_wrapper_->VMEWrite(addr_shift_ht,reg_dev_val,slot,"Set device register to *ADC mask*");
+		  // Set IR to *Value select*
+		  vme_wrapper_->VMEWrite(addr_set_int_reg,reg_val_sel,slot,"Set IR to *Value select*");
+		  vector<string> tdi;
+		  vector<string> tdo;	     
+		  vme_wrapper_->VMEWrite(addr_shift_dr_12,0x0,slot,"Set DR, shift 12 bits");
+		  usleep(100);
+		  for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
+		    v_nJTAGshifts[d]++;
+		    // Set DR, shift 12 bits
+		    vme_wrapper_->VMEWrite(addr_shift_dr_12,reg_val_shft,slot,"Set DR, shift 12 bits");
+		    usleep(100);
+		    tdi.push_back(FixLength(reg_val_shft, 3, true));
+		    // Read TDO
+		    VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read TDO");
+		    usleep(100);
+		    tdo.push_back(FixLength(VMEresult, 4, true));
+		    if (reg_val_shft == start) continue;
+		    if (tdo[reg_val_shft].substr(0,3) == tdi[reg_val_shft-1]) v_nShiftReads[d]++;
+		  } // loop over words to shift
+	  }
+	  else {
+		  // Set instruction register to *Device select*
+		  vme_wrapper_->VMEWrite(addr_instr_shift_header|0x0900,reg_dev_sel,slot,"Set instruction register to *Device select*");
+		  vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		  vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		  vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		  vme_wrapper_->VMEWrite(addr_instr_shift_tailer|0x0300,(unsigned short)0xf,slot,"Bypass instructions on other devices");
+		  // Set device register to *ADC mask*
+		  vme_wrapper_->VMEWrite(addr_datar_shift_header|0x0700,reg_dev_val,slot,"Set device register to *ADC mask*");
+		  vme_wrapper_->VMEWrite(addr_datar_shift_tailer|0x0300,(unsigned short)0x0,slot,"Bypass registers on other devices");
+		  // Set IR to *Value select*
+		  vme_wrapper_->VMEWrite(addr_instr_shift_header|0x0900,reg_val_sel,slot,"Set instruction register to *Device select*");
+		  vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		  vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		  vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		  vme_wrapper_->VMEWrite(addr_instr_shift_tailer|0x0300,(unsigned short)0xf,slot,"Bypass instructions on other devices");
+		  vector<string> tdi;
+		  vector<string> tdo;	     
+		  vme_wrapper_->VMEWrite(addr_datar_shift_header|0x0B00,(unsigned short)0x0,slot,"Set device register to *ADC mask*");
+		  vme_wrapper_->VMEWrite(addr_datar_shift_tailer|0x0300,(unsigned short)0x0,slot,"Bypass registers on other devices");
+		  usleep(100);
+		  for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
+		    v_nJTAGshifts[d]++;
+		    // Set DR, shift 12 bits
+		    vme_wrapper_->VMEWrite(addr_datar_shift_header|0x0B00,reg_val_shft,slot,"Set device register to *ADC mask*");
+		    usleep(100);
+		    tdi.push_back(FixLength(reg_val_shft, 3, true));
+		    // Read TDO
+		    VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read TDO");
+		    vme_wrapper_->VMEWrite(addr_datar_shift_tailer|0x0300,(unsigned short)0x0,slot,"Bypass registers on other devices");
+		    usleep(100);
+		    tdo.push_back(FixLength(VMEresult, 4, true));
+		    if (reg_val_shft == start) continue;
+		    if (tdo[reg_val_shft].substr(0,3) == tdi[reg_val_shft-1]) v_nShiftReads[d]++;
+		  } // loop over words to shift
+	  }
+
 	} // repeat the test repNum times per DCFEB
       } // Loop over all DCFEBs
       if (nConnected==0) {
@@ -4042,7 +4083,7 @@ namespace emu {
 	      }
 
 	      cout<<"Programming ODMB on slot "<<slot<<" with MCS file "<<filename1.c_str()<<"...\n";
-	      while (!((*dmb)->odmb_program_eprom_poll(filename1.c_str()))) {
+	      while (!((*dmb)->odmb_program_eprom(filename1.c_str()))) {
 		singleLoadFailCount++;
 		if (singleLoadFailCount > 2) {
 		  cout << "3 consecutive fails!  bailing!" << endl; 
@@ -4087,7 +4128,7 @@ namespace emu {
 		    
 	      // Now we load the other FW .mcs file
 	      cout<<"Programming ODMB on slot "<<slot<<" with MCS file "<<filename2.c_str()<<"...\n";
-	      while (!(*dmb)->odmb_program_eprom_poll(filename2.c_str())) {
+	      while (!(*dmb)->odmb_program_eprom(filename2.c_str())) {
 		singleLoadFailCount++;
 		if (singleLoadFailCount > 2) {
 		  cout << "3 consecutive fails!  bailing!" << endl; 
