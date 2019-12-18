@@ -102,7 +102,7 @@ namespace emu { namespace odmbdev {
 
       cout<<"ME11Dev: configured to test TMB in slot "<<int(tmbSlot_)<<endl;
       
-      xdaq::ApplicationDescriptor *appDescriptor = getApplicationDescriptor();
+      const xdaq::ApplicationDescriptor *appDescriptor = getApplicationDescriptor();
       string url = appDescriptor->getContextDescriptor()->getURL();
       cout << "xdaq page url: " << url << endl;
       size_t pos1 = url.find_first_of(":",5);
@@ -673,7 +673,7 @@ namespace emu { namespace odmbdev {
 
     string Manager::generateLoggerName()
     {
-      xdaq::ApplicationDescriptor *appDescriptor = getApplicationDescriptor();
+      const xdaq::ApplicationDescriptor *appDescriptor = getApplicationDescriptor();
       string                      appClass       = appDescriptor->getClassName();
       unsigned long               appInstance    = appDescriptor->getInstance();
       stringstream                ss;

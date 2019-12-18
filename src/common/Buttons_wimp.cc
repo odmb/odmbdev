@@ -50,7 +50,7 @@ bool myfunction (pair<float, int> i, pair<float, int> j) { return (i.first < j.f
 namespace emu {
   namespace odmbdev {
     
-    int Manager::slot_number = 9;
+    int Manager::slot_number = 7;
     unsigned int Manager::port_ = 9997; // This doesn't affect the xdaq app;
     // I just needed to initialize this
     // static member variable.
@@ -1712,9 +1712,7 @@ namespace emu {
 				     0xC2DB, 0x8040, 0xC2C0, 0x4918, 0x000E, 0xA000};
       unsigned short odmbewords[] = {0xE001, 0xE002, 0xE003, 0xE004};
       EthBuf myeth;
-      char schar2[] = "schar2";
-      eth_open(schar2,myeth);
-      //eth_open("schar3",myeth);
+      eth_open("schar3",myeth);
       usleep(1);
       eth_register_mac();
 
@@ -1954,8 +1952,7 @@ namespace emu {
       while (getline(alltext,line,'\n')){
 	allLines.push_back(line);
       }
-      //commented out because writeHex is never used; restore this and the writeHex = false; line below if planning to use
-      //bool writeHex = true;
+      bool writeHex = true;
 
       //------------------------------------------EXECUTE COMMANDS (REST OF FUNCTION)------------------------------------------------
       for(unsigned int repNum=0; repNum<repeatNumber; ++repNum){
@@ -2039,10 +2036,7 @@ namespace emu {
             string data_temp;
             iss >> data_temp;
             data = parse(data_temp);
-            if(addr >= 0x4000 && addr <= 0x4018) {
-              iss >> dec >> data >> dec >> slot; 
-              //writeHex = false;
-            }	
+            if(addr >= 0x4000 && addr <= 0x4018) {iss >> dec >> data >> dec >> slot; writeHex = false;}	
             string slot_temp;
             iss >> slot;
             irdwr = 3; TypeCommand = 5;
@@ -2094,9 +2088,7 @@ namespace emu {
             continue; // Next line, please.
           } else if(buffer=="RESET_ETH"){
             EthBuf myeth;
-	    char schar2[] = "schar2";
-            eth_open(schar2,myeth);
-            //eth_open("schar3",myeth);
+            eth_open("schar3",myeth);
             eth_reset(myeth);
             eth_reset_close(myeth);
             out<<"RESET_ETH"<<endl;
@@ -2545,9 +2537,8 @@ namespace emu {
           else{
             float voltage_result_2 = float(VMEresult)*5.0/float(0xfff);
             //Error checking
-            //Two lines below commented out since already_failed is never used; restore if used elsewhere
-            //bool already_failed = false;
-            //if (fabs(voltage_result_2 - voltage_result_1) > .05 && voltage_result_1 < 4.9){ already_failed = true; }
+            bool already_failed = false;
+            if (fabs(voltage_result_2 - voltage_result_1) > .05 && voltage_result_1 < 4.9){ already_failed = true; }
             float voltage = voltage_result_1; //(voltage_result_1 > 4.0 ? voltage_result_1 : 0.5*(voltage_result_1 + voltage_result_2));
             bool done = false;
 
@@ -4092,7 +4083,7 @@ namespace emu {
 	      }
 
 	      cout<<"Programming ODMB on slot "<<slot<<" with MCS file "<<filename1.c_str()<<"...\n";
-	      while (!((*dmb)->odmb_program_eprom_poll(filename1.c_str()))) {
+	      while (!((*dmb)->odmb_program_eprom(filename1.c_str()))) {
 		singleLoadFailCount++;
 		if (singleLoadFailCount > 2) {
 		  cout << "3 consecutive fails!  bailing!" << endl; 
@@ -4137,7 +4128,7 @@ namespace emu {
 		    
 	      // Now we load the other FW .mcs file
 	      cout<<"Programming ODMB on slot "<<slot<<" with MCS file "<<filename2.c_str()<<"...\n";
-	      while (!(*dmb)->odmb_program_eprom_poll(filename2.c_str())) {
+	      while (!(*dmb)->odmb_program_eprom(filename2.c_str())) {
 		singleLoadFailCount++;
 		if (singleLoadFailCount > 2) {
 		  cout << "3 consecutive fails!  bailing!" << endl; 

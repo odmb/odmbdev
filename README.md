@@ -1,4 +1,4 @@
 odmbdev
 =======
 
-UCSB software to test the ODMB based on 13-07-28 me11dev
+UCSB software to test ODMB functionality, in the process of being updated for ODMB7/5 testing. Original from me11/odmbdev.

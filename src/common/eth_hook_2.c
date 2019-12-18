@@ -538,7 +538,7 @@ static ssize_t schar_write_2(struct file *file, const char *buf, size_t count,
 
   // sbuf=kmalloc(9000,GFP_KERNEL);
   len=count;
-  dev=dev_get_by_name("eth2");
+  dev=dev_get_by_name("p4p1");
   err=-ENODEV;
   if (dev == NULL)
    goto out_unlock;

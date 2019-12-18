@@ -15,7 +15,7 @@ using namespace std;
 namespace emu{ namespace odmbdev{
   std::string fix_width(const double number, const std::streamsize width){
     std::ostringstream oss("");
-    std::ios_base::fmtflags opts(std::ios::showpoint & ~std::ios::showpos | std::ios::right | std::ios::dec | std::ios::fixed);
+    std::ios_base::fmtflags opts((std::ios::showpoint & ~std::ios::showpos) | std::ios::right | std::ios::dec | std::ios::fixed);
     oss.fill('0');
     oss.flags(opts);
     oss.precision(width);
