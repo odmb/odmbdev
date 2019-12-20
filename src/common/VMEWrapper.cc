@@ -152,7 +152,10 @@ namespace emu { namespace odmbdev {
       string error_message[9] ={" C above temperature threshold",odmb_version<=3?" C above temperature threshold":" mA above current threshold"," C above temperature threshold",
 				"% below nominal voltage","% below nominal voltage","% below nominal voltage",
 				"% below nominal voltage","% below nominal voltage","% below nominal voltage"};
-      float thresholds[9] = {55., odmb_version<=3?55:800., 55., 0.93, 2.35, 3.1, 3.35, 4.75, 4.75};
+      float thresholds[9] = {55., 800., 55., 0.93, 2.35, 3.1, 3.35, 4.75, 4.75};
+      if (odmb_version <= 3) {
+	thresholds[1] = 55.;
+      }
       float voltmax[9] = {1.0, 1.0, 1.0, 1.0, 2.5, 3.3, 3.6, 5.0, 5.0};
       float result2[9];
       for (int i = 0; i < 9; i++){
