@@ -99,10 +99,15 @@ namespace emu { namespace odmbdev {
     }
     unsigned int VMEWrapper::xdcfeb_JTAGShift(unsigned short int IR, unsigned short int DR, unsigned int nBits, unsigned short int hdr_tlr_code, unsigned int slot) {
       this->VMEWrite(0x1934, IR, slot, "Set instruction register");
+      usleep(1000);
       this->VMEWrite(0x1F30, 0xFFFF, slot, "Bypass instructions");
+      usleep(1000);
       this->VMEWrite(0x1F30, 0xFFFF, slot, "Bypass instructions");
+      usleep(1000);
       this->VMEWrite(0x1F30, 0xFFFF, slot, "Bypass instructions");
+      usleep(1000);
       this->VMEWrite(0x1338, 0xF, slot, "Bypass instructions");
+      usleep(1000);
       unsigned int addr_data_shift(0x1);
       addr_data_shift = (addr_data_shift<<4)|(nBits-1);
       addr_data_shift = (addr_data_shift<<8)|0x0004; 

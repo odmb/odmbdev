@@ -44,13 +44,13 @@ using namespace emu::pc;
  * sub-classes.
  * 
  *****************************************************************************/
-const bool is_xdcfeb = true; //flag for telling us if we are communicating with an xDCFEB; eventually this should be set-able from the web page
+bool is_xdcfeb = true; //flag for telling us if we are communicating with an xDCFEB; eventually this should be set-able from the web page
 
 bool myfunction (pair<float, int> i, pair<float, int> j) { return (i.first < j.first); }
 namespace emu {
   namespace odmbdev {
     
-    int Manager::slot_number = 9;
+    int Manager::slot_number = 21;
     unsigned int Manager::port_ = 9997; // This doesn't affect the xdaq app;
     // I just needed to initialize this
     // static member variable.
@@ -3141,6 +3141,7 @@ namespace emu {
       // Send pulses repeatNumber times, read the result via JTAG
       for (unsigned int n(0); n<repeatNumber; n++) {
 	vme_wrapper_->VMEWrite(addr_odmb_reg, 0x3F, slot, "Set calibration mode");      
+	usleep(1000);
 	vme_wrapper_->VMEWrite(addr_dcfeb_reg, injpls, slot, "Send INJPLS signal");
 	usleep(100);
 	vme_wrapper_->VMEWrite(addr_dcfeb_reg, extpls, slot, "Send EXTPLS signal");	  
@@ -3148,7 +3149,9 @@ namespace emu {
 	vme_wrapper_->VMEWrite(addr_dcfeb_reg, bc0, slot, "Send BC0");	  
 	usleep(100);
 	vme_wrapper_->VMEWrite(addr_odmb_reg, 0x0, slot, "Set calibration mode");      
+	usleep(1000);
 	vme_wrapper_->VMEWrite(addr_dcfeb_reg, l1a_match, slot, "Send L1A_MATCH signal");
+	usleep(1000);
       }
       for (unsigned short dcfeb(0); dcfeb<7; dcfeb++) {
 	unsigned short dcfeb_bit(1<<dcfeb);
@@ -3179,10 +3182,10 @@ namespace emu {
 	  if(n_bc0_reads[dcfeb]!=repeatNumber) nFails++;
 	  if(n_l1a_match_reads[dcfeb]!=repeatNumber) nFails++;
 	*/
-	if (n_injpls_reads[dcfeb]>repeatNumber/5*4) nPassed[0]++;
- 	if (n_extpls_reads[dcfeb]>repeatNumber/5*4) nPassed[1]++;
- 	if (n_bc0_reads[dcfeb]>repeatNumber/5*4) nPassed[2]++;
- 	if (n_l1a_match_reads[dcfeb]>repeatNumber/5*4) nPassed[3]++;
+	if (n_injpls_reads[dcfeb]==repeatNumber) nPassed[0]++;
+ 	if (n_extpls_reads[dcfeb]==repeatNumber) nPassed[1]++;
+ 	if (n_bc0_reads[dcfeb]==repeatNumber) nPassed[2]++;
+ 	if (n_l1a_match_reads[dcfeb]==repeatNumber) nPassed[3]++;
       }
       unsigned int nFailedSignals(0);
       for (unsigned int signal(0); signal<4; signal++) {
@@ -3287,9 +3290,13 @@ namespace emu {
 		// Set instruction register to *Read UserCode*
 		// Eventually, make this cleaner 
 		vme_wrapper_->VMEWrite(addr_instr_shift_header|0x0900,(unsigned short)0x3c8,slot,"Set instruction register to *Read UserCode*");
+		usleep(1000);
 		vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		usleep(1000);
 		vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		usleep(1000);
 		vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		usleep(1000);
 		vme_wrapper_->VMEWrite(addr_instr_shift_tailer|0x0300,(unsigned short)0xf,slot,"Bypass instructions on other devices");
 		usleep(1000);
 		// Shift 16 lower bits
@@ -3307,6 +3314,7 @@ namespace emu {
 		// Read second half of UserCode
 		VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read second half of UserCode");
 		vme_wrapper_->VMEWrite(addr_datar_shift_tailer|0x0300,data,slot,"Ignore data from other devices");
+		usleep(1000);
 		// check to see if DCFEB is connected
 		if (FixLength(VMEresult, 4, true)!="DCFE") continue;
 		else {
@@ -3345,22 +3353,35 @@ namespace emu {
 	  else {
 		  // Set instruction register to *Device select*
 		  vme_wrapper_->VMEWrite(addr_instr_shift_header|0x0900,reg_dev_sel,slot,"Set instruction register to *Device select*");
+		  usleep(1000);
 		  vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		  usleep(1000);
 		  vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		  usleep(1000);
 		  vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		  usleep(1000);
 		  vme_wrapper_->VMEWrite(addr_instr_shift_tailer|0x0300,(unsigned short)0xf,slot,"Bypass instructions on other devices");
+		  usleep(1000);
 		  // Set device register to *ADC mask*
 		  vme_wrapper_->VMEWrite(addr_datar_shift_header|0x0700,reg_dev_val,slot,"Set device register to *ADC mask*");
+		  usleep(1000);
 		  vme_wrapper_->VMEWrite(addr_datar_shift_tailer|0x0300,(unsigned short)0x0,slot,"Bypass registers on other devices");
+		  usleep(1000);
 		  // Set IR to *Value select*
 		  vme_wrapper_->VMEWrite(addr_instr_shift_header|0x0900,reg_val_sel,slot,"Set instruction register to *Device select*");
+		  usleep(1000);
 		  vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		  usleep(1000);
 		  vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		  usleep(1000);
 		  vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+		  usleep(1000);
 		  vme_wrapper_->VMEWrite(addr_instr_shift_tailer|0x0300,(unsigned short)0xf,slot,"Bypass instructions on other devices");
+		  usleep(1000);
 		  vector<string> tdi;
 		  vector<string> tdo;	     
 		  vme_wrapper_->VMEWrite(addr_datar_shift_header|0x0B00,(unsigned short)0x0,slot,"Set device register to *ADC mask*");
+		  usleep(1000);
 		  vme_wrapper_->VMEWrite(addr_datar_shift_tailer|0x0300,(unsigned short)0x0,slot,"Bypass registers on other devices");
 		  usleep(100);
 		  for (unsigned short int reg_val_shft = start; reg_val_shft<=end; reg_val_shft++) {
@@ -3498,9 +3519,19 @@ namespace emu {
 	  unsigned int l1ac_LSB(VMEresult&0x0FFF);
 	  dcfeb_L1A_cnt[dcfeb] = (l1ac_MSB<<12)|l1ac_LSB;
 	  vme_wrapper_->VMEWrite(addr_sel_dcfeb, 1<<dcfeb, slot, "Select DCFEB");
-	  n_l1a_match_before=vme_wrapper_->JTAGRead(dr_l1a,16,slot);
+	  if (!is_xdcfeb) {
+	    n_l1a_match_before=vme_wrapper_->JTAGRead(dr_l1a,16,slot);
+	  }
+          else {
+	    n_l1a_match_before=vme_wrapper_->xdcfeb_JTAGRead(dr_l1a,16,slot);
+          }
 	  vme_wrapper_->VMEWrite(addr_dcfeb_resync, 0x1, slot, "DCFEB resync--reset all counters");
-	  n_l1a_match_after=vme_wrapper_->JTAGRead(dr_l1a,16,slot);
+	  if (!is_xdcfeb) {
+	    n_l1a_match_after=vme_wrapper_->JTAGRead(dr_l1a,16,slot);
+	  }
+          else {
+	    n_l1a_match_after=vme_wrapper_->xdcfeb_JTAGRead(dr_l1a,16,slot);
+          }
 	  // Number of received packets
 	  VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt_d,slot,"Read number of received packets");
 	  unsigned int nRxPckt(VMEresult+nCntRst*65536);
@@ -3526,6 +3557,7 @@ namespace emu {
 	if (!dcfeb_isConnected[dcfeb]) continue;
 	if (dcfeb_nGoodCRCs[dcfeb]!=dcfeb_nRxPckt[dcfeb]||dcfeb_nRxPckt[dcfeb]!=repeatNumber) nFailedDCFEBs++;
 	if (dcfeb_L1A_cnt[dcfeb]!=repeatNumber) nFailedDCFEBs++;
+        if (!(dcfeb_L1A_cnt[dcfeb]==n_l1a_match_before && n_l1a_match_after==0)) nFailedDCFEBs++;
       }
       // Pass or fail?
       if (nFailedDCFEBs>0) out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
@@ -3716,7 +3748,7 @@ namespace emu {
       out_local << hdr;
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
 
-      unsigned int odmb_slot(Manager::getSlotNumber()), otmb_slot(6);
+      unsigned int odmb_slot(Manager::getSlotNumber()), otmb_slot(20);
       unsigned int addr_otmb_cnt_rst(0x9410);
       unsigned int addr_otmb_mode(0x1EE), addr_otmb_prbs_start(0x31EE);
       unsigned int /*addr_otmb_prbs_en(0x9400),*/ addr_read_prbs_matches(0x9408), addr_read_prbs_errors(0x940C);
@@ -3924,6 +3956,29 @@ namespace emu {
       out << "W   3010      0          Reprogram all DCFEBs" << endl;      
       
     }
+
+    /**************************************************************************
+     * SetDCFEBMode
+     *
+     * A button to switch between DCFEB and xDCFEB modes
+     **************************************************************************/
+    SetDCFEBMode::SetDCFEBMode(Crate * crate) 
+      : ButtonAction(crate,"Switch between DCFEB/xDCFEB Mode") 
+    { /* The choices here are really a blank constructor vs duplicating the ExecuteVMEDSL constructor.
+	 I've tried the former -- TD
+      */
+    }
+    
+    void SetDCFEBMode::respond(xgi::Input * in, ostringstream & out) { // TD
+      if (is_xdcfeb) {
+        out << "Entering DCFEB Mode.\n" << endl;
+        is_xdcfeb = false;
+      }
+      else {
+        out << "Entering xDCFEB Mode.\n" << endl;
+        is_xdcfeb = true;
+      }
+    }
     
 
     /**************************************************************************
@@ -4046,10 +4101,10 @@ namespace emu {
       if(testReps<=0) return;
       const unsigned int manager_slot(Manager::getSlotNumber());
 
-      string filename1("/data/Dropbox/odmb/VME/V03-03/write_unique_id/VF3-03_write_unique_id.mcs");
-      string filename2("/data/Dropbox/odmb/VME/V03-03//V03-03_odmb_ucsb.mcs");
-      const unsigned short int fw_ver1 = 0xF303, fw1_lead = fw_ver1/0x100;
-      const unsigned short int fw_ver2 = 0x0303, fw2_lead = fw_ver2/0x100;
+      string filename1("/root/firmware/odmb/v3-17v0_odmb_ucsb.mcs");
+      string filename2("/root/firmware/odmb/v3-18v4_odmb_ucsb.mcs");
+      const unsigned short int fw_ver1 = 0x0317, fw1_lead = fw_ver1/0x100;
+      const unsigned short int fw_ver2 = 0x0318, fw2_lead = fw_ver2/0x100;
       int singleLoadFailCount = 0, errorType = 0;
       ostringstream fw1_stream, fw2_stream;
       if(fw_ver1>0xFFF) fw1_stream <<"V"<<hex<<fw1_lead<<"-0"<<hex<<fw_ver1-fw1_lead*0x100;

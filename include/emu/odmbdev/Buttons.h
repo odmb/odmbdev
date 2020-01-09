@@ -371,6 +371,17 @@ namespace emu { namespace odmbdev {
     };      
 
     /**************************************************************************
+     * SetDCFEBMode
+     *
+     * A button to switch between DCFEB and xDCFEB modes
+     **************************************************************************/
+    class SetDCFEBMode : public ButtonAction {
+    public:
+      SetDCFEBMode(Crate * crate);
+      void respond(xgi::Input * in, ostringstream & out);
+    };      
+
+    /**************************************************************************
      * SYSMON
      *
      * A small class to print the System monitoring informaiton
