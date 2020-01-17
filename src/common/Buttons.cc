@@ -3748,7 +3748,8 @@ namespace emu {
       out_local << hdr;
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
 
-      unsigned int odmb_slot(Manager::getSlotNumber()), otmb_slot(20);
+      unsigned int odmb_slot(Manager::getSlotNumber());
+      unsigned int otmb_slot(odmb_slot-1);
       unsigned int addr_otmb_cnt_rst(0x9410);
       unsigned int addr_otmb_mode(0x1EE), addr_otmb_prbs_start(0x31EE);
       unsigned int /*addr_otmb_prbs_en(0x9400),*/ addr_read_prbs_matches(0x9408), addr_read_prbs_errors(0x940C);
@@ -3830,6 +3831,7 @@ namespace emu {
 		VMEresult = vme_wrapper_->VMERead(addr_vme,slot,"Read UserCode 0 (hex digit 1)");
 		if (VMEresult>1) {
 		  out_local << "Error: read something greater than 1" << endl << endl ;
+                  out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
 		  out << out_local.str();
 		  UpdateLog(vme_wrapper_, slot, out_local);
 		  return;
@@ -3850,6 +3852,7 @@ namespace emu {
 		VMEresult = vme_wrapper_->VMERead(addr_vme,slot,"Read UserCode 0 (hex digit 2)");
 		if (VMEresult>1) {
 		  out_local << "Error: read something greater than 1" << endl << endl;
+                  out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
 		  out << out_local.str();
 		  UpdateLog(vme_wrapper_, slot, out_local);
 		  return;
@@ -3869,6 +3872,7 @@ namespace emu {
 		VMEresult = vme_wrapper_->VMERead(addr_vme,slot,log_out);
 		if (VMEresult>1) {
 		  out_local << "Error: read something greater than 1" << endl << endl;
+                  out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
 		  out << out_local.str();
 		  UpdateLog(vme_wrapper_, slot, out_local);
 		  return;
