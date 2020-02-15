@@ -1,3 +1,5 @@
+#include <string>
+
 #include "emu/odmbdev/RadioButtonAction.h"
 #include "emu/odmbdev/Manager.h"
 
@@ -24,12 +26,24 @@ namespace emu{
     }
 
     void RadioButtonAction::respond(xgi::Input * in, ostringstream & out){
-      cgicc::Cgicc cgi;
-      cout << "opt1/opt2: " << opt1 << "/" << opt2 << endl;
-      cout << "option 1 checked: " << cgi.queryCheckbox("INJPLS") << endl;
-      cout << "option 2 checked: " << cgi.queryCheckbox(opt2) << endl;
-      if(cgi.queryCheckbox(opt2)) default_opt = false;
-      else default_opt = true;
+      const cgicc::Cgicc cgi(in);
+      std::string form_value;
+      cgicc::const_form_iterator name = cgi.getElement(buttonLabel);
+      if(name != cgi.getElements().end()) {
+          //form_value = cgi[buttonLabel]->getValue();
+	  cout << "Value: " << **name << endl;
+	  if (**name == "DCFEB") default_opt = true;
+	  else default_opt = false;
+      }
+      else {
+          cout << "Error, no form found." << endl;
+      }
+
+      //cout << "opt1/opt2: " << opt1 << "/" << opt2 << endl;
+      //cout << "option 1 checked: " << cgi.queryCheckbox(opt1) << endl;
+      //cout << "option 2 checked: " << cgi.queryCheckbox(opt2) << endl;
+      //if(cgi.queryCheckbox(opt2)) default_opt = false;
+      //else default_opt = true;
     }
   }
 }

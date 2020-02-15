@@ -44,7 +44,7 @@ using namespace emu::pc;
  * sub-classes.
  * 
  *****************************************************************************/
-bool is_xdcfeb = true; //flag for telling us if we are communicating with an xDCFEB; eventually this should be set-able from the web page
+bool is_xdcfeb = false; //flag for telling us if we are communicating with an xDCFEB, eventually fix so its not just a global variable
 
 bool myfunction (pair<float, int> i, pair<float, int> j) { return (i.first < j.first); }
 namespace emu {
@@ -2392,6 +2392,55 @@ namespace emu {
       
     }*/
 
+    LVMBcheck::LVMBcheck(Crate * crate, emu::odmbdev::Manager* manager) 
+      : ButtonAction(crate, manager, "LVMB check") 
+    { 
+      //This constructor intentionally left blank.
+    }
+    
+    void LVMBcheck::respond(xgi::Input * in, ostringstream & out) { // TD
+      ostringstream out_local;
+      string hdr("********** LVMB Check **********");
+      JustifyHdr(hdr);
+      out_local << hdr << endl;
+      unsigned int slot(Manager::getSlotNumber());
+      unsigned short int VMEresult;
+      unsigned short int addr_turn_on = 0x008010;
+      unsigned short int addr_sel_adc = 0x008020;
+      unsigned short int addr_read_adc = 0x008004;
+      //ctrl byte for 0 to 10 V, do we ever need to read negative voltages?
+      unsigned short base_ctrl_byte = 0x89; 
+      unsigned short int addr_cntl_byte = 0x008000;
+
+      //turn on everything
+      vme_wrapper_->VMEWrite(addr_turn_on, 0xFF, slot, "Power on everything" );
+      usleep(10);
+
+      //loop over all ADCs and channels and print out reading
+      for (unsigned short adc_idx = 0; adc_idx < 7; adc_idx++) {
+          vme_wrapper_->VMEWrite(addr_sel_adc, adc_idx, slot, "Select ADC to be read");
+          usleep(10);
+	  for (unsigned short channel = 0; channel < 8; channel++) {
+		  unsigned short ctrl_byte = base_ctrl_byte | (channel << 4);
+		  vme_wrapper_->VMEWrite(addr_cntl_byte, ctrl_byte, slot, "Send control byte to ADC");
+          	  usleep(100);
+		  VMEresult = vme_wrapper_->VMERead(addr_read_adc, slot, "Read ADC" );
+		  float voltage = (float)VMEresult*10.0/4095.0;
+		  out_local << "Voltage reading for ADC " << adc_idx << ", channel " << channel;
+		  out_local << ": " << voltage << endl;
+	  }
+
+      }
+
+      //turn on everything
+      vme_wrapper_->VMEWrite(addr_turn_on, 0xFF, slot, "Power on everything" );
+      usleep(10);
+
+      out << out_local.str();
+      UpdateLog(vme_wrapper_, slot, out_local);
+    }
+
+
     LVMBtest::LVMBtest(Crate * crate, emu::odmbdev::Manager* manager) 
       : ThreeTextBoxAction(crate, manager, "LVMB test") 
     { 
@@ -2634,6 +2683,195 @@ namespace emu {
       out_local << "Power on/off test on 7/7.";  
       out_local << "Read 200 voltages per device. ";
       out_local << "Voltage reading: " << pass << "/" << 2*nReps*7 << "." << endl; 
+      out_local << endl;
+
+      out << out_local.str();
+      UpdateLog(vme_wrapper_, slot, out_local);
+    }
+
+     LVMB904::LVMB904(Crate * crate, emu::odmbdev::Manager* manager)
+      : RepeatTextBoxAction(crate, manager, "LVMB 904",300)
+    {
+      //This constructor intentionally left blank.
+    }
+
+    void LVMB904::respond(xgi::Input * in, ostringstream & out,
+                          const string& textBoxContent_in) { // TD
+
+      RepeatTextBoxAction::respond(in, out, textBoxContent_in);
+      ostringstream out_local;
+      string hdr("********** LVMB--Building 904 **********");
+      JustifyHdr(hdr);
+      out_local << hdr;
+      const unsigned int slot(Manager::getSlotNumber());
+      unsigned int nReps(atoi(textBoxContent.c_str()));
+
+
+      unsigned short int VMEresult;
+      unsigned short int data;
+
+
+      //1) Test on-off
+      unsigned short int addr_turn_on = 0x008010;
+      unsigned short int on_off_byte[2] = {0x00, 0xFF};
+      unsigned int addr_sel_dcfeb = (0x001020);
+      unsigned short int DCFEB_number[7] = {0x1, 0x2, 0x4, 0x08, 0x10, 0x20,0x40};
+      unsigned int addr_set_int_reg = (0x00191C);
+      unsigned int addr_read_hdr = (0x001F04);
+      unsigned int addr_read_tlr = (0x001F08);
+      unsigned int addr_read_tdo = (0x001F14);
+      unsigned short int reg_user_code = 0x3C8;
+
+      unsigned int nConn_DCFEBs(0);
+      // Need a new power-on/off test for 904--merging with DCFEB JTAG
+      for (int on_off=0; on_off<1; on_off++) { // once for off, once for on
+        vme_wrapper_->VMEWrite(addr_turn_on,on_off_byte[on_off],slot,"Power-off/on all DCFEBs");
+        usleep(500000);
+        for (int d = 0; d < 7; d++){ // Loop over all DCFEBs
+          // Select DCFEB (one bit per DCFEB)
+          vme_wrapper_->VMEWrite(addr_sel_dcfeb,DCFEB_number[d],slot,"Select DCFEB (one bit per DCFEB)");
+          // Read selected DCFEB
+          //VMEresult = vme_wrapper_->VMERead(addr_read_dcfeb,slot,"Read selected DCFEB");
+          // Set instruction register to *Read UserCode*
+          vme_wrapper_->VMEWrite(addr_set_int_reg,reg_user_code,slot,"Set instruction register to *Read UserCode*");
+          // Shift 16 lower bits
+          vme_wrapper_->VMEWrite(addr_read_hdr,data,slot,"Shift 16 lower bits");
+          // Read first half of UserCode
+          VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read first half of UserCode");
+          // check firmware version
+          string s_result = FixLength(VMEresult, 4, true);
+          string firmwareVersion = s_result.substr(1,1)+"."+s_result.substr(2,2);
+          // Shift 16 upper bits
+          vme_wrapper_->VMEWrite(addr_read_tlr,data,slot,"Shift 16 upper bits");
+          // Read second half of UserCode
+          VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read second half of UserCode");
+          // check to see if DCFEB is connected
+          if (FixLength(VMEresult, 4, true)=="DCFE") nConn_DCFEBs++;
+        } // end loop over DCFEBs
+        if ( (on_off==0 && nConn_DCFEBs>0) || (on_off==1 && nConn_DCFEBs<7) ) {
+          out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
+          out_local << "Failed to power-off/on DCFEBs." << endl;
+          out << out_local.str();
+          UpdateLog(vme_wrapper_, slot, out_local);
+          return;
+        }
+      } // end power-off/on test
+      vme_wrapper_->VMEWrite(addr_turn_on,0xFF,slot,"Power-on all DCFEBs"); // just to be safe
+      usleep(900000);
+
+      //2) Test ADCs
+      vector <int> hexes;
+      vector <float> the_voltages;
+
+      int best_adc_chan[7] = {5, 6, 4, 6, 1, 6, 0};
+      vector <pair<float, float> > cv_tol;
+      cv_tol.push_back(make_pair (2.107,0.05));
+      cv_tol.push_back(make_pair (2.081,0.05));
+      cv_tol.push_back(make_pair (2.,0.05));
+      cv_tol.push_back(make_pair (5.387,0.05));
+      cv_tol.push_back(make_pair (5.4237,0.05));
+      cv_tol.push_back(make_pair (3.2845,0.05));
+      cv_tol.push_back(make_pair (5.5751,0.05));
+
+      //addresses
+      unsigned short int addr_sel_adc = 0x008020;
+      unsigned short int addr_cntl_byte = 0x008000;
+      unsigned short int addr_read_adc = 0x008004;
+      vector <pair<float, int> > voltages[7], v1_vec[7];
+      unsigned short int ADC_number_vec[7] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+      vector<bool> ADC_10V_not_matched(7,false);
+      int pass = 0;
+      int fail = 0;
+      for (int j = 0; j < (int)nReps; j++){
+        for (int ADC = 0; ADC < 7; ADC++){
+          //Write ADC to be read
+          vme_wrapper_->VMEWrite(addr_sel_adc, ADC_number_vec[ADC], slot, "Select ADC to be read");
+          usleep(10);
+          // select best channel for test
+
+          //Send control byte to ADC -- 10V range
+          unsigned short int byte = 0x89 | (best_adc_chan[ADC]<<4);
+          //Send control byte to ADC -- 10V range
+          vme_wrapper_->VMEWrite(addr_cntl_byte, byte, slot, "Send control byte to ADC -- 10V range");
+          usleep(100);
+          //Read from ADC
+          VMEresult = vme_wrapper_->VMERead(addr_read_adc, slot, "Read from ADC");
+          usleep(10);
+          int hex_1 = VMEresult;
+          if (VMEresult == 65535 && ADC == 0){
+            VMEresult = 0;
+            //notConnected++;
+            //if (notConnected == 1) out << "Failed test: LVMB not connected" << endl;
+            //if (notConnected == 3) return;
+            break;
+          }
+          else{
+            float voltage_result_1 = float(VMEresult)*10.0/float(0xfff);
+            //Error checking
+            float voltage = voltage_result_1; //(voltage_result_1 > 4.0 ? voltage_result_1 : 0.5*(voltage_result_1 + voltage_result_2));
+            bool done = false;
+
+            //Filling 10V range histogram
+            bool bin_exists = false;
+            for (unsigned int bin = 0; bin < v1_vec[ADC_number_vec[ADC]].size(); bin++){
+              if (fabs(v1_vec[ADC_number_vec[ADC]][bin].first - voltage_result_1) < .00001){
+                v1_vec[ADC_number_vec[ADC]][bin].second++;
+                bin_exists = true;
+                break;
+              }
+            }
+            if(bin_exists == false) v1_vec[ADC_number_vec[ADC]].push_back(make_pair(voltage_result_1, 1));
+
+            for (unsigned int l = 0; l < voltages[ADC_number_vec[ADC]].size(); l++){
+              if (fabs(voltages[ADC_number_vec[ADC]][l].first - voltage) < .00001){
+                voltages[ADC_number_vec[ADC]][l].second++;
+                done = true;
+                break;
+              }
+            }
+
+            if (done == false){
+              voltages[ADC_number_vec[ADC]].push_back(make_pair(voltage, 1));
+            }
+
+            if (fabs(voltage - cv_tol[ADC].first) > cv_tol[ADC].second) cout << "inst: " << dec << j << " Voltage 1: " << voltage_result_1 << "  from hex   " << hex << hex_1 << " expected: " << cv_tol[ADC].first << hex << int(cv_tol[ADC].first*4095/10) << endl;
+            hexes.push_back(hex_1);
+            the_voltages.push_back(voltage_result_1);
+
+          }
+        }//ADC-loop
+      }//j-loop
+      cout << "Printing hex numbers" << endl;
+      sort(hexes.begin(), hexes.end());
+      sort(the_voltages.begin(), the_voltages.end());
+      int old = 0;
+      for (unsigned int i1 = 0; i1 < hexes.size(); i1++){
+        if (hexes[i1] != old) cout << hex << hexes[i1] << " voltages " << the_voltages[i1] <<  endl;
+        old = hexes[i1];
+      }
+
+      for (int i = 0; i < 7; i++){
+        std::sort( voltages[ADC_number_vec[i]].begin(), voltages[ADC_number_vec[i]].end(), myfunction );
+        std::sort( v1_vec[ADC_number_vec[i]].begin(), v1_vec[ADC_number_vec[i]].end(), myfunction );
+
+        cout <<endl<< "Printing everything for ADC " << ADC_number_vec[i] << ": Expected voltage " << cv_tol[i].first << endl;
+        cout << "Histogram for 10V range"<<endl;
+        for (unsigned int l = 0; l < v1_vec[ADC_number_vec[i]].size(); l++){
+          printf("%6.4f   %5d \n", v1_vec[ADC_number_vec[i]][l].first, v1_vec[ADC_number_vec[i]][l].second);
+          if ( fabs(v1_vec[ADC_number_vec[i]][l].first - cv_tol[i].first) > cv_tol[i].second ) {
+            fail += v1_vec[ADC_number_vec[i]][l].second;
+            ADC_10V_not_matched[i] = true;
+          }
+          else pass += v1_vec[ADC_number_vec[i]][l].second;
+        }
+
+
+      }
+      //out << "Voltage reading failure rate: " << fail << " out of " << nReps*7  << ". " << endl;
+      if (fail==0) out_local << "\t\t\t\t\t\tPASSED" << endl;
+      else out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
+      out_local << "Successfully powered-on/off all DCFEBs. ";
+      out_local << "ADC voltage readings: " << pass << "/" << nReps*7 << "." << endl;
       out_local << endl;
 
       out << out_local.str();
@@ -3966,15 +4204,16 @@ namespace emu {
      *
      * A button to switch between DCFEB and xDCFEB modes
      **************************************************************************/
-    SetDCFEBMode::SetDCFEBMode(Crate * crate) 
-      : ButtonAction(crate,"Switch between DCFEB/xDCFEB Mode") 
+    SetDCFEBMode::SetDCFEBMode(Crate * crate, emu::odmbdev::Manager* manager) 
+      : RadioButtonAction(crate,manager,"DCFEB/xDCFEB Mode Toggle","DCFEB","xDCFEB") 
     { /* The choices here are really a blank constructor vs duplicating the ExecuteVMEDSL constructor.
 	 I've tried the former -- TD
       */
     }
     
     void SetDCFEBMode::respond(xgi::Input * in, ostringstream & out) { // TD
-      if (is_xdcfeb) {
+      RadioButtonAction::respond(in, out);
+      if (default_opt) {
         out << "Entering DCFEB Mode.\n" << endl;
         is_xdcfeb = false;
       }

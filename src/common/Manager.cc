@@ -149,9 +149,11 @@ namespace emu { namespace odmbdev {
       putButtonsInGroup("Production Tests");
       addLogActionByTypename<CreateTestLog>(crate, this);
       addActionByTypename<ChangeSlotNumber>(crate, this);
+      addActionByTypename<SetDCFEBMode>(crate, this);
       addActionByTypename<MasterTest>(crate, this);
       addActionByTypename<LVMBtest>(crate, this);
-      //addActionByTypename<LVMB904>(crate, this);
+      addActionByTypename<LVMBcheck>(crate, this);
+      addActionByTypename<LVMB904>(crate, this);
       addActionByTypename<DCFEBJTAGcontrol>(crate, this);
       addActionByTypename<DCFEBFiber>(crate, this);
       addActionByTypename<DCFEBPulses>(crate, this);
@@ -163,7 +165,6 @@ namespace emu { namespace odmbdev {
       addActionByTypename<DDUPRBSTest>(crate,this);
       addActionByTypename<PCPRBSTest>(crate,this);
       addActionByTypename<MCSBackAndForthBPI>(crate, this);     
-      addActionByTypename<SetDCFEBMode>(crate);
       addActionByTypename<HardReset>(crate);
       addActionByTypename<ReprogramDCFEB>(crate);
       addActionByTypename<LVMBtest_dos>(crate, this);

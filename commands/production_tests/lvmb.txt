@@ -1,0 +1,95 @@
+#LVMB test 
+#Test sending power on and power off signals. Then, try reading each ADC to see if things are set properly
+
+== ============ Power On/Off Test ================= ==
+#ADC reading will be FFFF if LVMB is not connected
+#for 10V scale, voltage in V found by multiplying returned value by (10/4095) (decimal) so 0x29 ~ 0.1 V
+W  8010 00	    Turn ALCT+(x)DCFEBs off
+R  8014  	    Read ODMB register for power-on status (should be 00)
+W  8020 00	    Select ADC 0
+W  8000 C9          Send control byte: start select channel 4, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be less than 29)
+W  8020 04	    Select ADC 4
+W  8000 E9          Send control byte: start select channel 6, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be less than 29)
+W  8020 01	    Select ADC 1
+W  8000 E9          Send control byte: start select channel 6, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be less than 29)
+W  8020 05	    Select ADC 5
+W  8000 89          Send control byte: start select channel 0, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be less than 29)
+W  8020 03	    Select ADC 3
+W  8000 D9          Send control byte: start select channel 5, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be less than 29)
+W  8020 06	    Select ADC 6
+W  8000 A9          Send control byte: start select channel 2, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be less than 29)
+W  8020 02	    Select ADC 2
+W  8000 99          Send control byte: start select channel 1, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be less than 29)
+
+#for 10V scale, voltage in V found by multiplying returned value by (10/4095) (decimal) so 0xCC ~ 0.5 V
+W  8010 FF	    Turn ALCT+(x)DCFEBs on
+R  8014  	    Read ODMB register for power-on status (should be FF)
+W  8020 00	    Select ADC 0
+W  8000 C9          Send control byte: start select channel 4, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be greater than CC)
+W  8020 04	    Select ADC 4
+W  8000 E9          Send control byte: start select channel 6, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be greater than CC)
+W  8020 01	    Select ADC 1
+W  8000 E9          Send control byte: start select channel 6, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be greater than CC)
+W  8020 05	    Select ADC 5
+W  8000 89          Send control byte: start select channel 0, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be greater than CC)
+W  8020 03	    Select ADC 3
+W  8000 D9          Send control byte: start select channel 5, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be greater than CC)
+W  8020 06	    Select ADC 6
+W  8000 A9          Send control byte: start select channel 2, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be greater than CC)
+W  8020 02	    Select ADC 2
+W  8000 99          Send control byte: start select channel 1, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be greater than CC)
+
+== ================= ADC Test ==================== ==
+#production version runs ADC test multiple times
+#for 10V scale, voltage in V found by multiplying returned value by (10/4095) (decimal) so 0x4CD ~ 3.0 V, 0x733 ~ 4.5 V, 0x14 ~ 0.05V
+#for 5V scale, voltage in V found by multiplying returned value by (5/4095) (decimal) so 0x99A ~ 3.0V, 0xE66 ~ 4.5 V, 0x28 ~ 0.05V
+W  8020 00	    Select ADC 0
+W  8000 89          Send control byte: start select channel 0, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be 4CD +- 14)
+W  8000 81          Send control byte: start select channel 0, 0 to +5V, normal operation external clock
+R  8004 	    Read ADC (should be 99A +- 28)
+W  8020 04	    Select ADC 4
+W  8000 B9          Send control byte: start select channel 3, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be 733 +- 14)
+W  8000 B1          Send control byte: start select channel 3, 0 to +5V, normal operation external clock
+R  8004 	    Read ADC (should be E66 +- 28)
+W  8020 01	    Select ADC 1
+W  8000 A9          Send control byte: start select channel 2, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be 4CD +- 14)
+W  8000 A1          Send control byte: start select channel 2, 0 to +5V, normal operation external clock
+R  8004 	    Read ADC (should be 99A +- 28)
+W  8020 05	    Select ADC 5
+W  8000 D9          Send control byte: start select channel 5, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be 733 +- 14)
+W  8000 D1          Send control byte: start select channel 5, 0 to +5V, normal operation external clock
+R  8004 	    Read ADC (should be E66 +- 28)
+W  8020 03	    Select ADC 3
+W  8000 99          Send control byte: start select channel 1, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be 4CD +- 14)
+W  8000 91          Send control byte: start select channel 1, 0 to +5V, normal operation external clock
+R  8004 	    Read ADC (should be 99A +- 28)
+W  8020 06	    Select ADC 6
+W  8000 E9          Send control byte: start select channel 6, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be 733 +- 14)
+W  8000 E1          Send control byte: start select channel 6, 0 to +5V, normal operation external clock
+R  8004 	    Read ADC (should be E66 +- 28)
+W  8020 02	    Select ADC 2
+W  8000 D9          Send control byte: start select channel 5, 0 to +10V, normal operation external clock
+R  8004 	    Read ADC (should be 733 +- 14)
+W  8000 D1          Send control byte: start select channel 5, 0 to +5V, normal operation external clock
+R  8004 	    Read ADC (should be E66 +- 28)
+

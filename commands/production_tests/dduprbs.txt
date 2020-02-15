@@ -1,0 +1,10 @@
+#DDU PRBS (pseudo-random bit sequence) test
+#send PRBS through DDU transmitter, expect loopback to receiver and check that sequence arrives back in tact
+#note 9000 and 9004 are not correctly in ODMB user manual!
+
+W  9300 1 	    Set PRBS type: PRBS-7
+W  9000 1 	    Test DDU TX PRBS with 1 PRBS sequence
+SLEEP 1000
+W  9004 50          Test DDU RX PRBS with 5 PRBS sequences
+SLEEP 25000
+R  900C		    Read number of errors in DDU PRBS sequence (should be 0)

@@ -1,0 +1,199 @@
+#DCFEB pulse test
+#send a number of INJPLS, EXTPLS, BC0, and L1A_MATCH signals to the DCFEBs and cofirm each one counted the correct number sent
+== ======= General setup & Send Pulses ============ ==
+W  401C 0	    Set KILL to 0 for ALCT+OTMB+DCFEBs
+W  3014 0	    Resync all DCFEBs (reset counters)
+R  3120 0	    Read done bits from all DCFEBs (should get a 1 for each connected DCFEB)
+W  3000 3F     	    Set calibration mode for all DCFEBs (generate L1A with each pulse)
+W  3200 1	    Send INJPLS
+W  3200 2	    Send EXTPLS
+W  3200 20	    Send BC0
+W  3000 0           Unset calibration mode for all DCFEBs
+W  3200 4	    Send L1A+L1A_MATCH
+W  3000 3F     	    Set calibration mode for all DCFEBs (generate L1A with each pulse)
+W  3200 1	    Send INJPLS
+W  3200 2	    Send EXTPLS
+W  3200 20	    Send BC0
+W  3000 0           Unset calibration mode for all DCFEBs
+W  3200 4	    Send L1A+L1A_MATCH
+W  3000 3F     	    Set calibration mode for all DCFEBs (generate L1A with each pulse)
+W  3200 1	    Send INJPLS
+W  3200 2	    Send EXTPLS
+W  3200 20	    Send BC0
+W  3000 0           Unset calibration mode for all DCFEBs
+W  3200 4	    Send L1A+L1A_MATCH
+W  3000 3F     	    Set calibration mode for all DCFEBs (generate L1A with each pulse)
+W  3200 1	    Send INJPLS
+W  3200 2	    Send EXTPLS
+W  3200 20	    Send BC0
+W  3000 0           Unset calibration mode for all DCFEBs
+W  3200 4	    Send L1A+L1A_MATCH
+W  3000 3F     	    Set calibration mode for all DCFEBs (generate L1A with each pulse)
+W  3200 1	    Send INJPLS
+W  3200 2	    Send EXTPLS
+W  3200 20	    Send BC0
+W  3000 0           Unset calibration mode for all DCFEBs
+W  3200 4	    Send L1A+L1A_MATCH
+#5 pulses (INJPLS, EXTPLS, BC0, L1A_MATCH) sent
+
+== =============== read DCFEB 1 =================== ==
+W  1020 1  	    Select DCFEB 1
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3B	    Shift data "DCFEB function read INJPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3C	    Shift data "DCFEB function read EXTPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3D	    Shift data "DCFEB function read BC0 counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3A	    Shift data "DCFEB function read L1A_MATCH counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+
+== =============== read DCFEB 2 =================== ==
+W  1020 2  	    Select DCFEB 2
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3B	    Shift data "DCFEB function read INJPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3C	    Shift data "DCFEB function read EXTPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3D	    Shift data "DCFEB function read BC0 counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3A	    Shift data "DCFEB function read L1A_MATCH counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+
+== =============== read DCFEB 3 =================== ==
+W  1020 4  	    Select DCFEB 3
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3B	    Shift data "DCFEB function read INJPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3C	    Shift data "DCFEB function read EXTPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3D	    Shift data "DCFEB function read BC0 counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3A	    Shift data "DCFEB function read L1A_MATCH counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+
+== =============== read DCFEB 4 =================== ==
+W  1020 8  	    Select DCFEB 4
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3B	    Shift data "DCFEB function read INJPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3C	    Shift data "DCFEB function read EXTPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3D	    Shift data "DCFEB function read BC0 counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3A	    Shift data "DCFEB function read L1A_MATCH counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+
+== =============== read DCFEB 5 =================== ==
+W  1020 10 	    Select DCFEB 5
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3B	    Shift data "DCFEB function read INJPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3C	    Shift data "DCFEB function read EXTPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3D	    Shift data "DCFEB function read BC0 counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3A	    Shift data "DCFEB function read L1A_MATCH counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+
+== =============== read DCFEB 6 =================== ==
+W  1020 20 	    Select DCFEB 6
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3B	    Shift data "DCFEB function read INJPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3C	    Shift data "DCFEB function read EXTPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3D	    Shift data "DCFEB function read BC0 counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3A	    Shift data "DCFEB function read L1A_MATCH counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+
+== =============== read DCFEB 7 =================== ==
+W  1020 40 	    Select DCFEB 7
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3B	    Shift data "DCFEB function read INJPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3C	    Shift data "DCFEB function read EXTPLS counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3D	    Shift data "DCFEB function read BC0 counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 3A	    Shift data "DCFEB function read L1A_MATCH counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1B0C 0	    Shift data 12 bits "0"
+R  1014             Read TDO (should be 5)
+

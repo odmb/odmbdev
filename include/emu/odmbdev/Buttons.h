@@ -375,9 +375,9 @@ namespace emu { namespace odmbdev {
      *
      * A button to switch between DCFEB and xDCFEB modes
      **************************************************************************/
-    class SetDCFEBMode : public ButtonAction {
+    class SetDCFEBMode : public RadioButtonAction {
     public:
-      SetDCFEBMode(Crate * crate);
+      SetDCFEBMode(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out);
     };      
 
@@ -436,6 +436,17 @@ namespace emu { namespace odmbdev {
     public:
       LVMBtest(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
+    };
+
+    /**************************************************************************
+     * LVMBcheck
+     *
+     * Button to directly read out all channels on all ADCs
+     **************************************************************************/
+    class LVMBcheck : public ButtonAction {
+    public:
+      LVMBcheck(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
     };
 
     /**************************************************************************

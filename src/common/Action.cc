@@ -384,14 +384,15 @@ namespace emu { namespace odmbdev {
            << " "
            << cgicc::input()
         .set("type","radio")
-        .set("name","mode1")
+        .set("name",button_name)
+	.set("value",opt1)
         .set("id",opt1)
-        .set("checked","checked")
            << opt1
            << " "
            << cgicc::input()
         .set("type","radio")
-        .set("name","mode2")
+        .set("name",button_name)
+	.set("value",opt2)
         .set("id",opt2)
            << opt2
            << endl

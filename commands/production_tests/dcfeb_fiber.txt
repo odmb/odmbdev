@@ -1,0 +1,250 @@
+#DCFEB Fiber test
+#send a number of L1A + L1A_MATCHs, verify that the correct number are received and the correct number of packets sent. Check that we can reset the DCFEB's counters
+
+== ==================== Setup ===================== ==
+W  3004 1	    ODMB soft reset
+W  3300 0	    Set data multiplexer: real data
+W  3304 0	    Set trigger multiplexer: internal triggers
+R  3120		    Read DCFEB done bits (expect nonzero for #DCFEBs>0)
+
+== ============= Read From DCFEB 1 ================ ==
+W  401C 1FE	    Kill all DCFEBs except DCFEB 1
+W  5010 1	    Select DCFEB 1 FIFO
+R  341C 	    Read number of packets from DCFEB 1
+R  361C   	    Read number of packets with CRCs from DCFEB 1
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  341C 	    Read number of packets from DCFEB 1
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  341C 	    Read number of packets from DCFEB 1
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  341C 	    Read number of packets from DCFEB 1
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  341C 	    Read number of packets from DCFEB 1
+W  5020 7F	    Reset DCFEB FIFOs
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  341C 	    Read number of packets from DCFEB 1 (should be 5)
+#real test send arbitrary numbers of L1A's and L1A_MATCH's
+R  5000             Read word from selected FIFO (L1A counter MSB)
+R  5000		    Read word from selected FIFO (L1A counter LSB)
+W  1020 1	    Select DCFEB 1
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 5)
+W  3014 1	    L1A reset and DCFEB resync
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 0)
+R  341C 	    Read number of packets from DCFEB 1 (should be 5)
+R  361C   	    Read number of packets with CRCs from DCFEB 1 (should be 5)
+
+== ============= Read From DCFEB 2 ================ ==
+W  401C 1FD	    Kill all DCFEBs except DCFEB 2
+W  5010 2	    Select DCFEB 2 FIFO
+R  342C 	    Read number of packets from DCFEB 2
+R  362C   	    Read number of packets with CRCs from DCFEB 2
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  342C 	    Read number of packets from DCFEB 2
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  342C 	    Read number of packets from DCFEB 2
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  342C 	    Read number of packets from DCFEB 2
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  342C 	    Read number of packets from DCFEB 2
+W  5020 7F	    Reset DCFEB FIFOs
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  342C 	    Read number of packets from DCFEB 2 (should be 5)
+#real test send arbitrary numbers of L1A's and L1A_MATCH's
+R  5000             Read word from selected FIFO (L1A counter MSB)
+R  5000		    Read word from selected FIFO (L1A counter LSB)
+W  1020 2	    Select DCFEB 2
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 5)
+W  3014 1	    L1A reset and DCFEB resync
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 0)
+R  342C 	    Read number of packets from DCFEB 2 (should be 5)
+R  362C   	    Read number of packets with CRCs from DCFEB 2 (should be 5)
+
+== ============= Read From DCFEB 3 ================ ==
+W  401C 1FB	    Kill all DCFEBs except DCFEB 3
+W  5010 3	    Select DCFEB 3 FIFO
+R  343C 	    Read number of packets from DCFEB 3
+R  363C   	    Read number of packets with CRCs from DCFEB 3
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  343C 	    Read number of packets from DCFEB 3
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  343C 	    Read number of packets from DCFEB 3
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  343C 	    Read number of packets from DCFEB 3
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  343C 	    Read number of packets from DCFEB 3
+W  5020 7F	    Reset DCFEB FIFOs
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  343C 	    Read number of packets from DCFEB 3 (should be 5)
+#real test send arbitrary numbers of L1A's and L1A_MATCH's
+R  5000             Read word from selected FIFO (L1A counter MSB)
+R  5000		    Read word from selected FIFO (L1A counter LSB)
+W  1020 4	    Select DCFEB 3
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 5)
+W  3014 1	    L1A reset and DCFEB resync
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 0)
+R  343C 	    Read number of packets from DCFEB 3 (should be 5)
+R  363C   	    Read number of packets with CRCs from DCFEB 3 (should be 5)
+
+== ============= Read From DCFEB 4 ================ ==
+W  401C 1F7	    Kill all DCFEBs except DCFEB 4
+W  5010 4	    Select DCFEB 4 FIFO
+R  344C 	    Read number of packets from DCFEB 4
+R  364C   	    Read number of packets with CRCs from DCFEB 4
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  344C 	    Read number of packets from DCFEB 4
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  344C 	    Read number of packets from DCFEB 4
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  344C 	    Read number of packets from DCFEB 4
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  344C 	    Read number of packets from DCFEB 4
+W  5020 7F	    Reset DCFEB FIFOs
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  344C 	    Read number of packets from DCFEB 4 (should be 5)
+#real test send arbitrary numbers of L1A's and L1A_MATCH's
+R  5000             Read word from selected FIFO (L1A counter MSB)
+R  5000		    Read word from selected FIFO (L1A counter LSB)
+W  1020 8	    Select DCFEB 4
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 5)
+W  3014 1	    L1A reset and DCFEB resync
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 0)
+R  344C 	    Read number of packets from DCFEB 4 (should be 5)
+R  364C   	    Read number of packets with CRCs from DCFEB 4 (should be 5)
+
+== ============= Read From DCFEB 5 ================ ==
+W  401C 1EF	    Kill all DCFEBs except DCFEB 5
+W  5010 5	    Select DCFEB 5 FIFO
+R  345C 	    Read number of packets from DCFEB 5
+R  365C   	    Read number of packets with CRCs from DCFEB 5
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  345C 	    Read number of packets from DCFEB 5
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  345C 	    Read number of packets from DCFEB 5
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  345C 	    Read number of packets from DCFEB 5
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  345C 	    Read number of packets from DCFEB 5
+W  5020 7F	    Reset DCFEB FIFOs
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  345C 	    Read number of packets from DCFEB 5 (should be 5)
+#real test send arbitrary numbers of L1A's and L1A_MATCH's
+R  5000             Read word from selected FIFO (L1A counter MSB)
+R  5000		    Read word from selected FIFO (L1A counter LSB)
+W  1020 10	    Select DCFEB 5
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 5)
+W  3014 1	    L1A reset and DCFEB resync
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 0)
+R  345C 	    Read number of packets from DCFEB 5 (should be 5)
+R  365C   	    Read number of packets with CRCs from DCFEB 5 (should be 5)
+
+== ============= Read From DCFEB 6 ================ ==
+W  401C 1DF	    Kill all DCFEBs except DCFEB 6
+W  5010 6	    Select DCFEB 6 FIFO
+R  346C 	    Read number of packets from DCFEB 6
+R  366C   	    Read number of packets with CRCs from DCFEB 6
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  346C 	    Read number of packets from DCFEB 6
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  346C 	    Read number of packets from DCFEB 6
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  346C 	    Read number of packets from DCFEB 6
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  346C 	    Read number of packets from DCFEB 6
+W  5020 7F	    Reset DCFEB FIFOs
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  346C 	    Read number of packets from DCFEB 6 (should be 5)
+#real test send arbitrary numbers of L1A's and L1A_MATCH's
+R  5000             Read word from selected FIFO (L1A counter MSB)
+R  5000		    Read word from selected FIFO (L1A counter LSB)
+W  1020 20	    Select DCFEB 6
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 5)
+W  3014 1	    L1A reset and DCFEB resync
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 0)
+R  346C 	    Read number of packets from DCFEB 6 (should be 5)
+R  366C   	    Read number of packets with CRCs from DCFEB 6 (should be 5)
+
+== ============= Read From DCFEB 7 ================ ==
+W  401C 1BF	    Kill all DCFEBs except DCFEB 7
+W  5010 7	    Select DCFEB 7 FIFO
+R  347C 	    Read number of packets from DCFEB 7
+R  367C   	    Read number of packets with CRCs from DCFEB 7
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  347C 	    Read number of packets from DCFEB 7
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  347C 	    Read number of packets from DCFEB 7
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  347C 	    Read number of packets from DCFEB 7
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  347C 	    Read number of packets from DCFEB 7
+W  5020 7F	    Reset DCFEB FIFOs
+W  3200 4	    Send L1A + L1A_MATCH to all DCFEBs
+R  347C 	    Read number of packets from DCFEB 7 (should be 5)
+#real test send arbitrary numbers of L1A's and L1A_MATCH's
+R  5000             Read word from selected FIFO (L1A counter MSB)
+R  5000		    Read word from selected FIFO (L1A counter LSB)
+W  1020 40	    Select DCFEB 7
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 5)
+W  3014 1	    L1A reset and DCFEB resync
+W  191C 3C2         Shift instruction "device select" i.e. DCFEB command
+W  170C 39	    Shift data "DCFEB function read L1A counter"
+W  191C 3C3	    Shift instruction "value select" i.e. DCFEB arguments
+W  1F0C 0	    Shift data 16 bits "0"
+R  1014             Read TDO (should be 0)
+R  347C 	    Read number of packets from DCFEB 7 (should be 5)
+R  367C   	    Read number of packets with CRCs from DCFEB 7 (should be 5)
+
+
+
+
