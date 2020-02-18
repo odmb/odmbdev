@@ -443,11 +443,17 @@ namespace emu { namespace odmbdev {
      *
      * Button to directly read out all channels on all ADCs
      **************************************************************************/
-    class LVMBcheck : public ButtonAction {
+    class LVMBcheck : public ThreeTextBoxAction {
     public:
       LVMBcheck(Crate * crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input * in, ostringstream & out);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     };
+
+    //class LVMBcheck : public ButtonAction {
+    //public:
+    //  LVMBcheck(Crate * crate, emu::odmbdev::Manager* manager);
+    //  void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
+    //};
 
     /**************************************************************************
      * LVMB904

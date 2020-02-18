@@ -50,7 +50,7 @@ bool myfunction (pair<float, int> i, pair<float, int> j) { return (i.first < j.f
 namespace emu {
   namespace odmbdev {
     
-    int Manager::slot_number = 21;
+    int Manager::slot_number = 7;
     unsigned int Manager::port_ = 9997; // This doesn't affect the xdaq app;
     // I just needed to initialize this
     // static member variable.
@@ -2393,12 +2393,19 @@ namespace emu {
     }*/
 
     LVMBcheck::LVMBcheck(Crate * crate, emu::odmbdev::Manager* manager) 
-      : ButtonAction(crate, manager, "LVMB check") 
+      : ThreeTextBoxAction(crate, manager, "LVMB check") 
     { 
       //This constructor intentionally left blank.
     }
+
+    //LVMBcheck::LVMBcheck(Crate * crate, emu::odmbdev::Manager* manager) 
+    //  : ButtonAction(crate, manager, "LVMB check") 
+    //{ 
+    //  //This constructor intentionally left blank.
+    //}
     
-    void LVMBcheck::respond(xgi::Input * in, ostringstream & out) { // TD
+    void LVMBcheck::respond(xgi::Input * in, ostringstream & out,const string& textBoxContent_in) { // TD
+      ThreeTextBoxAction::respond(in, out, textBoxContent_in);
       ostringstream out_local;
       string hdr("********** LVMB Check **********");
       JustifyHdr(hdr);
