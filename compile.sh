@@ -14,7 +14,7 @@ fi
 
 export XDAQ_ROOT=/opt/xdaq
 export XDAQ_OS=linux
-export XDAQ_PLATFORM=x86_64_cc7
+export XDAQ_PLATFORM=x86_64_slc6
 
 echo
 echo "Environment variables:"
