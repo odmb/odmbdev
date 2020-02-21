@@ -81,9 +81,12 @@ namespace odmbdev {
       static int getSlotNumber() {return slot_number;}
       static void setSlotNumber(int slot) {slot_number = slot;}
       static int getPortNumber() {return port_;}
+      static bool get_is_xdcfeb() {return is_xdcfeb;}
+      static void set_is_xdcfeb(bool xdcfeb) {is_xdcfeb = xdcfeb;}
 		
     protected:
       static int slot_number;
+      static bool is_xdcfeb;
       static unsigned int port_;
       std::ostringstream webOutputLog_;
       std::string OutputLogTitle_;

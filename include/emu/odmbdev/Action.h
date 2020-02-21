@@ -218,7 +218,8 @@ namespace emu {
       static void addButtonWithRadio(xgi::Output *out,
 				     const string& button_name,
 				     const string& opt1,
-				     const string& opt2
+				     const string& opt2,
+				     bool default_opt
 				     );
 
 

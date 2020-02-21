@@ -22,7 +22,7 @@ namespace emu{
     }
 
     void RadioButtonAction::display(xgi::Output * out){
-      addButtonWithRadio(out, buttonLabel, opt1, opt2);
+      addButtonWithRadio(out, buttonLabel, opt1, opt2, default_opt);
     }
 
     void RadioButtonAction::respond(xgi::Input * in, ostringstream & out){
@@ -31,19 +31,12 @@ namespace emu{
       cgicc::const_form_iterator name = cgi.getElement(buttonLabel);
       if(name != cgi.getElements().end()) {
           //form_value = cgi[buttonLabel]->getValue();
-	  cout << "Value: " << **name << endl;
-	  if (**name == "DCFEB") default_opt = true;
+	  if (**name == opt1) default_opt = true;
 	  else default_opt = false;
       }
       else {
           cout << "Error, no form found." << endl;
       }
-
-      //cout << "opt1/opt2: " << opt1 << "/" << opt2 << endl;
-      //cout << "option 1 checked: " << cgi.queryCheckbox(opt1) << endl;
-      //cout << "option 2 checked: " << cgi.queryCheckbox(opt2) << endl;
-      //if(cgi.queryCheckbox(opt2)) default_opt = false;
-      //else default_opt = true;
     }
   }
 }

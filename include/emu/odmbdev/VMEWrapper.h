@@ -37,10 +37,8 @@ namespace odmbdev {
       virtual ~VMEWrapper() { };
       void VMEWrite (unsigned short int, unsigned short int, unsigned int=7, string="");
       unsigned short int VMERead (unsigned short int, unsigned int=7, string="");
-      unsigned int JTAGShift (unsigned short int, unsigned short int, unsigned int, unsigned short int=12, unsigned int=7);
-      unsigned int JTAGRead (unsigned short int, unsigned int, unsigned int=7);
-      unsigned int xdcfeb_JTAGShift (unsigned short int, unsigned short int, unsigned int, unsigned short int=12, unsigned int=7);
-      unsigned int xdcfeb_JTAGRead (unsigned short int, unsigned int, unsigned int=7);
+      unsigned int JTAGShift (unsigned short int, unsigned short int, unsigned int, unsigned short int=12, unsigned int=7,bool=false);
+      unsigned int JTAGRead (unsigned short int, unsigned int, unsigned int=7,bool=false);
       string ODMBVitals (unsigned int);
       string SYSMONReport (unsigned int);
       string BurnInODMBs();

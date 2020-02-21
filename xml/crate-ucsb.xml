@@ -1937,8 +1937,40 @@
            dmb_vme_firmware_tag="1548"
            kill_input="0"
            hardware_version="2">
+
+        <CFEB cfeb_number="6"
+             cfeb_firmware_tag="cfeda102"
+             hardware_version="2"
+             kill_chip0="0000"
+             kill_chip1="0000"
+             kill_chip2="0000"
+             kill_chip3="0000"
+             kill_chip4="0000"
+             kill_chip5="0000">
+       </CFEB>
+       <CFEB cfeb_number="5"
+             cfeb_firmware_tag="cfeda102"
+             hardware_version="2"
+             kill_chip0="0000"
+             kill_chip1="0000"
+             kill_chip2="0000"
+             kill_chip3="0000"
+             kill_chip4="0000"
+             kill_chip5="0000">
+       </CFEB>
+        <CFEB cfeb_number="4"
+             cfeb_firmware_tag="cfeda102" 
+             hardware_version="2"
+             kill_chip0="0000"
+             kill_chip1="0000"
+             kill_chip2="0000"
+             kill_chip3="0000"
+             kill_chip4="0000"
+             kill_chip5="0000">
+       </CFEB>
        <CFEB cfeb_number="3"
              cfeb_firmware_tag="cfeda102" 
+             hardware_version="2"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -1948,6 +1980,7 @@
        </CFEB>
        <CFEB cfeb_number="2"
              cfeb_firmware_tag="cfeda102" 
+             hardware_version="2"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -1957,6 +1990,7 @@
        </CFEB>
        <CFEB cfeb_number="1"
              cfeb_firmware_tag="cfeda102" 
+             hardware_version="2"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -1965,7 +1999,8 @@
              kill_chip5="0000">
        </CFEB>
        <CFEB cfeb_number="0"
-             cfeb_firmware_tag="cfeda102" 
+             cfeb_firmware_tag="cfeda102"
+             hardware_version="2"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"

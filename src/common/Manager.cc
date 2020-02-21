@@ -288,6 +288,8 @@ namespace emu { namespace odmbdev {
 
 	std::string GoToProductionTests = toolbox::toString("/%s/ProductionTests",getApplicationDescriptor()->getURN().c_str());
   	*out << cgicc::a("[Production Tests]").set("href",GoToProductionTests) << std::endl;
+	std::string group_actions_string = toolbox::toString("/%s/groupActions",getApplicationDescriptor()->getURN().c_str());
+	std::string log_actions_string = toolbox::toString("/%s/logActions",getApplicationDescriptor()->getURN().c_str());
 
       // most actions will appear here
       for(uint g=0; g<groups_.size(); ++g) {
@@ -306,7 +308,7 @@ namespace emu { namespace odmbdev {
 	    *out<<"</div>"<<endl<<"<div style=\"width:255px; float:left;\">"<<endl;
 	  *out <<p()<< cgicc::form()
 	    .set("method","GET")
-	    .set("action", "groupActions")
+	    .set("action", group_actions_string)
 	       << cgicc::input()
 	    .set("type","hidden")
 	    .set("value",numberToString(i*groups_.size()+g))
@@ -392,7 +394,7 @@ namespace emu { namespace odmbdev {
       for(unsigned int i = 1; i < logActions_.size(); ++i) { // display log buttons at the top
         *out << p()
 	     << cgicc::form().set("method","GET")
-	  .set("action", "logActions")
+	  .set("action", log_actions_string)
 	     << "Output log " 
              << cgicc::input().set("type","hidden")
 	  .set("value",numberToString(i))
@@ -452,7 +454,7 @@ namespace emu { namespace odmbdev {
 	//<< h1()
            << endl << endl;
           
-        std::string GoToMainPage = toolbox::toString("/%s/",getApplicationDescriptor()->getURN().c_str());
+        std::string GoToMainPage = toolbox::toString("/%s",getApplicationDescriptor()->getURN().c_str());
   	    *out << cgicc::a("[Main Page]").set("href",GoToMainPage) << std::endl;
 	// This is just for the create log button
 	*out << p()

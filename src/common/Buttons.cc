@@ -44,7 +44,6 @@ using namespace emu::pc;
  * sub-classes.
  * 
  *****************************************************************************/
-bool is_xdcfeb = false; //flag for telling us if we are communicating with an xDCFEB, eventually fix so its not just a global variable
 
 bool myfunction (pair<float, int> i, pair<float, int> j) { return (i.first < j.first); }
 namespace emu {
@@ -52,6 +51,7 @@ namespace emu {
     
     int Manager::slot_number = 21;
     unsigned int Manager::port_ = 9997; // This doesn't affect the xdaq app;
+    bool Manager::is_xdcfeb = false;
     // I just needed to initialize this
     // static member variable.
 
@@ -2721,6 +2721,12 @@ namespace emu {
       unsigned int addr_read_tlr = (0x001F08);
       unsigned int addr_read_tdo = (0x001F14);
       unsigned short int reg_user_code = 0x3C8;
+      unsigned int addr_instr_shift_header = (0x001034);
+      unsigned int addr_instr_shift_noheadtail = (0x001030);
+      unsigned int addr_instr_shift_tailer = (0x001038);
+      unsigned int addr_datar_shift_header = (0x001004);
+      unsigned int addr_datar_shift_noheadtail = (0x001000);
+      unsigned int addr_datar_shift_tailer = (0x001008);
 
       unsigned int nConn_DCFEBs(0);
       // Need a new power-on/off test for 904--merging with DCFEB JTAG
@@ -2733,20 +2739,55 @@ namespace emu {
           // Read selected DCFEB
           //VMEresult = vme_wrapper_->VMERead(addr_read_dcfeb,slot,"Read selected DCFEB");
           // Set instruction register to *Read UserCode*
-          vme_wrapper_->VMEWrite(addr_set_int_reg,reg_user_code,slot,"Set instruction register to *Read UserCode*");
-          // Shift 16 lower bits
-          vme_wrapper_->VMEWrite(addr_read_hdr,data,slot,"Shift 16 lower bits");
-          // Read first half of UserCode
-          VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read first half of UserCode");
-          // check firmware version
-          string s_result = FixLength(VMEresult, 4, true);
-          string firmwareVersion = s_result.substr(1,1)+"."+s_result.substr(2,2);
-          // Shift 16 upper bits
-          vme_wrapper_->VMEWrite(addr_read_tlr,data,slot,"Shift 16 upper bits");
-          // Read second half of UserCode
-          VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read second half of UserCode");
-          // check to see if DCFEB is connected
-          if (FixLength(VMEresult, 4, true)=="DCFE") nConn_DCFEBs++;
+	  if (!Manager::get_is_xdcfeb()) {
+            vme_wrapper_->VMEWrite(addr_set_int_reg,reg_user_code,slot,"Set instruction register to *Read UserCode*");
+            // Shift 16 lower bits
+            vme_wrapper_->VMEWrite(addr_read_hdr,data,slot,"Shift 16 lower bits");
+            // Read first half of UserCode
+            VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read first half of UserCode");
+            // check firmware version
+            string s_result = FixLength(VMEresult, 4, true);
+            string firmwareVersion = s_result.substr(1,1)+"."+s_result.substr(2,2);
+            // Shift 16 upper bits
+            vme_wrapper_->VMEWrite(addr_read_tlr,data,slot,"Shift 16 upper bits");
+            // Read second half of UserCode
+            VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read second half of UserCode");
+            // check to see if DCFEB is connected
+            if (FixLength(VMEresult, 4, true)=="DCFE") nConn_DCFEBs++;
+	  }
+	  else {
+            //xDCFEB
+            // Set instruction register to *Read UserCode*
+            // Eventually, make this cleaner 
+            vme_wrapper_->VMEWrite(addr_instr_shift_header|0x0900,(unsigned short)0x3c8,slot,"Set instruction register to *Read UserCode*");
+            usleep(1000);
+            vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+            usleep(1000);
+            vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+            usleep(1000);
+            vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
+            usleep(1000);
+            vme_wrapper_->VMEWrite(addr_instr_shift_tailer|0x0300,(unsigned short)0xf,slot,"Bypass instructions on other devices");
+            usleep(1000);
+            // Shift 16 lower bits
+            vme_wrapper_->VMEWrite(addr_read_hdr,data,slot,"Shift 16 lower bits");
+            usleep(1000);
+            // Read first half of UserCode
+            VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read first half of UserCode");
+            string s_result = FixLength(VMEresult, 4, true);
+            string firmwareVersion = s_result.substr(1,1)+"."+s_result.substr(2,2);
+            // Shift 16 upper bits
+            // I am not sure if the FPGA device (last in the JTAG chain) continues to overwrite data register bits from devices upstream in the chain or waits the appropriate 4 bits
+            // If it does not wait, then this code will not get the firmware version correct
+            vme_wrapper_->VMEWrite(addr_datar_shift_noheadtail|0x0f00,data,slot,"Shift 16 upper bits");
+            usleep(1000);
+            // Read second half of UserCode
+            VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read second half of UserCode");
+            vme_wrapper_->VMEWrite(addr_datar_shift_tailer|0x0300,data,slot,"Ignore data from other devices");
+            usleep(1000);
+            // check to see if DCFEB is connected
+            if (FixLength(VMEresult, 4, true)!="DCFE") nConn_DCFEBs++;
+	  }
         } // end loop over DCFEBs
         if ( (on_off==0 && nConn_DCFEBs>0) || (on_off==1 && nConn_DCFEBs<7) ) {
           out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
@@ -3339,6 +3380,7 @@ namespace emu {
       const unsigned long repeatNumber=atoi(textBoxContent_in.c_str());
       
       int slot = Manager::getSlotNumber();
+      bool is_xdcfeb = Manager::get_is_xdcfeb();
       
       unsigned int addr_odmb_reg(0x3000), addr_dcfeb_reg(0x3200), addr_dcfeb_resync(0x3014);
       unsigned int addr_sel_dcfeb(0x1020), addr_done_dcfeb(0x3120);
@@ -3398,18 +3440,10 @@ namespace emu {
 	dcfeb_connected[dcfeb]=true;
 	nConnected++;
 	vme_wrapper_->VMEWrite(addr_sel_dcfeb, dcfeb_bit, slot, "Select DCFEB");
-	if (!is_xdcfeb) {
-		n_injpls_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_injpls,12,slot);
-		n_extpls_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_extpls,12,slot);
-		n_l1a_match_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_l1a_match,12,slot);
-		n_bc0_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_bc0,12,slot);
-	}
-	else {
-		n_injpls_reads[dcfeb]=vme_wrapper_->xdcfeb_JTAGRead(dr_injpls,12,slot);
-		n_extpls_reads[dcfeb]=vme_wrapper_->xdcfeb_JTAGRead(dr_extpls,12,slot);
-		n_l1a_match_reads[dcfeb]=vme_wrapper_->xdcfeb_JTAGRead(dr_l1a_match,12,slot);
-		n_bc0_reads[dcfeb]=vme_wrapper_->xdcfeb_JTAGRead(dr_bc0,12,slot);
-	}
+	n_injpls_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_injpls,12,slot,is_xdcfeb);
+	n_extpls_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_extpls,12,slot,is_xdcfeb);
+	n_l1a_match_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_l1a_match,12,slot,is_xdcfeb);
+	n_bc0_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_bc0,12,slot,is_xdcfeb);
       } // end first loop over dcfebs
       // Analyze the results
       unsigned int nPassed[4] = {0,0,0,0};
@@ -3497,7 +3531,7 @@ namespace emu {
 	// Select DCFEB (one bit per DCFEB)
 	vme_wrapper_->VMEWrite(addr_jtag_reset,0,slot,"JTAG Reset command");
 	vme_wrapper_->VMEWrite(addr_sel_dcfeb,DCFEB_number[d],slot,"Select DCFEB (one bit per DCFEB)");
-	if (!is_xdcfeb) {
+	if (!Manager::get_is_xdcfeb()) {
 		// Read selected DCFEB
 		//VMEresult = vme_wrapper_->VMERead(addr_read_dcfeb,slot,"Read selected DCFEB");
 		// Set instruction register to *Read UserCode*
@@ -3563,7 +3597,7 @@ namespace emu {
 	}
 	if (repeatNumber==0) continue; // default: just read UserCodes; subsequent section not updated for xDCFEB
 	for(unsigned int repNum=0; repNum<repeatNumber; ++repNum){ // repeat the test repNum times
-	  if (!is_xdcfeb) {
+	  if (!Manager::get_is_xdcfeb()) {
 		  // Set instruction register to *Device select*
 		  vme_wrapper_->VMEWrite(addr_set_int_reg,reg_dev_sel,slot,"Set instruction register to *Device select*");
 		  // Set device register to *ADC mask*
@@ -3688,6 +3722,7 @@ namespace emu {
       const unsigned long repeatNumber=atoi(textBoxContent.c_str());
       // repeatNumber is currently the number of packets to send
       int slot = Manager::getSlotNumber();
+      bool is_xdcfeb = Manager::get_is_xdcfeb();
       unsigned int addr_odmb_rst(0x003004), addr_dcfeb_ctrl_reg(0x3200);
       unsigned int addr_dcfeb_resync(0x3014);
       unsigned int addr_set_kill(0x00401C), addr_read_done_bits(0x003120);
@@ -3757,19 +3792,9 @@ namespace emu {
 	  unsigned int l1ac_LSB(VMEresult&0x0FFF);
 	  dcfeb_L1A_cnt[dcfeb] = (l1ac_MSB<<12)|l1ac_LSB;
 	  vme_wrapper_->VMEWrite(addr_sel_dcfeb, 1<<dcfeb, slot, "Select DCFEB");
-	  if (!is_xdcfeb) {
-	    n_l1a_match_before=vme_wrapper_->JTAGRead(dr_l1a,16,slot);
-	  }
-          else {
-	    n_l1a_match_before=vme_wrapper_->xdcfeb_JTAGRead(dr_l1a,16,slot);
-          }
+	  n_l1a_match_before=vme_wrapper_->JTAGRead(dr_l1a,16,slot,is_xdcfeb);
 	  vme_wrapper_->VMEWrite(addr_dcfeb_resync, 0x1, slot, "DCFEB resync--reset all counters");
-	  if (!is_xdcfeb) {
-	    n_l1a_match_after=vme_wrapper_->JTAGRead(dr_l1a,16,slot);
-	  }
-          else {
-	    n_l1a_match_after=vme_wrapper_->xdcfeb_JTAGRead(dr_l1a,16,slot);
-          }
+	  n_l1a_match_after=vme_wrapper_->JTAGRead(dr_l1a,16,slot,is_xdcfeb);
 	  // Number of received packets
 	  VMEresult = vme_wrapper_->VMERead(addr_read_nrx_pckt_d,slot,"Read number of received packets");
 	  unsigned int nRxPckt(VMEresult+nCntRst*65536);
@@ -4215,14 +4240,13 @@ namespace emu {
       RadioButtonAction::respond(in, out);
       if (default_opt) {
         out << "Entering DCFEB Mode.\n" << endl;
-        is_xdcfeb = false;
+	Manager::set_is_xdcfeb(false);
       }
       else {
         out << "Entering xDCFEB Mode.\n" << endl;
-        is_xdcfeb = true;
+	Manager::set_is_xdcfeb(true);
       }
     }
-    
 
     /**************************************************************************
      * Enable VME debug printouts

@@ -371,32 +371,34 @@ namespace emu { namespace odmbdev {
     void Action::addButtonWithRadio(xgi::Output *out,
                                     const string& button_name,
                                     const string& opt1,
-                                    const string& opt2
+                                    const string& opt2,
+				    bool default_option 
                                     //const string& textbox_default_value,
                                     )
     {
-      cout << "Creating radio button" << endl;
-      cout << "opt1/opt2: " << opt1 << "/" << opt2 << endl;
       *out << cgicc::input()
         .set("type","submit")
         .set("style", "width: 230px; ")
         .set("value",button_name)
-           << " "
-           << cgicc::input()
-        .set("type","radio")
-        .set("name",button_name)
-	.set("value",opt1)
-        .set("id",opt1)
+           << " ";
+      if (default_option) {
+      *out << cgicc::input().set("type","radio").set("name",button_name).set("value",opt1).set("id",opt1).set("checked")
            << opt1
            << " "
-           << cgicc::input()
-        .set("type","radio")
-        .set("name",button_name)
-	.set("value",opt2)
-        .set("id",opt2)
+ 	   << cgicc::input().set("type","radio").set("name",button_name).set("value",opt2).set("id",opt2)
            << opt2
            << endl
            << endl;
+      }
+      else {
+      *out << cgicc::input().set("type","radio").set("name",button_name).set("value",opt1).set("id",opt1)
+           << opt1
+           << " "
+ 	   << cgicc::input().set("type","radio").set("name",button_name).set("value",opt2).set("id",opt2).set("checked")
+           << opt2
+           << endl
+           << endl;
+      }
     }
 
   }
