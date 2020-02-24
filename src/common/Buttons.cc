@@ -2358,8 +2358,8 @@ namespace emu {
       int slot = Manager::getSlotNumber();
       //addresses
       unsigned short int VMEresult = 0;
-      int addr_read_fwv(0x004024);
-      int addr_read_unique_id(0x004028);
+      int addr_read_fwv(0x004200);
+      int addr_read_unique_id(0x004100);
 
       // Read firmware version
       VMEresult = vme_wrapper_->VMERead(addr_read_fwv,slot,"Read firmware version");
@@ -2708,7 +2708,7 @@ namespace emu {
 
 
       unsigned short int VMEresult;
-      unsigned short int data;
+      unsigned short int data = 0;
 
 
       //1) Test on-off
@@ -2724,7 +2724,7 @@ namespace emu {
       unsigned int addr_instr_shift_header = (0x001034);
       unsigned int addr_instr_shift_noheadtail = (0x001030);
       unsigned int addr_instr_shift_tailer = (0x001038);
-      unsigned int addr_datar_shift_header = (0x001004);
+      //unsigned int addr_datar_shift_header = (0x001004);
       unsigned int addr_datar_shift_noheadtail = (0x001000);
       unsigned int addr_datar_shift_tailer = (0x001008);
 
