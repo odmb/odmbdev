@@ -8,6 +8,7 @@
   -f: Sets input file.
   -s: Sets the first event to parse and process.
   -e: Sets the last event to parse and process.
+  -l: Locate event (set start and end to the same event).
   -t: Text-only mode. Turns off colorization of parsed key words in output.
   -m: Set error bitmask.
   -p: Set 5 bit print bitmask indicating which components to print (DDU, ODMB, ALCT+OTMB, DCFEBs, uncategorized). All on by default.
@@ -56,7 +57,7 @@ int main(int argc, char *argv[]){
     filename=argv[1];
   }else{
     char opt(' ');
-    while(( opt=getopt(argc, argv, "w:f:s:e:m:p:cta") )!=-1){
+    while(( opt=getopt(argc, argv, "w:f:s:e:l:m:p:ctah") )!=-1){
       switch(opt){
       case 'w':
         words_per_line=GetNumber(optarg);
@@ -69,6 +70,12 @@ int main(int argc, char *argv[]){
         break;
       case 'e':
         end_entry=GetNumber(optarg);
+        break;
+      case 'l':
+        start_entry=GetNumber(optarg);
+        end_entry=GetNumber(optarg);
+        analysis_mode=false;
+        count_mode=false;
         break;
       case 'm':
         mask=static_cast<DataPacket::ErrorType>(GetNumber(optarg));
@@ -88,6 +95,19 @@ int main(int argc, char *argv[]){
         break;
       default:
         std::cerr << "Error: Invalid option flag '" << opt << "'." << std::endl;
+      case 'h':
+        std::cout << "Usage:" << std::endl
+            << " -f: Sets input file." << std::endl
+            << " -s: Sets the first event to parse and process." << std::endl
+            << " -e: Sets the last event to parse and process." << std::endl
+            << " -l: Locate event (set start and end to the same event)." << std::endl
+            << " -t: Text-only mode. Turns off colorization of parsed key words in output." << std::endl
+            << " -m: Set error bitmask." << std::endl
+            << " -p: Set 5 bit print bitmask indicating which components to print (DDU, ODMB, ALCT+OTMB, DCFEBs, uncategorized). All on by default." << std::endl
+            << " -w: Sets the number of words to print per line. Default is 20." << std::endl
+            << " -c: Counting mode. Counts number of packets without further processing" << std::endl
+            << " -a: Analysis mode. Analyzes events without printing" << std::endl;
+	break;
       }
     }
   }
@@ -174,13 +194,28 @@ int main(int argc, char *argv[]){
       
       std::cout << std::dec << std::setw(8) << std::setfill(' ') << entry-start_entry
                 << " total packets:" <<std::endl;
-      for(std::map<DataPacket::ErrorType, unsigned>::iterator it(type_counter.begin());
-          it!=type_counter.end(); ++it){
+      for(std::map<DataPacket::ErrorType, unsigned>::iterator it(type_counter.begin()); it!=type_counter.end(); ++it){
         const uint_fast64_t DDU_bits(it->first >> DDU_shift);
         const uint_fast64_t other_bits(it->first & ~(DDU_bits << DDU_shift));
         std::cout << std::setw(8) << std::dec << std::setfill(' ') << it->second
                   << " packets of type " << std::setfill('0') << std::hex
-                  << std::setw(8) << DDU_bits << '_' << std::setw(3) << other_bits << std::endl;
+                  << std::setw(8) << DDU_bits << '_' << std::setw(3) << other_bits;
+        if(DDU_bits != 0x00100000UL){
+          std::cout << " (bits:";
+          for(int i(63); i>31; --i){
+            if(DDU_bits & (1<<i)) std::cout << " " << std::dec << i ;
+          }
+          std::cout << ")" << std::endl;
+          int print_count = 0;
+          std::cout << std::setw(8) << std::dec << std::setfill(' ') << "" << "   typical events: ";
+          for(std::vector<std::pair<std::pair<DataPacket::ErrorType, std::vector<bool> >, unsigned> >::iterator
+                  itrcd(type_record.begin()); itrcd!=type_record.end(); ++itrcd){
+            if(itrcd->first.first==it->first && print_count++<10){
+              std::cout << std::dec << itrcd->second << " ";
+            }
+          }
+        }
+        std::cout << std::endl;
       }
     }else if(count_mode){
       unsigned event_count(0);
