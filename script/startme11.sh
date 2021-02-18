@@ -26,13 +26,17 @@ export XDAQ_ROOT=${XDAQ_ROOT:-$HOME/XDAQ}
 export ROOTSYS=${ROOTSYS:-$HOME/ROOT/root}
 
 export XDAQ_OS=linux
-[[ $(uname -m) == "x86_64" ]] && XDAQ_PLATFORM="x86_64" || XDAQ_PLATFORM="x86"
-if [[ ${#DISTRIB_ID} -gt 0 ]]; then
-    XDAQ_PLATFORM=${XDAQ_PLATFORM}_$DISTRIB_ID
-elif [[ -f /etc/issue ]]; then
-    XDAQ_PLATFORM=${XDAQ_PLATFORM}_$(/bin/sed -n -e 's/[^0-9]*\([0-9]\).[0-9][^0-9]*/slc\1/p' /etc/issue)
+if [[ -z $XDAQ_PLATFORM ]]; then
+    [[ $(uname -m) == "x86_64" ]] && XDAQ_PLATFORM="x86_64" || XDAQ_PLATFORM="x86"
+    if [[ ${#DISTRIB_ID} -gt 0 ]]; then
+        XDAQ_PLATFORM=${XDAQ_PLATFORM}_$DISTRIB_ID
+    elif [[ -f /etc/system-release ]]; then
+        [[ $(cat /etc/system-release) == "CentOS Linux release 7"* ]] && XDAQ_PLATFORM=x86_64_cc7
+    elif [[ -f /etc/issue ]]; then
+        XDAQ_PLATFORM=${XDAQ_PLATFORM}_$(/bin/sed -n -e 's/[^0-9]*\([0-9]\).[0-9][^0-9]*/slc\1/p' /etc/issue)
+    fi
 fi
-#XDAQ_PLATFORM=x86_64_slc5
+
 export XDAQ_PLATFORM
 export XDAQ_DOCUMENT_ROOT=${XDAQ_ROOT}/htdocs
 export LD_LIBRARY_PATH=$ROOTSYS/lib:$XDAQ_ROOT/lib
@@ -49,7 +53,7 @@ print "    LD_LIBRARY_PATH    = $LD_LIBRARY_PATH"
 print
 
 OPTIONS="\
- -h vmepc-e1x07-26-01.cms904 \
+ -h vmepc-e1x07-21-01.cms904 \
  -p 9991 \
  -c ${BUILD_HOME}/emu/odmbdev/xml/EmuME11Dev.xml \
  -e ${BUILD_HOME}/emu/odmbdev/xml/EmuME11Dev.profile"
