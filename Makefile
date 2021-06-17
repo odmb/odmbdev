@@ -1,13 +1,14 @@
 ##
 #
-# This is the ME1/1 development Makefile
+# This is the ODMBDEV Makefile
 #
 ##
 
 # BUILD_HOME:=$(shell pwd)/../..
 
-include $(XDAQ_ROOT)/config/mfAutoconf.rules
-include $(XDAQ_ROOT)/config/mfDefs.$(XDAQ_OS)
+include $(XDAQ_ROOT)/$(BUILD_SUPPORT)/mfAutoconf.rules
+include $(XDAQ_ROOT)/$(BUILD_SUPPORT)/mfDefs.$(XDAQ_OS)
+include $(BUILD_HOME)/emu/rpm_version
 PACKAGE_VER_MAJOR=01
 PACKAGE_VER_MINOR=00
 PACKAGE_VER_PATCH=00
@@ -16,7 +17,7 @@ PACKAGE_VER_PATCH=00
 # Packages to be built
 #
 Project = emu
-Package = odmbdev
+Package = emu/odmbdev
 PackageName= emuodmbdev
 Description="UCSB ODMB development tools"
 Summary="UCSB ODMB development tools"
@@ -54,12 +55,12 @@ IncludeDirs = \
 	$(BUILD_HOME)/emu/emuDCS/PeripheralApps/include \
 	$(BUILD_HOME)/emu/odmbdev/include \
 	$(BUILD_HOME)/emu/daq/reader
-LibraryDirs =
+LibraryDirs = $(XDAQ_ROOT)/lib
 
 UserSourcePath =
 UserCFlags = $(ROOTCFLAGS)
 #UserCCFlags = -g -Wall -pedantic-errors -Wno-long-long
-UserCCFlags = -O0 -g -Wall -Wno-long-long $(ROOTCFLAGS)
+UserCCFlags = -O0 -g -Wall -Wno-long-long $(ROOTCFLAGS) -std=c++11
 UserDynamicLinkFlags = $(ROOTLIBS)
 UserStaticLinkFlags =
 UserExecutableLinkFlags =
@@ -80,5 +81,5 @@ TestLibraryDirs=
 TestLibraries=
 TestExecutables=
 
-include $(XDAQ_ROOT)/config/Makefile.rules
-include $(XDAQ_ROOT)/config/mfRPM.rules
+include $(XDAQ_ROOT)/$(BUILD_SUPPORT)/Makefile.rules
+include $(XDAQ_ROOT)/$(BUILD_SUPPORT)/mfRPM.rules

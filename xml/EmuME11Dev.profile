@@ -9,6 +9,7 @@
                 </properties>
 	</xp:Application>
 	<xp:Module>${XDAQ_ROOT}/lib/libb2innub.so</xp:Module>
+	<xp:Module>${XDAQ_ROOT}/lib/libi2outils.so</xp:Module>
 	<xp:Module>${XDAQ_ROOT}/lib/libexecutive.so</xp:Module>
 	
 	<xp:Application heartbeat="false" class="pt::http::PeerTransportHTTP" id="1"  network="local">

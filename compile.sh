@@ -10,7 +10,7 @@ elif [[ $current_path == *local/data/odmb_ucsb* ]]; then
 else
     export BUILD_HOME=`dirname ${current_path}`/TriDAS
 fi
-
+export BUILD_SUPPORT=build
 
 export XDAQ_ROOT=/opt/xdaq
 export XDAQ_OS=linux
@@ -19,6 +19,7 @@ export XDAQ_PLATFORM=x86_64_cc7
 echo
 echo "Environment variables:"
 echo "    BUILD_HOME         = $BUILD_HOME"
+echo "    BUILD_SUPPORT      = $BUILD_SUPPORT"
 echo "    XDAQ_ROOT          = $XDAQ_ROOT"
 echo "    XDAQ_OS            = $XDAQ_OS"
 echo "    XDAQ_PLATFORM      = $XDAQ_PLATFORM"

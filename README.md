@@ -1,10 +1,14 @@
 # ODMB Development Software
 
-UCSB software to test ODMB functionality, in the process of being updated for ODMB7/5 testing. Original from me11/odmbdev.
+UCSB software to test ODMB functionality, in the process of being updated 
+for ODMB7/5 testing. Original from me11/odmbdev.
 
 ## Setup
-This is an application of TriDAS, need to checkout and compile the [TriDAS](https://gitlab.cern.ch/CMS-Emu/CERN/TriDAS) first. 
-Currently the **odmbdev** software only works with TriDAS relase EmuLib 14.7 or lower.
+ODMBDEV is a package within the CMS-emu (CSC online software) project that 
+runs on the XDAQ platform. To install ODMBDEV, first install 
+[XDAQ](https://twiki.cern.ch/twiki/bin/view/CMSPublic/CMSOS), then checkout 
+and build the [CMS-emu project](https://gitlab.cern.ch/CMS-Emu/CERN/TriDAS).
+To install ODMBDEV, use the following bash commands
 
 ``` bash
 cd TriDAS/emu
@@ -15,6 +19,6 @@ cd odmbdev
 
 After it's setup, the next time it can be started by
 ``` bash
-# cd TriDAS/emu/odmbdev
+cd TriDAS/emu/odmbdev
 ./scripts/startXXX.sh
 ```

@@ -2,19 +2,19 @@
 <?xml-stylesheet type="text/xml" href="../EmuDAQConfig.xsl"?>
 <xc:Partition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xc="http://xdaq.web.cern.ch/xdaq/xsd/2004/XMLConfiguration-30">
 
-  <xc:Context url="http://wimp.physics.ucsb.edu:9991">
+  <xc:Context url="http://higgs.physics.ucsb.edu:9992">
 
     <xc:Module>${XDAQ_ROOT}/lib/libxalan-c.so</xc:Module>
     <xc:Module>${XDAQ_ROOT}/lib/libtstoreclient.so</xc:Module>
 
     <xc:Module>${BUILD_HOME}/${XDAQ_PLATFORM}/lib/libemusoap.so</xc:Module>
     <xc:Module>${BUILD_HOME}/${XDAQ_PLATFORM}/lib/libemubase.so</xc:Module>
-    <!--<xc:Module>${BUILD_HOME}/${XDAQ_PLATFORM}/lib/libtstoreclient.so</xc:Module> -->
-    <!--<xc:Module>${BUILD_HOME}/${XDAQ_PLATFORM}/lib/libEmuOnlineDB.so</xc:Module>-->
-    <!--<xc:Module>${BUILD_HOME}/${XDAQ_PLATFORM}/lib/libEmuPeripheralCore.so</xc:Module>-->
-    <!--<xc:Module>${BUILD_HOME}/${XDAQ_PLATFORM}/lib/libEmuPeripheralApps.so</xc:Module>-->
+    <!-- <xc:Module>${BUILD_HOME}/${XDAQ_PLATFORM}/lib/libtstoreclient.so</xc:Module> -->
+    <!--xc:Module>${BUILD_HOME}/${XDAQ_PLATFORM}/lib/libEmuOnlineDB.so</xc:Module -->
     <xc:Module>${BUILD_HOME}/emu/emuDCS/OnlineDB/lib/linux/x86_64_cc7/libEmuOnlineDB.so</xc:Module>
+    <!--xc:Module>${BUILD_HOME}/${XDAQ_PLATFORM}/lib/libEmuPeripheralCore.so</xc:Module-->
     <xc:Module>${BUILD_HOME}/emu/emuDCS/PeripheralCore/lib/linux/x86_64_cc7/libEmuPeripheralCore.so</xc:Module>
+    <!--xc:Module>${BUILD_HOME}/${XDAQ_PLATFORM}/lib/libEmuPeripheralApps.so</xc:Module-->
     <xc:Module>${BUILD_HOME}/emu/emuDCS/PeripheralApps/lib/linux/x86_64_cc7/libEmuPeripheralApps.so</xc:Module>
     <xc:Module>${BUILD_HOME}/${XDAQ_PLATFORM}/lib/libemuodmbdev.so</xc:Module>
 

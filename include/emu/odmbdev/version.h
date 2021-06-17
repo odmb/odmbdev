@@ -4,6 +4,7 @@
 #include "config/PackageInfo.h"
 
 namespace emuodmbdev {
+        const std::string project     = "emu";
 	const std::string package     = "emuodmbdev";
 	const std::string versions    = "02.00.00";
 	const std::string description = "Emu ME1/1 development tools";

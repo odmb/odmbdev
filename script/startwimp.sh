@@ -28,7 +28,7 @@ else
     export BUILD_HOME=`dirname ${current_path}`/TriDAS
 fi
 export XDAQ_ROOT=${XDAQ_ROOT:-/opt/xdaq}
-export ROOTSYS=${ROOTSYS:-$HOME/sw/root}
+export ROOTSYS=/usr/local/root
 
 export XDAQ_OS=linux
 [[ $(uname -m) == "x86_64" ]] && XDAQ_PLATFORM="x86_64" || XDAQ_PLATFORM="x86"
@@ -37,9 +37,9 @@ if [[ ${#DISTRIB_ID} -gt 0 ]]; then
 elif [[ -f /etc/issue ]]; then
     XDAQ_PLATFORM=${XDAQ_PLATFORM}_$(/bin/sed -n -e 's/[^0-9]*\([0-9]\).[0-9][^0-9]*/slc\1/p' /etc/issue)
 fi
-export XDAQ_PLATFORM
+export XDAQ_PLATFORM=x86_64_cc7
 export XDAQ_DOCUMENT_ROOT=${XDAQ_ROOT}/htdocs
-export LD_LIBRARY_PATH=$ROOTSYS/lib:$XDAQ_ROOT/lib
+export LD_LIBRARY_PATH=$XDAQ_ROOT/lib:$BUILD_HOME/$XDAQ_PLATFORM/lib
 
 print
 print "Environment variables:"

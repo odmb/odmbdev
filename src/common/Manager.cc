@@ -593,7 +593,7 @@ namespace emu { namespace odmbdev {
       backToMainPage(in, out, string("#")+withoutSpecialChars(OutputLogTitle_));
     }
 
-    void Manager::addAction(shared_ptr<Action> act) {
+    void Manager::addAction(boost::shared_ptr<Action> act) {
       if(!currentActionVector_) putButtonsInGroup(UNDEFINEDGROUP);
       currentActionVector_->push_back(act);
       currentActionVector_->back()->useTMBInSlot(tmbSlot_);
@@ -602,48 +602,48 @@ namespace emu { namespace odmbdev {
     template <typename T>
     void Manager::addActionByTypename(Crate * crate) {
       if(!currentActionVector_) putButtonsInGroup(UNDEFINEDGROUP);
-      currentActionVector_->push_back(shared_ptr<T>(new T(crate)));
+      currentActionVector_->push_back(boost::shared_ptr<T>(new T(crate)));
       currentActionVector_->back()->useTMBInSlot(tmbSlot_);
     }
 
     template <typename T>
     void Manager::addActionByTypename(Crate * crate, emu::odmbdev::Manager* manager ) {
       if(!currentActionVector_) putButtonsInGroup(UNDEFINEDGROUP);
-      currentActionVector_->push_back(shared_ptr<T>(new T(crate, manager)));
+      currentActionVector_->push_back(boost::shared_ptr<T>(new T(crate, manager)));
       currentActionVector_->back()->useTMBInSlot(tmbSlot_);
     }
 
-    void Manager::addCommonAction(shared_ptr<Action> act) {
+    void Manager::addCommonAction(boost::shared_ptr<Action> act) {
       act->useTMBInSlot(tmbSlot_);
       commonActions_.push_back(act);
     }
 
     template <typename T>
     void Manager::addCommonActionByTypename(Crate * crate, emu::odmbdev::Manager* manager ) {
-      commonActions_.push_back(shared_ptr<T>(new T(crate, manager)));
+      commonActions_.push_back(boost::shared_ptr<T>(new T(crate, manager)));
       commonActions_.back()->useTMBInSlot(tmbSlot_);
     }
 
     template <typename T>
     void Manager::addCommonActionByTypename(Crate * crate) {
-      commonActions_.push_back(shared_ptr<T>(new T(crate)));
+      commonActions_.push_back(boost::shared_ptr<T>(new T(crate)));
       commonActions_.back()->useTMBInSlot(tmbSlot_);
     }
 
-    void Manager::addLogAction(shared_ptr<LogAction> act) {
+    void Manager::addLogAction(boost::shared_ptr<LogAction> act) {
       logActions_.push_back(act);
       logActions_.back()->useTMBInSlot(tmbSlot_);
     }
 
     template <typename T>
     void Manager::addLogActionByTypename(Crate * crate) {
-      logActions_.push_back(shared_ptr<T>(new T(crate)));
+      logActions_.push_back(boost::shared_ptr<T>(new T(crate)));
       logActions_.back()->useTMBInSlot(tmbSlot_);
     }
     
     template <typename T>
     void Manager::addLogActionByTypename(Crate * crate,  emu::odmbdev::Manager* manager) {
-      logActions_.push_back(shared_ptr<T>(new T(crate,manager)));
+      logActions_.push_back(boost::shared_ptr<T>(new T(crate,manager)));
       logActions_.back()->useTMBInSlot(tmbSlot_);
     }
 
