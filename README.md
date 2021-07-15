@@ -14,7 +14,7 @@ To install ODMBDEV, use the following bash commands
 cd TriDAS/emu
 git clone https://github.com/odmb/odmbdev.git
 cd odmbdev
-./complie.sh
+./compile.sh
 ```
 
 After it's setup, the next time it can be started by

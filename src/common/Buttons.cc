@@ -25,6 +25,7 @@
 #include <ctype.h>
 #include <sys/stat.h>
 #include <math.h>
+#include <fstream>
 
 extern char *wbuf;
 extern char rbuf[];
@@ -4354,6 +4355,56 @@ namespace emu {
 
       }
     } // end LoadMCSviaBPI::respond    
+
+    SPIcheck::SPIcheck(Crate * crate, emu::odmbdev::Manager* manager) 
+      : ButtonAction(crate, manager, "SPI check") 
+    { 
+      //This constructor intentionally left blank.
+    }
+    
+    void SPIcheck::respond(xgi::Input * in, ostringstream & out) { // TD
+      ostringstream out_local;
+      string hdr("********** SPI Check **********");
+      JustifyHdr(hdr);
+      out_local << hdr << endl;
+      unsigned int slot(Manager::getSlotNumber());
+      unsigned short VMEresult;
+      unsigned short addr_prom_cmd = 0x602C;
+      unsigned short addr_prom_read = 0x6030;
+
+      bool read = true;
+      if (read) {
+        //read back fw
+        //int num_pages = 0x10000; //entire PROM
+        int num_pages = 0x100; //1 sector
+        short page_size = 0x80; //words, 0x100 bytes
+        ofstream output_file("odmb_prom_contents.bin",ios::out|ios::binary);
+        for (int page_idx = 0; page_idx < num_pages; page_idx++) {
+          if (page_idx%0x100 == 0) {
+	          cout<<"Beginning sector "<<(page_idx/0x100)<<endl;
+          }
+          int addr = page_idx*0x100;
+          unsigned short load_addr_cmd_1 = (((addr >> 16) << 5) | 0x17);
+          unsigned short load_addr_cmd_2 = (addr & 0xFFFF);
+          unsigned short read_page_cmd = (((page_size - 1) << 5) | 0x04);
+          vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_1, slot, "Load address upper");
+          //usleep(10);
+          vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_2, slot, "Load address lower");
+          //usleep(10);
+          vme_wrapper_->VMEWrite(addr_prom_cmd, read_page_cmd, slot, "Read page from PROM");
+          //usleep(10);
+          for (short word_idx = 0; word_idx < page_size; word_idx++) {
+		        VMEresult = vme_wrapper_->VMERead(addr_prom_read, slot, "Read word in PROM readback FIFO" );
+            //usleep(10);
+            output_file.write((char*)&VMEresult,2);
+          }
+        }
+        output_file.close();
+      }
+
+      out << out_local.str();
+      UpdateLog(vme_wrapper_, slot, out_local);
+    }
 
     MCSBackAndForthBPI::MCSBackAndForthBPI(Crate* crate,
 					   emu::odmbdev::Manager* manager):

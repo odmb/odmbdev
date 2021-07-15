@@ -616,6 +616,17 @@ namespace emu { namespace odmbdev {
     };
 
     /**************************************************************************
+     * SPICheck
+     *
+     * Button to run PROM SPI tests for ODMB7
+     **************************************************************************/
+    class SPIcheck : public ButtonAction {
+    public:
+      SPIcheck(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
+    };
+
+    /**************************************************************************
      * Log Buttons
      *
      * These are special actions that modify the log
