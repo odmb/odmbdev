@@ -50,7 +50,7 @@ bool myfunction (pair<float, int> i, pair<float, int> j) { return (i.first < j.f
 namespace emu {
   namespace odmbdev {
     
-    int Manager::slot_number = 21;
+    int Manager::slot_number = 19;
     unsigned int Manager::port_ = 9997; // This doesn't affect the xdaq app;
     bool Manager::is_xdcfeb = false;
     // I just needed to initialize this
@@ -4371,37 +4371,104 @@ namespace emu {
       unsigned short VMEresult;
       unsigned short addr_prom_cmd = 0x602C;
       unsigned short addr_prom_read = 0x6030;
+      unsigned short soft_rst_cmd = 0x3004;
+      unsigned short select_prom1 = 0x001D;
+      unsigned short select_prom2 = 0x003D;
+      short page_size = 0x80; //words, 0x100 bytes
+
+      vme_wrapper_->VMEWrite(soft_rst_cmd, 0x0, slot, "Soft reset");
+      usleep(100);
+
+      bool write = true;
+      if (write) {
+        //write fw
+        int num_pages = 0x10000; //entire PROM
+        //int num_pages = 0x400; //4 sectors
+        for (int prom_idx = 0; prom_idx < 2; prom_idx++) {
+          unsigned short select_prom = select_prom1;
+          std::string in_file_name = "write_odmb_prom_contents_primary.bin";
+          if (prom_idx == 1) {
+            select_prom = select_prom2;
+            in_file_name = "write_odmb_prom_contents_secondary.bin";
+          }
+          vme_wrapper_->VMEWrite(addr_prom_cmd, select_prom, slot, "Select EPROM");
+          ifstream input_file(in_file_name.c_str(),ios::in|ios::binary);
+          for (int page_idx = 0; page_idx < num_pages; page_idx++) {
+            int addr = page_idx*0x100;
+            unsigned short load_addr_cmd_1 = (((addr >> 16) << 5) | 0x17);
+            unsigned short load_addr_cmd_2 = (addr & 0xFFFF);
+            unsigned short write_page_cmd = (((page_size - 1) << 5) | 0x0C);
+            unsigned short erase_cmd = 0x000A;
+            if (page_idx%0x100 == 0) {
+	            cout<<"Beginning sector "<<(page_idx/0x100)<<endl;
+              vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_1, slot, "Load address upper");
+              usleep(10);
+              vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_2, slot, "Load address lower");
+              usleep(10);
+              vme_wrapper_->VMEWrite(addr_prom_cmd, erase_cmd, slot, "Erase sector");
+              usleep(100000);
+            }
+            vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_1, slot, "Load address upper");
+            usleep(10);
+            vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_2, slot, "Load address lower");
+            usleep(10);
+            vme_wrapper_->VMEWrite(addr_prom_cmd, write_page_cmd, slot, "Write page to PROM");
+            usleep(10);
+            for (short word_idx = 0; word_idx < page_size; word_idx++) {
+              unsigned short write_data = 0x0;
+              //endianness
+              input_file.read((char*)(&write_data)+1, 1);
+              input_file.read((char*)(&write_data), 1);
+		          vme_wrapper_->VMEWrite(addr_prom_cmd, write_data, slot, "Write word to PROM write FIFO" );
+              usleep(10);
+            }
+            usleep(4000);
+          }
+          input_file.close();
+        }
+      }
 
       bool read = true;
       if (read) {
         //read back fw
-        //int num_pages = 0x10000; //entire PROM
-        int num_pages = 0x100; //1 sector
-        short page_size = 0x80; //words, 0x100 bytes
-        ofstream output_file("odmb_prom_contents.bin",ios::out|ios::binary);
-        for (int page_idx = 0; page_idx < num_pages; page_idx++) {
-          if (page_idx%0x100 == 0) {
-	          cout<<"Beginning sector "<<(page_idx/0x100)<<endl;
+        int num_pages = 0x10000; //entire PROM
+        //int num_pages = 0x800; //8 sectors
+        for (int prom_idx = 0; prom_idx < 2; prom_idx++) {
+          unsigned short select_prom = select_prom1;
+          std::string out_file_name = "read_odmb_prom_contents_primary.bin";
+          if (prom_idx == 1) {
+            select_prom = select_prom2;
+            out_file_name = "read_odmb_prom_contents_secondary.bin";
           }
-          int addr = page_idx*0x100;
-          unsigned short load_addr_cmd_1 = (((addr >> 16) << 5) | 0x17);
-          unsigned short load_addr_cmd_2 = (addr & 0xFFFF);
-          unsigned short read_page_cmd = (((page_size - 1) << 5) | 0x04);
-          vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_1, slot, "Load address upper");
-          //usleep(10);
-          vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_2, slot, "Load address lower");
-          //usleep(10);
-          vme_wrapper_->VMEWrite(addr_prom_cmd, read_page_cmd, slot, "Read page from PROM");
-          //usleep(10);
-          for (short word_idx = 0; word_idx < page_size; word_idx++) {
-		        VMEresult = vme_wrapper_->VMERead(addr_prom_read, slot, "Read word in PROM readback FIFO" );
+          vme_wrapper_->VMEWrite(addr_prom_cmd, select_prom, slot, "Select EPROM");
+          ofstream output_file(out_file_name.c_str(),ios::out|ios::binary);
+          for (int page_idx = 0; page_idx < num_pages; page_idx++) {
+            if (page_idx%0x100 == 0) {
+	            cout<<"Beginning sector "<<(page_idx/0x100)<<endl;
+            }
+            int addr = page_idx*0x100;
+            unsigned short load_addr_cmd_1 = (((addr >> 16) << 5) | 0x17);
+            unsigned short load_addr_cmd_2 = (addr & 0xFFFF);
+            unsigned short read_page_cmd = (((page_size - 1) << 5) | 0x04);
+            vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_1, slot, "Load address upper");
             //usleep(10);
-            output_file.write((char*)&VMEresult,2);
+            vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_2, slot, "Load address lower");
+            //usleep(10);
+            vme_wrapper_->VMEWrite(addr_prom_cmd, read_page_cmd, slot, "Read page from PROM");
+            //usleep(10);
+            for (short word_idx = 0; word_idx < page_size; word_idx++) {
+		          VMEresult = vme_wrapper_->VMERead(addr_prom_read, slot, "Read word in PROM readback FIFO" );
+              //usleep(10);
+              //account for endianness =(
+              output_file.write((char*)(&VMEresult)+1,1);
+              output_file.write((char*)&VMEresult,1);
+            }
           }
+          output_file.close();
         }
-        output_file.close();
       }
 
+      out_local << "Finished EPROM read, saved results as odmb_prom_contents_*.bin\n";
       out << out_local.str();
       UpdateLog(vme_wrapper_, slot, out_local);
     }
