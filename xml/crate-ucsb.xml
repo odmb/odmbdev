@@ -590,10 +590,10 @@
            dmb_cntl_firmware_tag="48547029"
            dmb_vme_firmware_tag="1548"
            kill_input="0"
-           hardware_version="2">
+           hardware_version="6">
         <CFEB cfeb_number="6"
-             cfeb_firmware_tag="cfeda102"
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e"
+             hardware_version="6"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -602,8 +602,8 @@
              kill_chip5="0000">
        </CFEB>
        <CFEB cfeb_number="5"
-             cfeb_firmware_tag="cfeda102"
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e"
+             hardware_version="6"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -612,8 +612,8 @@
              kill_chip5="0000">
        </CFEB>
         <CFEB cfeb_number="4"
-             cfeb_firmware_tag="cfeda102" 
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e" 
+             hardware_version="6"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -622,8 +622,8 @@
              kill_chip5="0000">
        </CFEB>
        <CFEB cfeb_number="3"
-             cfeb_firmware_tag="cfeda102" 
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e" 
+             hardware_version="6"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -632,8 +632,8 @@
              kill_chip5="0000">
        </CFEB>
        <CFEB cfeb_number="2"
-             cfeb_firmware_tag="cfeda102" 
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e" 
+             hardware_version="6"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -642,8 +642,8 @@
              kill_chip5="0000">
        </CFEB>
        <CFEB cfeb_number="1"
-             cfeb_firmware_tag="cfeda102" 
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e" 
+             hardware_version="6"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -652,8 +652,8 @@
              kill_chip5="0000">
        </CFEB>
        <CFEB cfeb_number="0"
-             cfeb_firmware_tag="cfeda102"
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e"
+             hardware_version="6"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -1936,11 +1936,11 @@
            dmb_cntl_firmware_tag="48547029"
            dmb_vme_firmware_tag="1548"
            kill_input="0"
-           hardware_version="2">
+           hardware_version="4">
 
         <CFEB cfeb_number="6"
-             cfeb_firmware_tag="cfeda102"
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e"
+             hardware_version="4"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -1949,8 +1949,8 @@
              kill_chip5="0000">
        </CFEB>
        <CFEB cfeb_number="5"
-             cfeb_firmware_tag="cfeda102"
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e"
+             hardware_version="4"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -1959,8 +1959,8 @@
              kill_chip5="0000">
        </CFEB>
         <CFEB cfeb_number="4"
-             cfeb_firmware_tag="cfeda102" 
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e" 
+             hardware_version="4"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -1969,8 +1969,8 @@
              kill_chip5="0000">
        </CFEB>
        <CFEB cfeb_number="3"
-             cfeb_firmware_tag="cfeda102" 
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e" 
+             hardware_version="4"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -1979,8 +1979,8 @@
              kill_chip5="0000">
        </CFEB>
        <CFEB cfeb_number="2"
-             cfeb_firmware_tag="cfeda102" 
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e" 
+             hardware_version="4"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -1989,8 +1989,8 @@
              kill_chip5="0000">
        </CFEB>
        <CFEB cfeb_number="1"
-             cfeb_firmware_tag="cfeda102" 
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e" 
+             hardware_version="4"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"
@@ -1999,8 +1999,8 @@
              kill_chip5="0000">
        </CFEB>
        <CFEB cfeb_number="0"
-             cfeb_firmware_tag="cfeda102"
-             hardware_version="2"
+             cfeb_firmware_tag="dcfeb62e"
+             hardware_version="4"
              kill_chip0="0000"
              kill_chip1="0000"
              kill_chip2="0000"

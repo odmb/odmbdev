@@ -2496,12 +2496,14 @@ namespace emu {
       //1) Test on-off 
       //unsigned short int ctrl_byte = 0xFF;
       for (int mode = 0; mode < 2; mode++){
-	vme_wrapper_->VMEWrite(addr_turn_on, on_off_ctrl_byte[mode], slot, "Select ADC to power on" );
+        vme_wrapper_->VMEWrite(addr_turn_on, on_off_ctrl_byte[mode], slot, "Select ADC to power on" );
         usleep(10);
         //Read from ADC
-	VMEresult = vme_wrapper_->VMERead(addr_verify_on, slot, "Read ADCs powered on" );
+        VMEresult = vme_wrapper_->VMERead(addr_verify_on, slot, "Read ADCs powered on" );
         usleep(10);
         for (int i = 0; i < 7; i++){
+          //temp: skip PONs that were de-soldered (PON2 to IC 2 and PON5 to IC 1)
+          if (i == 6 || i == 2) continue;
           //Write ADC to be read 
           vme_wrapper_->VMEWrite(addr_sel_adc, ADC_number_vec[i], slot, "Select ADC to be read");
           usleep(30);
@@ -2509,58 +2511,58 @@ namespace emu {
           vme_wrapper_->VMEWrite(addr_cntl_byte, ctrl_byte_vec_onoff[i], slot, "Send control byte to ADC");
           usleep(30);
           //Read from ADC
-	  VMEresult = vme_wrapper_->VMERead(addr_read_adc, slot, "Read ADC" );
+          VMEresult = vme_wrapper_->VMERead(addr_read_adc, slot, "Read ADC" );
           //crate_->vmeController()->vme_controller(2, addr_read_adc, &data, rcv); //often returns -100, maybe fixed by introducing sleeps?
           usleep(10);
           //Format result
           float voltage_result_1 = float(VMEresult)*10.0/float(0xfff);
           if (VMEresult == 65535 && i == 0){ 
             VMEresult = 0;
-	    ADC_not_connected[i] = true;
+            ADC_not_connected[i] = true;
             notConnected++;
             if (notConnected == 3) {
-	      out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
-	      out_local << "LVMB not connected." << endl; 
-	      out << out_local.str();
-	      UpdateLog(vme_wrapper_, slot, out_local);
-	      return;
-	    }
+              out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
+              out_local << "LVMB not connected." << endl; 
+              out << out_local.str();
+              UpdateLog(vme_wrapper_, slot, out_local);
+              return;
+            }
           } else{
             //Error checking
             //bool already_failed = false;
             float voltage = voltage_result_1;
-	    if (mode == 0 && fabs(voltage) > .1) {
-	      n_p_on_off_fails++;
-	      ADC_fail_poff_test[i] = true;
-	    }
-	    if(mode == 1 && fabs(voltage) < .5) {
-	      n_p_on_off_fails++;
-	      ADC_fail_pon_test[i] = true;
-	    }
+            if (mode == 0 && fabs(voltage) > .1) {
+              n_p_on_off_fails++;
+              ADC_fail_poff_test[i] = true;
+            }
+            if(mode == 1 && fabs(voltage) < .5) {
+              n_p_on_off_fails++;
+              ADC_fail_pon_test[i] = true;
+            }
           }
         }//i-loop
       }
       // ouput of test
       if (notConnected>=1) {
-	out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
-	out_local << "ADCs not connected: ";
-	for (int ADC = 0; ADC < 7; ADC++){
-	  if (ADC_not_connected[ADC]) out_local << ADC_number_vec[ADC] << " ";
-	}
-	out_local << endl << endl;
-	out << out_local.str();
-	UpdateLog(vme_wrapper_, slot, out_local);
-	return;
+        out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
+        out_local << "ADCs not connected: ";
+        for (int ADC = 0; ADC < 7; ADC++){
+          if (ADC_not_connected[ADC]) out_local << ADC_number_vec[ADC] << " ";
+        }
+        out_local << endl << endl;
+        out << out_local.str();
+        UpdateLog(vme_wrapper_, slot, out_local);
+        return;
       } else if (n_p_on_off_fails>=1) {
-	out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
-	out_local << "ADCs failing power-on/off test: ";
-	for (int ADC = 0; ADC < 7; ADC++){
-	  if (ADC_fail_pon_test[ADC]==true||ADC_fail_poff_test[ADC]==true) out_local << ADC_number_vec[ADC] << " ";
-	}
-	out_local << endl << endl;
-	out << out_local.str();
-	UpdateLog(vme_wrapper_, slot, out_local);
-	return;
+        out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
+        out_local << "ADCs failing power-on/off test: ";
+        for (int ADC = 0; ADC < 7; ADC++){
+          if (ADC_fail_pon_test[ADC]==true||ADC_fail_poff_test[ADC]==true) out_local << ADC_number_vec[ADC] << " ";
+        }
+        out_local << endl << endl;
+        out << out_local.str();
+        UpdateLog(vme_wrapper_, slot, out_local);
+        return;
       }
 
       //2) Test ADC
@@ -2573,7 +2575,7 @@ namespace emu {
           vme_wrapper_->VMEWrite(addr_cntl_byte, ctrl_byte_vec[i], slot, "Send control byte to ADC -- 5V scale");
           usleep(100);
           //Read from ADC
-	  VMEresult = vme_wrapper_->VMERead(addr_read_adc, slot, "Read ADC" );
+          VMEresult = vme_wrapper_->VMERead(addr_read_adc, slot, "Read ADC" );
           usleep(10);
           unsigned int hex_1 = VMEresult;
           float voltage_result_1 = float(VMEresult*10.0)/float(0xfff);
@@ -2601,29 +2603,29 @@ namespace emu {
             float voltage = voltage_result_1; //(voltage_result_1 > 4.0 ? voltage_result_1 : 0.5*(voltage_result_1 + voltage_result_2));
             bool done = false;
 
-	    //Filling 10V range histogram
-	    bool bin_exists = false;
-	    for (unsigned int bin = 0; bin < v1_vec[ADC_number_vec[i]].size(); bin++){
-	      if (fabs(v1_vec[ADC_number_vec[i]][bin].first - voltage_result_1) < .00001){
+            //Filling 10V range histogram
+            bool bin_exists = false;
+            for (unsigned int bin = 0; bin < v1_vec[ADC_number_vec[i]].size(); bin++){
+              if (fabs(v1_vec[ADC_number_vec[i]][bin].first - voltage_result_1) < .00001){
                 v1_vec[ADC_number_vec[i]][bin].second++;
                 bin_exists = true;
                 break;
               }
             }
-	    if(bin_exists == false) v1_vec[ADC_number_vec[i]].push_back(make_pair(voltage_result_1, 1));
+            if(bin_exists == false) v1_vec[ADC_number_vec[i]].push_back(make_pair(voltage_result_1, 1));
 
-	    //Filling 5V range histogram
-	    bin_exists = false;
-	    for (unsigned int bin = 0; bin < v2_vec[ADC_number_vec[i]].size(); bin++){
-	      if (fabs(v2_vec[ADC_number_vec[i]][bin].first - voltage_result_2) < .00001){
+            //Filling 5V range histogram
+            bin_exists = false;
+            for (unsigned int bin = 0; bin < v2_vec[ADC_number_vec[i]].size(); bin++){
+              if (fabs(v2_vec[ADC_number_vec[i]][bin].first - voltage_result_2) < .00001){
                 v2_vec[ADC_number_vec[i]][bin].second++;
                 bin_exists = true;
                 break;
               }
             }
-	    if(bin_exists == false) v2_vec[ADC_number_vec[i]].push_back(make_pair(voltage_result_2, 1));
+            if(bin_exists == false) v2_vec[ADC_number_vec[i]].push_back(make_pair(voltage_result_2, 1));
 
-	    for (unsigned int l = 0; l < voltages[ADC_number_vec[i]].size(); l++){
+            for (unsigned int l = 0; l < voltages[ADC_number_vec[i]].size(); l++){
               if (fabs(voltages[ADC_number_vec[i]][l].first - voltage) < .00001){
                 voltages[ADC_number_vec[i]][l].second++;
                 done = true;
@@ -2635,9 +2637,9 @@ namespace emu {
               voltages[ADC_number_vec[i]].push_back(make_pair(voltage, 1));
             }
 
-	    if (fabs(voltage - expectedV[ADC_number_vec[i]]) > tol) cout << "inst: " << dec << j << " Voltage 1: " << voltage_result_1 << "  from hex   " << hex << hex_1 << " Voltage 2: " << voltage_result_2 << " from hex: " << hex <<  hex_2  << " expected: " << expectedV[ADC_number_vec[i]] << hex << int(expectedV[ADC_number_vec[i]]*4095/10) << endl;
-	    hexes.push_back(hex_1);
-	    the_voltages.push_back(voltage_result_1);
+            if (fabs(voltage - expectedV[ADC_number_vec[i]]) > tol) cout << "inst: " << dec << j << " Voltage 1: " << voltage_result_1 << "  from hex   " << hex << hex_1 << " Voltage 2: " << voltage_result_2 << " from hex: " << hex <<  hex_2  << " expected: " << expectedV[ADC_number_vec[i]] << hex << int(expectedV[ADC_number_vec[i]]*4095/10) << endl;
+            hexes.push_back(hex_1);
+            the_voltages.push_back(voltage_result_1);
 
           }
         }//i-loop
@@ -2657,24 +2659,24 @@ namespace emu {
         std::sort( v2_vec[ADC_number_vec[i]].begin(), v2_vec[ADC_number_vec[i]].end(), myfunction );
 
         cout <<endl<< "Printing everything for ADC " << ADC_number_vec[i] << ": Expected voltage " << expectedV[ADC_number_vec[i]] << endl;
-	cout << "Histogram for 10V range"<<endl;
+        cout << "Histogram for 10V range"<<endl;
         for (unsigned int l = 0; l < v1_vec[ADC_number_vec[i]].size(); l++){
           printf("%6.4f   %5d \n", v1_vec[ADC_number_vec[i]][l].first, v1_vec[ADC_number_vec[i]][l].second);
           if ( fabs(v1_vec[ADC_number_vec[i]][l].first - expectedV[ADC_number_vec[i]]) > tol ) {
-	    fail += v1_vec[ADC_number_vec[i]][l].second;
-	    ADC_10V_not_matched[i] = true;
-	  }
+            fail += v1_vec[ADC_number_vec[i]][l].second;
+            ADC_10V_not_matched[i] = true;
+          }
           else pass += v1_vec[ADC_number_vec[i]][l].second;
         }
        
-	cout << "Histogram for 5V range"<<endl;
-	for (unsigned int l = 0; l < v2_vec[ADC_number_vec[i]].size(); l++){
+        cout << "Histogram for 5V range"<<endl;
+        for (unsigned int l = 0; l < v2_vec[ADC_number_vec[i]].size(); l++){
           printf("%6.4f   %5d \n", v2_vec[ADC_number_vec[i]][l].first, v2_vec[ADC_number_vec[i]][l].second);
           if ( fabs(v2_vec[ADC_number_vec[i]][l].first - expectedV[ADC_number_vec[i]]) > tol ) {
-	    fail += v2_vec[ADC_number_vec[i]][l].second;
-	  }
+            fail += v2_vec[ADC_number_vec[i]][l].second;
+          }
           else pass += v2_vec[ADC_number_vec[i]][l].second;
-	  ADC_5V_not_matched[i] = true;
+          ADC_5V_not_matched[i] = true;
         }
 
       }
@@ -2740,7 +2742,7 @@ namespace emu {
           // Read selected DCFEB
           //VMEresult = vme_wrapper_->VMERead(addr_read_dcfeb,slot,"Read selected DCFEB");
           // Set instruction register to *Read UserCode*
-	  if (!Manager::get_is_xdcfeb()) {
+          if (!Manager::get_is_xdcfeb()) {
             vme_wrapper_->VMEWrite(addr_set_int_reg,reg_user_code,slot,"Set instruction register to *Read UserCode*");
             // Shift 16 lower bits
             vme_wrapper_->VMEWrite(addr_read_hdr,data,slot,"Shift 16 lower bits");
@@ -2755,8 +2757,8 @@ namespace emu {
             VMEresult = vme_wrapper_->VMERead(addr_read_tdo,slot,"Read second half of UserCode");
             // check to see if DCFEB is connected
             if (FixLength(VMEresult, 4, true)=="DCFE") nConn_DCFEBs++;
-	  }
-	  else {
+          }
+          else {
             //xDCFEB
             // Set instruction register to *Read UserCode*
             // Eventually, make this cleaner 
@@ -2788,7 +2790,7 @@ namespace emu {
             usleep(1000);
             // check to see if DCFEB is connected
             if (FixLength(VMEresult, 4, true)!="DCFE") nConn_DCFEBs++;
-	  }
+          }
         } // end loop over DCFEBs
         if ( (on_off==0 && nConn_DCFEBs>0) || (on_off==1 && nConn_DCFEBs<7) ) {
           out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
@@ -3563,13 +3565,13 @@ namespace emu {
 		// Set instruction register to *Read UserCode*
 		// Eventually, make this cleaner 
 		vme_wrapper_->VMEWrite(addr_instr_shift_header|0x0900,(unsigned short)0x3c8,slot,"Set instruction register to *Read UserCode*");
-		usleep(1000);
+		//usleep(1000);
 		vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
-		usleep(1000);
+		//usleep(1000);
 		vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
-		usleep(1000);
+		//usleep(1000);
 		vme_wrapper_->VMEWrite(addr_instr_shift_noheadtail|0x0f00,(unsigned short)0xffff,slot,"Bypass instructions on other devices");
-		usleep(1000);
+		//usleep(1000);
 		vme_wrapper_->VMEWrite(addr_instr_shift_tailer|0x0300,(unsigned short)0xf,slot,"Bypass instructions on other devices");
 		usleep(1000);
 		// Shift 16 lower bits
@@ -4047,7 +4049,7 @@ namespace emu {
     }
     
     void DiscreteLogicTest::respond(xgi::Input* in, ostringstream& out,
-				    const string& textBoxContent_in) { // JB-F
+                                    const string& textBoxContent_in) { // JB-F
       ostringstream out_local;
       string hdr("********** Discrete Logic Test **********");
       JustifyHdr(hdr);
@@ -4058,106 +4060,125 @@ namespace emu {
       unsigned short int VMEresult;
       vector<string> v_UserCode;
       unsigned int UserCode(0);
+      bool is_odmb7 = false;
+
+      VMEresult = vme_wrapper_->VMERead(0x4200,slot,"Read FW version");
+      if (VMEresult == 0xD3B7) { //temporary ODMB7 identifier
+        is_odmb7 = true;
+      }
 
       int nReps = atoi(textBoxContent.c_str());
       int nFails(0);
       for (int rep(0); rep<nReps; rep++) { // nReps
-	string s_UserCode("");
-	for (int command(0); command<5; command++) { // reset JTAG   
-	  vme_wrapper_->VMEWrite(addr_vme,0x1,slot,"Reset JTAG to Test-Logic-Reset state");
-	}
-	vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"To Run_Test/Idle");
-	  
-	vme_wrapper_->VMEWrite(addr_vme,0x1,slot,"To Select-DR-Scan");
-	vme_wrapper_->VMEWrite(addr_vme,0x1,slot,"To Select-IR-Scan");
-	  
-	for (int command(0); command<5; command++) { // capture/shift IR   
-	  vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"Capture/shift IR (read UserCode 3C8)");
-	}
-	vme_wrapper_->VMEWrite(addr_vme,0x2,slot,"Shift IR (read UserCode 3C8)");
-	vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"Shift IR (read UserCode 3C8)");
-	vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"Shift IR (read UserCode 3C8)");
+        string s_UserCode("");
+        for (int command(0); command<5; command++) { // reset JTAG   
+          vme_wrapper_->VMEWrite(addr_vme,0x1,slot,"Reset JTAG to Test-Logic-Reset state");
+        }
+        vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"To Run_Test/Idle");
+          
+        vme_wrapper_->VMEWrite(addr_vme,0x1,slot,"To Select-DR-Scan");
+        vme_wrapper_->VMEWrite(addr_vme,0x1,slot,"To Select-IR-Scan");
+          
+        if (!is_odmb7) {
+          for (int command(0); command<5; command++) { // capture/shift IR   
+            vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"Capture/shift IR (read UserCode 3C8)");
+          }
+          vme_wrapper_->VMEWrite(addr_vme,0x2,slot,"Shift IR (read UserCode 3C8)");
+          vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"Shift IR (read UserCode 3C8)");
+          vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"Shift IR (read UserCode 3C8)");
       
-	for (int command(0); command<3; command++) { // capture/shift IR   
-	  vme_wrapper_->VMEWrite(addr_vme,0x2,slot,"Shift IR (read UserCode 3C8)");
-	}
-	vme_wrapper_->VMEWrite(addr_vme,0x3,slot,"Shift IR -- and to Exit1-IR");
-	  
-	vme_wrapper_->VMEWrite(addr_vme,0x1,slot,"To Update-IR");
-	vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"To Run_Test/Idle");
-	vme_wrapper_->VMEWrite(addr_vme,0x1,slot,"To Select-DR-Scan");
-	vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"To Capture-DR");
+          for (int command(0); command<3; command++) { // capture/shift IR   
+            vme_wrapper_->VMEWrite(addr_vme,0x2,slot,"Shift IR (read UserCode 3C8)");
+          }
+          vme_wrapper_->VMEWrite(addr_vme,0x3,slot,"Shift IR -- and to Exit1-IR");
+        }
+        else {
+          unsigned short jtag_inst_bits[8] = {0x0, 0x0, 0x2, 0x0, 0x0, 0x2, 0x0, 0x1};
+          for (unsigned jtag_bit_idx = 0; jtag_bit_idx < 8; jtag_bit_idx++) {
+            vme_wrapper_->VMEWrite(addr_vme,jtag_inst_bits[jtag_bit_idx],slot,"Capture IR/Shift IR (read IDCODE 09)/and to Exit1-IR");
+          }
+        }
+          
+        vme_wrapper_->VMEWrite(addr_vme,0x1,slot,"To Update-IR");
+        vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"To Run_Test/Idle");
+        vme_wrapper_->VMEWrite(addr_vme,0x1,slot,"To Select-DR-Scan");
+        vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"To Capture-DR");
       
-	for (int hex_digit(0); hex_digit<8; hex_digit++) { // loop over hex digits
-	  for (int command(0); command<8; command++) { // loop over JTAG commands
-	    if (hex_digit==0) { // 1st hex digit
-	      if (command%2>0) {
-		VMEresult = vme_wrapper_->VMERead(addr_vme,slot,"Read UserCode 0 (hex digit 1)");
-		if (VMEresult>1) {
-		  out_local << "Error: read something greater than 1" << endl << endl ;
+        for (int hex_digit(0); hex_digit<8; hex_digit++) { // loop over hex digits
+          for (int command(0); command<8; command++) { // loop over JTAG commands
+            if (hex_digit==0) { // 1st hex digit
+              if (command%2>0) {
+                VMEresult = vme_wrapper_->VMERead(addr_vme,slot,"Read UserCode 0 (hex digit 1)");
+                if (VMEresult>1) {
+                  out_local << "Error: read something greater than 1" << endl << endl ;
                   out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
-		  out << out_local.str();
-		  UpdateLog(vme_wrapper_, slot, out_local);
-		  return;
-		}
-		char s_result[4];
-		sprintf (s_result,"%d",VMEresult);
-		s_UserCode.insert(0,s_result);
-		//cout << s_UserCode << endl;
-		//v_UserCode.push_back(s_UserCode);
-	      } else if (command==0) {
-		vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"Shifting DR");
-	      } else {
-		vme_wrapper_->VMEWrite(addr_vme,0x2,slot,"Shifting DR");
-	      }
-	    } else if (hex_digit==1) { // 2nd hex digit
-	      if (command==0) vme_wrapper_->VMEWrite(addr_vme,0x2,slot,"Shifting DR");
-	      else if (command%2>0) {
-		VMEresult = vme_wrapper_->VMERead(addr_vme,slot,"Read UserCode 0 (hex digit 2)");
-		if (VMEresult>1) {
-		  out_local << "Error: read something greater than 1" << endl << endl;
+                  out << out_local.str();
+                  UpdateLog(vme_wrapper_, slot, out_local);
+                  return;
+                }
+                char s_result[4];
+                sprintf (s_result,"%d",VMEresult);
+                s_UserCode.insert(0,s_result);
+                //cout << s_UserCode << endl;
+                //v_UserCode.push_back(s_UserCode);
+              } else if (command==0) {
+                vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"Shifting DR");
+              } else {
+                vme_wrapper_->VMEWrite(addr_vme,0x2,slot,"Shifting DR");
+              }
+            } else if (hex_digit==1) { // 2nd hex digit
+              if (command==0) vme_wrapper_->VMEWrite(addr_vme,0x2,slot,"Shifting DR");
+              else if (command%2>0) {
+                VMEresult = vme_wrapper_->VMERead(addr_vme,slot,"Read UserCode 0 (hex digit 2)");
+                if (VMEresult>1) {
+                  out_local << "Error: read something greater than 1" << endl << endl;
                   out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
-		  out << out_local.str();
-		  UpdateLog(vme_wrapper_, slot, out_local);
-		  return;
-		}
-		char s_result[4];
-		sprintf (s_result,"%d",VMEresult);
-		s_UserCode.insert(0,s_result);
-		//cout << s_UserCode << endl; 
-		//v_UserCode.push_back(s_UserCode);
-	      }
-	      else vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"Shifting DR");
-	    }
-	    else { // all remaining digits
-	      char log_out[30];
-	      sprintf(log_out,"Read UserCode 0 (hex digit %d)",hex_digit+1);
-	      if (command%2>0) {
-		VMEresult = vme_wrapper_->VMERead(addr_vme,slot,log_out);
-		if (VMEresult>1) {
-		  out_local << "Error: read something greater than 1" << endl << endl;
+                  out << out_local.str();
+                  UpdateLog(vme_wrapper_, slot, out_local);
+                  return;
+                }
+                char s_result[4];
+                sprintf (s_result,"%d",VMEresult);
+                s_UserCode.insert(0,s_result);
+                //cout << s_UserCode << endl; 
+                //v_UserCode.push_back(s_UserCode);
+              }
+              else vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"Shifting DR");
+            }
+            else { // all remaining digits
+              char log_out[30];
+              sprintf(log_out,"Read UserCode 0 (hex digit %d)",hex_digit+1);
+              if (command%2>0) {
+                VMEresult = vme_wrapper_->VMERead(addr_vme,slot,log_out);
+                if (VMEresult>1) {
+                  out_local << "Error: read something greater than 1" << endl << endl;
                   out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
-		  out << out_local.str();
-		  UpdateLog(vme_wrapper_, slot, out_local);
-		  return;
-		}
-		char s_result[4];
-		sprintf (s_result,"%d",VMEresult);
-		s_UserCode.insert(0,s_result);
-		//cout << s_UserCode << endl;	
-	      }
-	      else vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"Shifting DR");
-	    }
-	  } // loop over JTAG commands  
-	} // loop over hex digits
-	UserCode = binaryStringToUInt(s_UserCode);
-	v_UserCode.push_back(s_UserCode);
-	if (v_UserCode[rep].substr(16,16)!="1101101111011011") nFails++;
+                  out << out_local.str();
+                  UpdateLog(vme_wrapper_, slot, out_local);
+                  return;
+                }
+                char s_result[4];
+                sprintf (s_result,"%d",VMEresult);
+                s_UserCode.insert(0,s_result);
+                //cout << s_UserCode << endl;        
+              }
+              else vme_wrapper_->VMEWrite(addr_vme,0x0,slot,"Shifting DR");
+            }
+          } // loop over JTAG commands  
+        } // loop over hex digits
+        UserCode = binaryStringToUInt(s_UserCode);
+        v_UserCode.push_back(s_UserCode);
+        if (!is_odmb7 && v_UserCode[rep].substr(16,16)!="1101101111011011") nFails++;
+        if (is_odmb7 && v_UserCode[rep] != "00010011100000100011000010010011") {
+          out_local << "ERROR, ODMB7 IDCODE was " << v_UserCode[rep] << endl;
+          out << out_local.str();
+          nFails++;
+        }
       } // nReps
       if (nFails==0) out_local << "\t\t\t\t\t\tPASSED" << endl;
       else out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
       out_local << "Successfully read UserCode " << nReps-nFails << "/" << nReps 
-		<< " times (" << FixLength(UserCode,8,true) << ")." << endl;
+                << " times (" << FixLength(UserCode,8,true) << ")." << endl;
       out_local << endl;
 
       out << out_local.str();
@@ -4357,118 +4378,575 @@ namespace emu {
     } // end LoadMCSviaBPI::respond    
 
     SPIcheck::SPIcheck(Crate * crate, emu::odmbdev::Manager* manager) 
-      : ButtonAction(crate, manager, "SPI check") 
+      : RepeatTextBoxAction(crate, manager, "SPI check") 
     { 
       //This constructor intentionally left blank.
     }
     
-    void SPIcheck::respond(xgi::Input * in, ostringstream & out) { // TD
+    void SPIcheck::respond(xgi::Input * in, ostringstream & out, const string& textBoxContent) {
       ostringstream out_local;
       string hdr("********** SPI Check **********");
       JustifyHdr(hdr);
       out_local << hdr << endl;
       unsigned int slot(Manager::getSlotNumber());
       unsigned short VMEresult;
+      unsigned short VMEresult_prev;
       unsigned short addr_prom_cmd = 0x602C;
       unsigned short addr_prom_read = 0x6030;
       unsigned short soft_rst_cmd = 0x3004;
       unsigned short select_prom1 = 0x001D;
       unsigned short select_prom2 = 0x003D;
+      //unsigned int n_tries = atoi(textBoxContent.c_str());
       short page_size = 0x80; //words, 0x100 bytes
+      bool write_prom_mode = false;
 
-      vme_wrapper_->VMEWrite(soft_rst_cmd, 0x0, slot, "Soft reset");
-      usleep(100);
+      if (!write_prom_mode) {
+        //check is ODMB7
+        VMEresult = vme_wrapper_->VMERead(0x4200,slot,"Read FW version");
+        if (VMEresult != 0xD3B7) { //temporary ODMB7 identifier
+          out_local << "ERROR: Board is not ODMB7." << endl << endl;
+          out << out_local.str();
+          return;
+        }
 
-      bool write = true;
-      if (write) {
-        //write fw
-        int num_pages = 0x10000; //entire PROM
-        //int num_pages = 0x400; //4 sectors
-        for (int prom_idx = 0; prom_idx < 2; prom_idx++) {
-          unsigned short select_prom = select_prom1;
-          std::string in_file_name = "write_odmb_prom_contents_primary.bin";
-          if (prom_idx == 1) {
-            select_prom = select_prom2;
-            in_file_name = "write_odmb_prom_contents_secondary.bin";
+        //do a series of basic tests to verify SPI_PORT and SPI_CTRL commands are working
+        //for (unsigned int repeat_idx = 0; repeat_idx < n_tries; repeat_idx++) {
+        for (unsigned int repeat_idx = 0; repeat_idx < 1; repeat_idx++) {
+          //test 0x6000, 0x6004 and soft reset reload
+          unsigned short cfg_cmds[10] = {0x4000, 0x4004, 0x4008, 0x400C, 0x4010, 0x4014, 0x4018, 0x401C, 0x4020, 0x4028};
+          unsigned short cfg_write_values[10] = {0x000E, 0x000E, 0x0001, 0x000E, 0x0016, 0x0016, 0x000A, 0x017E, 0x005E, 0x0D3B};
+          unsigned short cfg_og_values[10];
+          //remember original values in PROM
+          vme_wrapper_->VMEWrite(0x602C, 0x001D, slot, "Send SPI command: select PROM 0");
+          vme_wrapper_->VMEWrite(0x6004, 0x0, slot, "Load CFG registers from PROM");
+          usleep(10000);
+          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+            cfg_og_values[cfg_reg_idx] = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
           }
-          vme_wrapper_->VMEWrite(addr_prom_cmd, select_prom, slot, "Select EPROM");
-          ifstream input_file(in_file_name.c_str(),ios::in|ios::binary);
-          for (int page_idx = 0; page_idx < num_pages; page_idx++) {
-            int addr = page_idx*0x100;
+          //for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+          //  cfg_read_values[cfg_reg_idx] = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
+          //}
+          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+            vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx], cfg_write_values[cfg_reg_idx], slot, "Set CFG register");
+            VMEresult = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
+            if (VMEresult != cfg_write_values[cfg_reg_idx]) {
+              for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++)
+                vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
+              vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
+              usleep(1000000);
+              out_local << "ERROR: unable to set CFG register " << cfg_reg_idx << endl << endl;
+              out << out_local.str();
+              return;
+            }
+          }
+          vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
+          usleep(1000000);
+          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+            unsigned short cfg_wr_minus_one = cfg_write_values[cfg_reg_idx];
+            if (cfg_wr_minus_one != 0) cfg_wr_minus_one -= 1;
+            vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx], cfg_wr_minus_one, slot, "Set CFG register");
+            VMEresult = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
+            if (VMEresult != cfg_wr_minus_one) {
+              for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++)
+                vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
+              vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
+              usleep(1000000);
+              out_local << "ERROR: unable to set CFG register " << cfg_reg_idx << endl << endl;
+              out << out_local.str();
+              return;
+            }
+          }
+          vme_wrapper_->VMEWrite(0x6004, 0x0, slot, "Load CFG registers from PROM");
+          usleep(10000);
+          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+            VMEresult = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
+            //out_local << "Readback register " << cfg_reg_idx << " as " << std::hex << VMEresult << endl;
+            if (VMEresult != cfg_write_values[cfg_reg_idx]) {
+              for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++) {
+                //out_local << "Setting register " << cfg_reg_idx_2 << " to " << std::hex << cfg_og_values[cfg_reg_idx_2] << endl;
+                vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
+              }
+              vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
+              usleep(1000000);
+              out_local << "ERROR: CFG register " << cfg_reg_idx << " not read correctly from PROM." << endl << endl;
+              out << out_local.str();
+              return;
+            }
+          }
+
+          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+            unsigned short cfg_wr_minus_one = cfg_write_values[cfg_reg_idx];
+            if (cfg_wr_minus_one != 0) cfg_wr_minus_one -= 1;
+            vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx], cfg_wr_minus_one, slot, "Set CFG register");
+          }
+          vme_wrapper_->VMEWrite(0x3004, 0x0, slot, "Soft reset (induces CFG load from PROM)");
+          usleep(1000000);
+          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+            VMEresult = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
+            if (VMEresult != cfg_write_values[cfg_reg_idx]) {
+              for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++)
+                vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
+              vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
+              usleep(1000000);
+              out_local << "ERROR: CFG register " << cfg_reg_idx << " not read correctly from PROM after soft reset." << endl << endl;
+              out << out_local.str();
+              return;
+            }
+          }
+          for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++)
+            vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
+          vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
+          usleep(1000000);
+          
+          //test BPI state machine control commands and others: 6020 6024 6028 6034 6038
+          vme_wrapper_->VMEWrite(0x6028, 0x0, slot, "Enable SPI commands");
+          usleep(10000);
+          VMEresult = vme_wrapper_->VMERead(0x6038, slot, "Read SPI Status");
+          if ((VMEresult & 0x0800) != 0x0800) {
+            out_local << "ERROR: SPI FSM not reading from FIFO." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x0, slot, "Send SPI Command: No Op");
+          usleep(10000);
+          VMEresult = vme_wrapper_->VMERead(0x6038, slot, "Read SPI Status");
+          if ((VMEresult & 0x0800) != 0x0800) {
+            out_local << "ERROR: SPI FSM not reading from FIFO." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x6024, 0x0, slot, "Disable SPI commands");
+          vme_wrapper_->VMEWrite(0x602C, 0x0, slot, "Send SPI Command: No Op");
+          usleep(10000);
+          VMEresult = vme_wrapper_->VMERead(0x6038, slot, "Read SPI Status");
+          if ((VMEresult & 0x0800) == 0x0800) {
+            out_local << "ERROR: SPI FSM reading FIFO despite being disabled." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x6028, 0x0, slot, "Enable SPI commands");
+          usleep(10000);
+          VMEresult = vme_wrapper_->VMERead(0x6038, slot, "Read SPI Status");
+          if ((VMEresult & 0x0800) != 0x0800) {
+            out_local << "ERROR: SPI FSM not reading from FIFO after being reenabled." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x1FF7, slot, "Send SPI Command: Load address (MSB) FF");
+          vme_wrapper_->VMEWrite(0x602C, 0x0000, slot, "Send SPI Command: Load address (LSB) 0000");
+          vme_wrapper_->VMEWrite(0x602C, 0x000A, slot, "Send SPI Command: sector erase");
+          usleep(1000000);
+          vme_wrapper_->VMEWrite(0x602C, 0x000C, slot, "Send SPI Command: Write 1 words");
+          vme_wrapper_->VMEWrite(0x602C, 0x0D3B, slot, "Send SPI Command: (Data)");
+          usleep(10000);
+          VMEresult = vme_wrapper_->VMERead(0x6034, slot, "Read words in readback FIFO");
+          if (VMEresult != 0) {
+            out_local << "ERROR: Readback FIFO words incorrect. Expected 0 but got " << std::hex << VMEresult <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x1FF7, slot, "Send SPI Command: Load address (MSB) FF");
+          vme_wrapper_->VMEWrite(0x6020, 0x0, slot, "Reset SPI FSM");
+          //if not reset, the next command is treated as load address (LSB)
+          vme_wrapper_->VMEWrite(0x602C, 0x1FF7, slot, "Send SPI Command: Load address (MSB) FF");
+          //if not reset, the next command is treated as noop
+          vme_wrapper_->VMEWrite(0x602C, 0x0000, slot, "Send SPI Command: Load address (LSB) 0000");
+          vme_wrapper_->VMEWrite(0x602C, 0x0004, slot, "Send SPI Command: Read 1 words");
+          VMEresult = vme_wrapper_->VMERead(0x6034, slot, "Read words in readback FIFO");
+          if (VMEresult != 1) {
+            out_local << "ERROR: Readback FIFO words incorrect. Expected 1 but got " << std::hex << VMEresult <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          VMEresult = vme_wrapper_->VMERead(0x6038, slot, "Read SPI status");
+          if ((VMEresult & 0x8000) != 0x0000) {
+            out_local << "ERROR: Readback SPI status incorrect. Expected 0x0XXX but got " << std::hex << VMEresult <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          VMEresult = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          if (VMEresult != 0x0D3B) {
+            out_local << "ERROR: SPI machine did not reset correctly. Expected D3B but got " << std::hex << VMEresult <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+
+          //test timer commands 603C 6040 SPI19 SPI1A SPI1B
+          vme_wrapper_->VMEWrite(0x602C, 0x001B, slot, "Send SPI Command: Reset timer");
+          VMEresult = vme_wrapper_->VMERead(0x603C, slot, "Read timer LSB");
+          if (VMEresult != 0) {
+            out_local << "ERROR: Timer LSB not reset correctly. Expected 0 but got " << std::hex << VMEresult <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          VMEresult = vme_wrapper_->VMERead(0x6040, slot, "Read timer MSB");
+          if (VMEresult != 0) {
+            out_local << "ERROR: Timer MSB not reset correctly. Expected 0 but got " << std::hex << VMEresult <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x1FF7, slot, "Send SPI Command: Load address (MSB) FF");
+          vme_wrapper_->VMEWrite(0x602C, 0x0000, slot, "Send SPI Command: Load address (LSB) 0000");
+          vme_wrapper_->VMEWrite(0x6024, 0x0, slot, "Disable SPI commands");
+          vme_wrapper_->VMEWrite(0x602C, 0x0019, slot, "Send SPI Command: Start timer");
+          vme_wrapper_->VMEWrite(0x602C, 0x000A, slot, "Send SPI Command: Sector erase");
+          vme_wrapper_->VMEWrite(0x602C, 0x001A, slot, "Send SPI Command: Stop timer");
+          vme_wrapper_->VMEWrite(0x6028, 0x0, slot, "Enable SPI commands");
+          usleep(1000000);
+          VMEresult = vme_wrapper_->VMERead(0x603C, slot, "Read timer LSB");
+          if (VMEresult == 0) {
+            out_local << "ERROR: Timer LSB did not start correctly." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          VMEresult_prev = VMEresult;
+          VMEresult = vme_wrapper_->VMERead(0x603C, slot, "Read timer LSB");
+          if (VMEresult != VMEresult_prev) {
+            out_local << "ERROR: Timer LSB did not stop correctly." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          VMEresult = vme_wrapper_->VMERead(0x6040, slot, "Read timer MSB");
+          if (VMEresult == 0) {
+            out_local << "ERROR: Timer MSB did not start correctly." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+
+          //test 602C/6030 SPI commands
+          //register reading and writing
+          vme_wrapper_->VMEWrite(0x602C, 0x0026, slot, "Send SPI Command: Read status register");
+          VMEresult = vme_wrapper_->VMERead(0x6038, slot, "Read SPI status");
+          if ((VMEresult & 0x00FF) != 0x0000) {
+            out_local << "ERROR: Unexpected value for status register. Expected 00 but got " << std::hex << (VMEresult & 0x00FF) <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x0046, slot, "Send SPI Command: Read FLAG status register");
+          VMEresult = vme_wrapper_->VMERead(0x6038, slot, "Read SPI status");
+          if ((VMEresult & 0x00FF) != 0x0080) {
+            out_local << "ERROR: Unexpected value for FLAG status register. Expected 80 but got " << std::hex << (VMEresult & 0x00FF) <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x0066, slot, "Send SPI Command: Read nonvolatile configuration register MSBs");
+          VMEresult = vme_wrapper_->VMERead(0x6038, slot, "Read SPI status");
+          if ((VMEresult & 0x00FF) != 0x00FF) {
+            out_local << "ERROR: Unexpected value for nonvolatile configuration register MSBs. Expected FF but got " << std::hex << (VMEresult & 0x00FF) <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x0086, slot, "Send SPI Command: Read nonvolatile configuration register LSBs");
+          VMEresult = vme_wrapper_->VMERead(0x6038, slot, "Read SPI status");
+          if ((VMEresult & 0x00FF) != 0x00FF) {
+            out_local << "ERROR: Unexpected value for nonvolatile configuration register LSBs. Expected FF but got " << std::hex << (VMEresult & 0x00FF) <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x00A6, slot, "Send SPI Command: Read volatile configuration register");
+          VMEresult = vme_wrapper_->VMERead(0x6038, slot, "Read SPI status");
+          if ((VMEresult & 0x00FF) != 0x00FB) {
+            out_local << "ERROR: Unexpected value for volatile configuration register. Expected FB but got " << std::hex << (VMEresult & 0x00FF) <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x00C6, slot, "Send SPI Command: Read enhanced volatile configuration register");
+          VMEresult = vme_wrapper_->VMERead(0x6038, slot, "Read SPI status");
+          if ((VMEresult & 0x00FF) != 0x00FF) {
+            out_local << "ERROR: Unexpected value for enhanced volatile configuration register. Expected FF but got " << std::hex << (VMEresult & 0x00FF) <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x00B2, slot, "Send SPI Command: Write volatile configuration register");
+          vme_wrapper_->VMEWrite(0x602C, 0x000B, slot, "Send SPI Command: Data 0B");
+          vme_wrapper_->VMEWrite(0x602C, 0x00A6, slot, "Send SPI Command: Read volatile configuration register");
+          VMEresult = vme_wrapper_->VMERead(0x6038, slot, "Read SPI status");
+          if ((VMEresult & 0x00FF) != 0x000B) {
+            out_local << "ERROR: Unexpected value for volatile configuration register after write. Expected 0B but got " << std::hex << (VMEresult & 0x00FF) <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x00B2, slot, "Send SPI Command: Write volatile configuration register");
+          vme_wrapper_->VMEWrite(0x602C, 0x00FB, slot, "Send SPI Command: Data FB");
+          vme_wrapper_->VMEWrite(0x602C, 0x00A6, slot, "Send SPI Command: Read volatile configuration register");
+          VMEresult = vme_wrapper_->VMERead(0x6038, slot, "Read SPI status");
+          if ((VMEresult & 0x00FF) != 0x00FB) {
+            out_local << "ERROR: Unexpected value for volatile configuration register after write. Expected FB but got " << std::hex << (VMEresult & 0x00FF) <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+
+          //Read ID and PROM select
+          vme_wrapper_->VMEWrite(0x602C, 0x0007, slot, "Send SPI Command: Read device ID");
+          VMEresult = vme_wrapper_->VMERead(0x6034, slot, "Read words in readback FIFO");
+          if (VMEresult != 0xA) {
+            out_local << "ERROR: Readback FIFO words incorrect. Expected A but got " << std::hex << VMEresult <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          VMEresult = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          if (VMEresult != 0x20BB) {
+            out_local << "ERROR: Device ID incorrect. Expected 20BB but got " << std::hex << VMEresult <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          VMEresult = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          if (VMEresult != 0x1810) {
+            out_local << "ERROR: Device ID incorrect. Expected 1810 but got " << std::hex << VMEresult <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          VMEresult = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          unsigned short prom1_uid[7];
+          prom1_uid[0] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          prom1_uid[1] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          prom1_uid[2] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          prom1_uid[3] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          prom1_uid[4] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          prom1_uid[5] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          prom1_uid[6] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          vme_wrapper_->VMEWrite(0x602C, 0x003D, slot, "Send SPI command: select PROM 1");
+          vme_wrapper_->VMEWrite(0x602C, 0x0007, slot, "Send SPI Command: Read device ID");
+          VMEresult = vme_wrapper_->VMERead(0x6034, slot, "Read words in readback FIFO");
+          if (VMEresult != 0xA) {
+            out_local << "ERROR: Readback FIFO words incorrect. Expected A but got " << std::hex << VMEresult <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          VMEresult = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          if (VMEresult != 0x20BB) {
+            out_local << "ERROR: PROM 1 device ID incorrect. Expected 20BB but got " << std::hex << VMEresult <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          VMEresult = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          if (VMEresult != 0x1810) {
+            out_local << "ERROR: PROM 1 device ID incorrect. Expected 1810 but got " << std::hex << VMEresult <<  "." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          VMEresult = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          unsigned short prom2_uid[7];
+          prom2_uid[0] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          prom2_uid[1] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          prom2_uid[2] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          prom2_uid[3] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          prom2_uid[4] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          prom2_uid[5] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          prom2_uid[6] = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          if (prom1_uid[0] == prom2_uid[0] && prom1_uid[1] == prom2_uid[1] && prom1_uid[2] == prom2_uid[2] &&
+              prom1_uid[3] == prom2_uid[3] && prom1_uid[4] == prom2_uid[4] && prom1_uid[5] == prom2_uid[5] &&
+              prom1_uid[6] == prom2_uid[6]) {
+            out_local << "ERROR: Cannot switch PROMs, read identical UIDs from both." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x003D, slot, "Send SPI command: select PROM 1");
+
+          //locking
+          vme_wrapper_->VMEWrite(0x602C, 0x1FF7, slot, "Send SPI Command: Load address MSB FF");
+          vme_wrapper_->VMEWrite(0x602C, 0x0000, slot, "Send SPI Command: Load address LSB 0000");
+          //vme_wrapper_->VMEWrite(0x602C, 0x0014, slot, "Send SPI command: Erase nonvolatile lock");
+          //usleep(1000000);
+          //vme_wrapper_->VMEWrite(0x602C, 0x0015, slot, "Send SPI command: Read nonvolatile lock");
+          //VMEresult = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          //if (VMEresult != 0x0001) {
+          //  out_local << "ERROR: Unable to erase nonvolatile lock bit." << endl << endl;
+          //  out << out_local.str();
+          //  return;
+          //}
+          usleep(1000);
+          vme_wrapper_->VMEWrite(0x602C, 0x0013, slot, "Send SPI command: Write nonvolatile lock");
+          usleep(1000);
+          vme_wrapper_->VMEWrite(0x602C, 0x0015, slot, "Send SPI command: Read nonvolatile lock");
+          VMEresult = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          if (VMEresult != 0x0000) {
+            out_local << "ERROR: Unable to write nonvolatile lock bit." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          //vme_wrapper_->VMEWrite(0x602C, 0x1F97, slot, "Send SPI Command: Load address MSB FC");
+          //vme_wrapper_->VMEWrite(0x602C, 0x0000, slot, "Send SPI Command: Load address LSB 0000");
+          //vme_wrapper_->VMEWrite(0x602C, 0x0015, slot, "Send SPI command: Read nonvolatile lock");
+          //VMEresult = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          //if (VMEresult != 0x0001) {
+          //  out_local << "ERROR: Wrong nonvolatile lock bit written." << endl << endl;
+          //  out << out_local.str();
+          //  return;
+          //}
+          vme_wrapper_->VMEWrite(0x602C, 0x1FF7, slot, "Send SPI Command: Load address MSB FF");
+          vme_wrapper_->VMEWrite(0x602C, 0x0000, slot, "Send SPI Command: Load address LSB 0000");
+          vme_wrapper_->VMEWrite(0x602C, 0x0014, slot, "Send SPI command: Erase nonvolatile lock");
+          usleep(1000000);
+          vme_wrapper_->VMEWrite(0x602C, 0x0015, slot, "Send SPI command: Read nonvolatile lock");
+          VMEresult = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          if (VMEresult != 0x0001) {
+            out_local << "ERROR: Unable to erase nonvolatile lock bit." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x0033, slot, "Send SPI command: Write volatile lock");
+          vme_wrapper_->VMEWrite(0x602C, 0x0035, slot, "Send SPI command: Read volatile lock");
+          VMEresult = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          if (VMEresult != 0x0001) {
+            out_local << "ERROR: Unable to write volatile lock bit." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+          vme_wrapper_->VMEWrite(0x602C, 0x0034, slot, "Send SPI command: Erase volatile lock");
+          vme_wrapper_->VMEWrite(0x602C, 0x0035, slot, "Send SPI command: Read volatile lock");
+          VMEresult = vme_wrapper_->VMERead(0x6030, slot, "Read from readback FIFO");
+          if (VMEresult != 0x0000) {
+            out_local << "ERROR: Unable to erase volatile lock bit." << endl << endl;
+            out << out_local.str();
+            return;
+          }
+
+          //read, write simple 3-page test
+          //already erased after timer test
+          ifstream input_file("write_odmb_prom_contents_primary.bin",ios::in|ios::binary);
+          for (int page_idx = 0; page_idx < 3; page_idx++) {
+            int addr = page_idx*0x100+0xFF0000;
             unsigned short load_addr_cmd_1 = (((addr >> 16) << 5) | 0x17);
             unsigned short load_addr_cmd_2 = (addr & 0xFFFF);
             unsigned short write_page_cmd = (((page_size - 1) << 5) | 0x0C);
-            unsigned short erase_cmd = 0x000A;
-            if (page_idx%0x100 == 0) {
-	            cout<<"Beginning sector "<<(page_idx/0x100)<<endl;
-              vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_1, slot, "Load address upper");
-              usleep(10);
-              vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_2, slot, "Load address lower");
-              usleep(10);
-              vme_wrapper_->VMEWrite(addr_prom_cmd, erase_cmd, slot, "Erase sector");
-              usleep(100000);
-            }
             vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_1, slot, "Load address upper");
-            usleep(10);
             vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_2, slot, "Load address lower");
-            usleep(10);
             vme_wrapper_->VMEWrite(addr_prom_cmd, write_page_cmd, slot, "Write page to PROM");
-            usleep(10);
             for (short word_idx = 0; word_idx < page_size; word_idx++) {
               unsigned short write_data = 0x0;
               //endianness
               input_file.read((char*)(&write_data)+1, 1);
               input_file.read((char*)(&write_data), 1);
 		          vme_wrapper_->VMEWrite(addr_prom_cmd, write_data, slot, "Write word to PROM write FIFO" );
-              usleep(10);
             }
-            usleep(4000);
+            usleep(2000);
           }
-          input_file.close();
-        }
-      }
-
-      bool read = true;
-      if (read) {
-        //read back fw
-        int num_pages = 0x10000; //entire PROM
-        //int num_pages = 0x800; //8 sectors
-        for (int prom_idx = 0; prom_idx < 2; prom_idx++) {
-          unsigned short select_prom = select_prom1;
-          std::string out_file_name = "read_odmb_prom_contents_primary.bin";
-          if (prom_idx == 1) {
-            select_prom = select_prom2;
-            out_file_name = "read_odmb_prom_contents_secondary.bin";
-          }
-          vme_wrapper_->VMEWrite(addr_prom_cmd, select_prom, slot, "Select EPROM");
-          ofstream output_file(out_file_name.c_str(),ios::out|ios::binary);
-          for (int page_idx = 0; page_idx < num_pages; page_idx++) {
-            if (page_idx%0x100 == 0) {
-	            cout<<"Beginning sector "<<(page_idx/0x100)<<endl;
-            }
-            int addr = page_idx*0x100;
+          input_file.seekg(0, input_file.beg);
+          for (int page_idx = 0; page_idx < 3; page_idx++) {
+            int addr = page_idx*0x100+0xFF0000;
             unsigned short load_addr_cmd_1 = (((addr >> 16) << 5) | 0x17);
             unsigned short load_addr_cmd_2 = (addr & 0xFFFF);
             unsigned short read_page_cmd = (((page_size - 1) << 5) | 0x04);
             vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_1, slot, "Load address upper");
-            //usleep(10);
             vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_2, slot, "Load address lower");
-            //usleep(10);
             vme_wrapper_->VMEWrite(addr_prom_cmd, read_page_cmd, slot, "Read page from PROM");
-            //usleep(10);
             for (short word_idx = 0; word_idx < page_size; word_idx++) {
+              unsigned short write_data = 0x0;
+              //endianness
+              input_file.read((char*)(&write_data)+1, 1);
+              input_file.read((char*)(&write_data), 1);
 		          VMEresult = vme_wrapper_->VMERead(addr_prom_read, slot, "Read word in PROM readback FIFO" );
-              //usleep(10);
-              //account for endianness =(
-              output_file.write((char*)(&VMEresult)+1,1);
-              output_file.write((char*)&VMEresult,1);
+              if (VMEresult != write_data) {
+                out_local << "ERROR: Error reading word " << word_idx << " on page " << page_idx << ".";
+                out_local << "Expected " << std::hex << write_data << " but read back " << std::hex << VMEresult << endl << endl;
+                out << out_local.str();
+                return;
+              }
             }
           }
-          output_file.close();
+          input_file.close();
+          
+        } //ntries
+        out_local << "Success, all PROM SPI functionalities successful." << endl << endl;
+      }
+      else {
+
+        vme_wrapper_->VMEWrite(soft_rst_cmd, 0x0, slot, "Soft reset");
+        usleep(100);
+
+        bool write = true;
+        if (write) {
+          //write fw
+          //int num_pages = 0x10000; //entire PROM
+          int num_pages = 0x800; //8 sectors
+          for (int prom_idx = 0; prom_idx < 2; prom_idx++) {
+            unsigned short select_prom = select_prom1;
+            std::string in_file_name = "write_odmb_prom_contents_primary.bin";
+            if (prom_idx == 1) {
+              select_prom = select_prom2;
+              in_file_name = "write_odmb_prom_contents_secondary.bin";
+            }
+            vme_wrapper_->VMEWrite(addr_prom_cmd, select_prom, slot, "Select EPROM");
+            ifstream input_file(in_file_name.c_str(),ios::in|ios::binary);
+            for (int page_idx = 0; page_idx < num_pages; page_idx++) {
+              int addr = page_idx*0x100;
+              unsigned short load_addr_cmd_1 = (((addr >> 16) << 5) | 0x17);
+              unsigned short load_addr_cmd_2 = (addr & 0xFFFF);
+              unsigned short write_page_cmd = (((page_size - 1) << 5) | 0x0C);
+              unsigned short erase_cmd = 0x000A;
+              if (page_idx%0x100 == 0) {
+	              cout<<"Beginning sector "<<(page_idx/0x100)<<endl;
+                vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_1, slot, "Load address upper");
+                vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_2, slot, "Load address lower");
+                vme_wrapper_->VMEWrite(addr_prom_cmd, erase_cmd, slot, "Erase sector");
+                //from ODMB7 PROM datasheet: max time is 1s, typical time is 150ms
+                //for 256sectors*0.2s = 51.2s; 256sectors*1.0s = 256s
+                usleep(200000);
+              }
+              vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_1, slot, "Load address upper");
+              vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_2, slot, "Load address lower");
+              vme_wrapper_->VMEWrite(addr_prom_cmd, write_page_cmd, slot, "Write page to PROM");
+              //usleep(10);
+              for (short word_idx = 0; word_idx < page_size; word_idx++) {
+                unsigned short write_data = 0x0;
+                //endianness
+                input_file.read((char*)(&write_data)+1, 1);
+                input_file.read((char*)(&write_data), 1);
+		            vme_wrapper_->VMEWrite(addr_prom_cmd, write_data, slot, "Write word to PROM write FIFO" );
+                //usleep(10);
+              }
+              //from ODMB7 PROM datasheet: max time is 1.8ms, typical time is 120us
+              //256sectors*256pages*2.0ms=131s
+              usleep(2000);
+            }
+            input_file.close();
+          }
         }
+
+        bool read = true;
+        if (read) {
+          //read back fw
+          //int num_pages = 0x10000; //entire PROM
+          int num_pages = 0x800; //8 sectors
+          for (int prom_idx = 0; prom_idx < 2; prom_idx++) {
+            unsigned short select_prom = select_prom1;
+            std::string out_file_name = "read_odmb_prom_contents_primary.bin";
+            if (prom_idx == 1) {
+              select_prom = select_prom2;
+              out_file_name = "read_odmb_prom_contents_secondary.bin";
+            }
+            vme_wrapper_->VMEWrite(addr_prom_cmd, select_prom, slot, "Select EPROM");
+            ofstream output_file(out_file_name.c_str(),ios::out|ios::binary);
+            for (int page_idx = 0; page_idx < num_pages; page_idx++) {
+              if (page_idx%0x100 == 0) {
+	              cout<<"Beginning sector "<<(page_idx/0x100)<<endl;
+              }
+              int addr = page_idx*0x100;
+              unsigned short load_addr_cmd_1 = (((addr >> 16) << 5) | 0x17);
+              unsigned short load_addr_cmd_2 = (addr & 0xFFFF);
+              unsigned short read_page_cmd = (((page_size - 1) << 5) | 0x04);
+              vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_1, slot, "Load address upper");
+              //usleep(10);
+              vme_wrapper_->VMEWrite(addr_prom_cmd, load_addr_cmd_2, slot, "Load address lower");
+              //usleep(10);
+              vme_wrapper_->VMEWrite(addr_prom_cmd, read_page_cmd, slot, "Read page from PROM");
+              //usleep(10);
+              for (short word_idx = 0; word_idx < page_size; word_idx++) {
+		            VMEresult = vme_wrapper_->VMERead(addr_prom_read, slot, "Read word in PROM readback FIFO" );
+                //usleep(10);
+                //account for endianness =(
+                output_file.write((char*)(&VMEresult)+1,1);
+                output_file.write((char*)&VMEresult,1);
+              }
+            }
+            output_file.close();
+          }
+        }
+
+        out_local << "Finished EPROM read, saved results as odmb_prom_contents_*.bin\n";
       }
 
-      out_local << "Finished EPROM read, saved results as odmb_prom_contents_*.bin\n";
       out << out_local.str();
       UpdateLog(vme_wrapper_, slot, out_local);
     }

@@ -223,8 +223,8 @@
              xLatency="1">
 
         <CFEB cfeb_number="0"
-	      cfeb_firmware_tag="cfeb21d"
-	      hardware_version="2"
+	      cfeb_firmware_tag="dcfeb62e"
+	      hardware_version="3"
               pipeline_depth="68"
 	      fine_delay="0"
               kill_chip0="00000"
@@ -234,8 +234,8 @@
               kill_chip4="00000"
               kill_chip5="00000"/> 
         <CFEB cfeb_number="1"
-	      cfeb_firmware_tag="cfeb21d"
-	      hardware_version="2"
+	      cfeb_firmware_tag="dcfeb62e"
+	      hardware_version="3"
               pipeline_depth="68"
 	      fine_delay="0"
               kill_chip0="00000"
@@ -245,8 +245,8 @@
               kill_chip4="00000"
               kill_chip5="00000"/>
         <CFEB cfeb_number="2"
-	      cfeb_firmware_tag="cfeb21d"
-	      hardware_version="2"
+	      cfeb_firmware_tag="dcfeb62e"
+	      hardware_version="3"
               pipeline_depth="68"
 	      fine_delay="0"
               kill_chip0="00000"
@@ -256,8 +256,8 @@
               kill_chip4="00000"
               kill_chip5="00000"/>
         <CFEB cfeb_number="3"
-	      cfeb_firmware_tag="cfeb21d"
-	      hardware_version="2"
+	      cfeb_firmware_tag="dcfeb62e"
+	      hardware_version="3"
 	      pipeline_depth="68"
 	      fine_delay="0"
               kill_chip0="00000"
@@ -267,8 +267,8 @@
               kill_chip4="00000"
               kill_chip5="00000"/> 
         <CFEB cfeb_number="4"
-	      cfeb_firmware_tag="cfeb21d"
-	      hardware_version="2"
+	      cfeb_firmware_tag="dcfeb62e"
+	      hardware_version="3"
 	      pipeline_depth="68"
 	      fine_delay="0"
               kill_chip0="00000"

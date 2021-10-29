@@ -620,10 +620,10 @@ namespace emu { namespace odmbdev {
      *
      * Button to run PROM SPI tests for ODMB7
      **************************************************************************/
-    class SPIcheck : public ButtonAction {
+    class SPIcheck : public RepeatTextBoxAction {
     public:
       SPIcheck(Crate * crate, emu::odmbdev::Manager* manager);
-      void respond(xgi::Input * in, ostringstream & out);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
     };
 
     /**************************************************************************
