@@ -3388,11 +3388,11 @@ namespace emu {
       unsigned int addr_odmb_reg(0x3000), addr_dcfeb_reg(0x3200), addr_dcfeb_resync(0x3014);
       unsigned int addr_sel_dcfeb(0x1020), addr_done_dcfeb(0x3120);
       unsigned int addr_set_kill(0x401C);
-      unsigned short dr_injpls(59), dr_extpls(60), dr_l1a_match(58), dr_bc0(61);
+      unsigned short dr_l1a(57), dr_injpls(59), dr_extpls(60), dr_l1a_match(58), dr_bc0(61);
       // unsigned short dr_bc0(61);
       unsigned short injpls(0x1), extpls(0x2), l1a_match(0x4), bc0(0x20);
       unsigned short int VMEresult;
-      vector<unsigned int> n_injpls_reads(7,0), n_extpls_reads(7,0), n_l1a_match_reads(7,0), n_bc0_reads(7,0);
+      vector<unsigned int> n_l1a_reads(7,0), n_injpls_reads(7,0), n_extpls_reads(7,0), n_l1a_match_reads(7,0), n_bc0_reads(7,0);
       // vector<unsigned int> n_bc0_reads(7,0);
       vector<bool> dcfeb_connected(7,false);
       unsigned int nConnected(0);
@@ -3443,13 +3443,14 @@ namespace emu {
 	dcfeb_connected[dcfeb]=true;
 	nConnected++;
 	vme_wrapper_->VMEWrite(addr_sel_dcfeb, dcfeb_bit, slot, "Select DCFEB");
+	n_l1a_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_l1a,12,slot,is_xdcfeb);
 	n_injpls_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_injpls,12,slot,is_xdcfeb);
 	n_extpls_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_extpls,12,slot,is_xdcfeb);
 	n_l1a_match_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_l1a_match,12,slot,is_xdcfeb);
 	n_bc0_reads[dcfeb]=vme_wrapper_->JTAGRead(dr_bc0,12,slot,is_xdcfeb);
       } // end first loop over dcfebs
       // Analyze the results
-      unsigned int nPassed[4] = {0,0,0,0};
+      unsigned int nPassed[5] = {0,0,0,0,0};
       for (unsigned short dcfeb(0); dcfeb<7; dcfeb++) {
 	if (!dcfeb_connected[dcfeb]) continue;
 	/*if (n_injpls_reads[dcfeb]!=repeatNumber) nFails++; 
@@ -3461,9 +3462,10 @@ namespace emu {
  	if (n_extpls_reads[dcfeb]==repeatNumber) nPassed[1]++;
  	if (n_bc0_reads[dcfeb]==repeatNumber) nPassed[2]++;
  	if (n_l1a_match_reads[dcfeb]==repeatNumber) nPassed[3]++;
+	if (n_l1a_reads[dcfeb]==repeatNumber) nPassed[4]++;
       }
       unsigned int nFailedSignals(0);
-      for (unsigned int signal(0); signal<4; signal++) {
+      for (unsigned int signal(0); signal<5; signal++) {
 	if (nPassed[signal]<1) nFailedSignals++;
       }
       if (nFailedSignals==0) out_local << "\t\t\t\t\t\tPASSED" << endl;
@@ -3475,7 +3477,8 @@ namespace emu {
 	out_local << "INJPLS " << n_injpls_reads[dcfeb] << "/" << repeatNumber << ", "
 		  << "EXTPLS: " << n_extpls_reads[dcfeb] << "/" << repeatNumber << ", "
 		  << "BC0: " << n_bc0_reads[dcfeb] << "/" << repeatNumber << ", "
-		  << "L1A_MATCH: " << n_l1a_match_reads[dcfeb] << "/" << repeatNumber << "." << endl;      
+		  << "L1A_MATCH: " << n_l1a_match_reads[dcfeb] << "/" << repeatNumber << ", "
+		  << "L1A: " << n_l1a_reads[dcfeb] << "/" << repeatNumber << "." << endl;      
 	// out_local << "BC0 Result: " << n_bc0_reads << endl;      
       }
       out_local << endl;
@@ -4412,91 +4415,6 @@ namespace emu {
         //do a series of basic tests to verify SPI_PORT and SPI_CTRL commands are working
         //for (unsigned int repeat_idx = 0; repeat_idx < n_tries; repeat_idx++) {
         for (unsigned int repeat_idx = 0; repeat_idx < 1; repeat_idx++) {
-          //test 0x6000, 0x6004 and soft reset reload
-          unsigned short cfg_cmds[10] = {0x4000, 0x4004, 0x4008, 0x400C, 0x4010, 0x4014, 0x4018, 0x401C, 0x4020, 0x4028};
-          unsigned short cfg_write_values[10] = {0x000E, 0x000E, 0x0001, 0x000E, 0x0016, 0x0016, 0x000A, 0x017E, 0x005E, 0x0D3B};
-          unsigned short cfg_og_values[10];
-          //remember original values in PROM
-          vme_wrapper_->VMEWrite(0x602C, 0x001D, slot, "Send SPI command: select PROM 0");
-          vme_wrapper_->VMEWrite(0x6004, 0x0, slot, "Load CFG registers from PROM");
-          usleep(10000);
-          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
-            cfg_og_values[cfg_reg_idx] = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
-          }
-          //for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
-          //  cfg_read_values[cfg_reg_idx] = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
-          //}
-          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
-            vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx], cfg_write_values[cfg_reg_idx], slot, "Set CFG register");
-            VMEresult = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
-            if (VMEresult != cfg_write_values[cfg_reg_idx]) {
-              for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++)
-                vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
-              vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
-              usleep(1000000);
-              out_local << "ERROR: unable to set CFG register " << cfg_reg_idx << endl << endl;
-              out << out_local.str();
-              return;
-            }
-          }
-          vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
-          usleep(1000000);
-          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
-            unsigned short cfg_wr_minus_one = cfg_write_values[cfg_reg_idx];
-            if (cfg_wr_minus_one != 0) cfg_wr_minus_one -= 1;
-            vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx], cfg_wr_minus_one, slot, "Set CFG register");
-            VMEresult = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
-            if (VMEresult != cfg_wr_minus_one) {
-              for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++)
-                vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
-              vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
-              usleep(1000000);
-              out_local << "ERROR: unable to set CFG register " << cfg_reg_idx << endl << endl;
-              out << out_local.str();
-              return;
-            }
-          }
-          vme_wrapper_->VMEWrite(0x6004, 0x0, slot, "Load CFG registers from PROM");
-          usleep(10000);
-          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
-            VMEresult = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
-            //out_local << "Readback register " << cfg_reg_idx << " as " << std::hex << VMEresult << endl;
-            if (VMEresult != cfg_write_values[cfg_reg_idx]) {
-              for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++) {
-                //out_local << "Setting register " << cfg_reg_idx_2 << " to " << std::hex << cfg_og_values[cfg_reg_idx_2] << endl;
-                vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
-              }
-              vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
-              usleep(1000000);
-              out_local << "ERROR: CFG register " << cfg_reg_idx << " not read correctly from PROM." << endl << endl;
-              out << out_local.str();
-              return;
-            }
-          }
-
-          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
-            unsigned short cfg_wr_minus_one = cfg_write_values[cfg_reg_idx];
-            if (cfg_wr_minus_one != 0) cfg_wr_minus_one -= 1;
-            vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx], cfg_wr_minus_one, slot, "Set CFG register");
-          }
-          vme_wrapper_->VMEWrite(0x3004, 0x0, slot, "Soft reset (induces CFG load from PROM)");
-          usleep(1000000);
-          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
-            VMEresult = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
-            if (VMEresult != cfg_write_values[cfg_reg_idx]) {
-              for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++)
-                vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
-              vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
-              usleep(1000000);
-              out_local << "ERROR: CFG register " << cfg_reg_idx << " not read correctly from PROM after soft reset." << endl << endl;
-              out << out_local.str();
-              return;
-            }
-          }
-          for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++)
-            vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
-          vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
-          usleep(1000000);
           
           //test BPI state machine control commands and others: 6020 6024 6028 6034 6038
           vme_wrapper_->VMEWrite(0x6028, 0x0, slot, "Enable SPI commands");
@@ -4846,6 +4764,92 @@ namespace emu {
             }
           }
           input_file.close();
+
+          //test 0x6000, 0x6004 and soft reset reload
+          unsigned short cfg_cmds[10] = {0x4000, 0x4004, 0x4008, 0x400C, 0x4010, 0x4014, 0x4018, 0x401C, 0x4020, 0x4028};
+          unsigned short cfg_write_values[10] = {0x000E, 0x000E, 0x0001, 0x000E, 0x0016, 0x0016, 0x000A, 0x017E, 0x005E, 0x0D3B};
+          unsigned short cfg_og_values[10];
+          //remember original values in PROM
+          vme_wrapper_->VMEWrite(0x602C, 0x001D, slot, "Send SPI command: select PROM 0");
+          vme_wrapper_->VMEWrite(0x6004, 0x0, slot, "Load CFG registers from PROM");
+          usleep(10000);
+          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+            cfg_og_values[cfg_reg_idx] = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
+          }
+          //for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+          //  cfg_read_values[cfg_reg_idx] = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
+          //}
+          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+            vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx], cfg_write_values[cfg_reg_idx], slot, "Set CFG register");
+            VMEresult = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
+            if (VMEresult != cfg_write_values[cfg_reg_idx]) {
+              for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++)
+                vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
+              vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
+              usleep(1000000);
+              out_local << "ERROR: unable to set CFG register " << cfg_reg_idx << endl << endl;
+              out << out_local.str();
+              return;
+            }
+          }
+          vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
+          usleep(1000000);
+          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+            unsigned short cfg_wr_minus_one = cfg_write_values[cfg_reg_idx];
+            if (cfg_wr_minus_one != 0) cfg_wr_minus_one -= 1;
+            vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx], cfg_wr_minus_one, slot, "Set CFG register");
+            VMEresult = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
+            if (VMEresult != cfg_wr_minus_one) {
+              for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++)
+                vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
+              vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
+              usleep(1000000);
+              out_local << "ERROR: unable to set CFG register " << cfg_reg_idx << endl << endl;
+              out << out_local.str();
+              return;
+            }
+          }
+          vme_wrapper_->VMEWrite(0x6004, 0x0, slot, "Load CFG registers from PROM");
+          usleep(10000);
+          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+            VMEresult = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
+            //out_local << "Readback register " << cfg_reg_idx << " as " << std::hex << VMEresult << endl;
+            if (VMEresult != cfg_write_values[cfg_reg_idx]) {
+              for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++) {
+                //out_local << "Setting register " << cfg_reg_idx_2 << " to " << std::hex << cfg_og_values[cfg_reg_idx_2] << endl;
+                vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
+              }
+              vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
+              usleep(1000000);
+              out_local << "ERROR: CFG register " << cfg_reg_idx << " not read correctly from PROM." << endl << endl;
+              out << out_local.str();
+              return;
+            }
+          }
+
+          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+            unsigned short cfg_wr_minus_one = cfg_write_values[cfg_reg_idx];
+            if (cfg_wr_minus_one != 0) cfg_wr_minus_one -= 1;
+            vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx], cfg_wr_minus_one, slot, "Set CFG register");
+          }
+          vme_wrapper_->VMEWrite(0x3004, 0x0, slot, "Soft reset (induces CFG load from PROM)");
+          usleep(1000000);
+          for (unsigned int cfg_reg_idx = 0; cfg_reg_idx < 10; cfg_reg_idx++) {
+            VMEresult = vme_wrapper_->VMERead(cfg_cmds[cfg_reg_idx], slot, "Read CFG register");
+            if (VMEresult != cfg_write_values[cfg_reg_idx]) {
+              for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++)
+                vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
+              vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
+              usleep(1000000);
+              out_local << "ERROR: CFG register " << cfg_reg_idx << " not read correctly from PROM after soft reset." << endl << endl;
+              out << out_local.str();
+              return;
+            }
+          }
+          for (unsigned int cfg_reg_idx_2 = 0; cfg_reg_idx_2 < 10; cfg_reg_idx_2++)
+            vme_wrapper_->VMEWrite(cfg_cmds[cfg_reg_idx_2], cfg_og_values[cfg_reg_idx_2], slot, "Set CFG register");
+          vme_wrapper_->VMEWrite(0x6000, 0x0, slot, "Write CFG registers to PROM");
+          usleep(1000000);
           
         } //ntries
         out_local << "Success, all PROM SPI functionalities successful." << endl << endl;
