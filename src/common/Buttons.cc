@@ -2406,7 +2406,7 @@ namespace emu {
       out_local << hdr << endl;
       unsigned int slot(Manager::getSlotNumber());
       unsigned short int VMEresult;
-      unsigned short int addr_turn_on = 0x008010;
+      //unsigned short int addr_turn_on = 0x008010;
       unsigned short int addr_sel_adc = 0x008020;
       unsigned short int addr_read_adc = 0x008004;
       //ctrl byte for 0 to 10 V, do we ever need to read negative voltages?
@@ -2414,7 +2414,7 @@ namespace emu {
       unsigned short int addr_cntl_byte = 0x008000;
 
       //turn on everything
-      vme_wrapper_->VMEWrite(addr_turn_on, 0xFF, slot, "Power on everything" );
+      //vme_wrapper_->VMEWrite(addr_turn_on, 0xFF, slot, "Power on everything" );
       usleep(10);
 
       //loop over all ADCs and channels and print out reading
@@ -2434,7 +2434,7 @@ namespace emu {
       }
 
       //turn on everything
-      vme_wrapper_->VMEWrite(addr_turn_on, 0xFF, slot, "Power on everything" );
+      //vme_wrapper_->VMEWrite(addr_turn_on, 0xFF, slot, "Power on everything" );
       usleep(10);
 
       out << out_local.str();
@@ -2479,13 +2479,18 @@ namespace emu {
       unsigned short int addr_turn_on = 0x008010;
       unsigned short int addr_verify_on = 0x008014;
       int notConnected = 0;
-      unsigned short int ctrl_byte_vec[7] =       {0x89, 0xB9, 0xA9, 0xD9, 0x99, 0xE9, 0xD9};
-      unsigned short int ctrl_byte_vec2[7] =      {0x81, 0xB1, 0xA1, 0xD1, 0x91, 0xE1, 0xD1};
-      unsigned short int ctrl_byte_vec_onoff[7] = {0xC9, 0xE9, 0xE9, 0x89, 0xD9, 0xA9, 0x99};
+      unsigned short int ctrl_byte_vec[7] =       {0x89, 0xB9, 0xA9, 0xE9, 0x99, 0xE9, 0xD9};
+      unsigned short int ctrl_byte_vec2[7] =      {0x81, 0xB1, 0xA1, 0xE1, 0x91, 0xE1, 0xD1};
+      //unsigned short int ctrl_byte_vec[7] =       {0x89, 0xB9, 0xA9, 0xD9, 0x99, 0xE9, 0xD9};
+      //unsigned short int ctrl_byte_vec2[7] =      {0x81, 0xB1, 0xA1, 0xD1, 0x91, 0xE1, 0xD1};
+      //unsigned short int ctrl_byte_vec_onoff[7] = {0xC9, 0xE9, 0xE9, 0x89, 0xD9, 0xA9, 0x99};
       vector <pair<float, int> > voltages[7], v1_vec[7], v2_vec[7];
       unsigned short int ADC_number_vec[7] =      {0x00, 0x04, 0x01, 0x05, 0x03, 0x06, 0x02};
+
+      unsigned short int pon_test_adc_vec[8] =      {0x03, 0x06, 0x04, 0x05, 0x04, 0x05, 0x03, 0x06};
+      unsigned short int pon_test_adc_ctrlbyte[8] = {0xF9, 0xA9, 0xF9, 0x99, 0xE9, 0xF9, 0xD9, 0xF9};
       unsigned int n_p_on_off_fails(0);
-      vector<bool> ADC_fail_pon_test(7,false), ADC_fail_poff_test(7,false), ADC_not_connected(7,false);
+      vector<bool> ADC_fail_pon_test(8,false), ADC_fail_poff_test(8,false), ADC_not_connected(8,false);
       vector<bool> ADC_10V_not_matched(7,false), ADC_5V_not_matched(7,false);
       unsigned short int on_off_ctrl_byte[2] =    {0x00, 0xFF};
       int pass = 0;
@@ -2501,14 +2506,12 @@ namespace emu {
         //Read from ADC
         VMEresult = vme_wrapper_->VMERead(addr_verify_on, slot, "Read ADCs powered on" );
         usleep(10);
-        for (int i = 0; i < 7; i++){
-          //temp: skip PONs that were de-soldered (PON2 to IC 2 and PON5 to IC 1)
-          if (i == 6 || i == 2) continue;
+        for (int i = 0; i < 8; i++){
           //Write ADC to be read 
-          vme_wrapper_->VMEWrite(addr_sel_adc, ADC_number_vec[i], slot, "Select ADC to be read");
+          vme_wrapper_->VMEWrite(addr_sel_adc, pon_test_adc_vec[i], slot, "Select ADC to be read");
           usleep(30);
           //Send control byte to ADC
-          vme_wrapper_->VMEWrite(addr_cntl_byte, ctrl_byte_vec_onoff[i], slot, "Send control byte to ADC");
+          vme_wrapper_->VMEWrite(addr_cntl_byte, pon_test_adc_ctrlbyte[i], slot, "Send control byte to ADC");
           usleep(30);
           //Read from ADC
           VMEresult = vme_wrapper_->VMERead(addr_read_adc, slot, "Read ADC" );
@@ -2531,22 +2534,23 @@ namespace emu {
             //Error checking
             //bool already_failed = false;
             float voltage = voltage_result_1;
+            std::cout << "mode: " << mode << "pon index: " << i << ", voltage: " << fabs(voltage) << std::endl;
             if (mode == 0 && fabs(voltage) > .1) {
               n_p_on_off_fails++;
               ADC_fail_poff_test[i] = true;
             }
-            if(mode == 1 && fabs(voltage) < .5) {
+            if(mode == 1 && (fabs(voltage) < 3.2 || fabs(voltage) > 3.5 )) {
               n_p_on_off_fails++;
               ADC_fail_pon_test[i] = true;
             }
           }
         }//i-loop
       }
-      // ouput of test
+      // output of test
       if (notConnected>=1) {
         out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
         out_local << "ADCs not connected: ";
-        for (int ADC = 0; ADC < 7; ADC++){
+        for (int ADC = 0; ADC < 8; ADC++){
           if (ADC_not_connected[ADC]) out_local << ADC_number_vec[ADC] << " ";
         }
         out_local << endl << endl;
@@ -2556,7 +2560,7 @@ namespace emu {
       } else if (n_p_on_off_fails>=1) {
         out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
         out_local << "ADCs failing power-on/off test: ";
-        for (int ADC = 0; ADC < 7; ADC++){
+        for (int ADC = 0; ADC < 8; ADC++){
           if (ADC_fail_pon_test[ADC]==true||ADC_fail_poff_test[ADC]==true) out_local << ADC_number_vec[ADC] << " ";
         }
         out_local << endl << endl;
