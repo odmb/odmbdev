@@ -9,7 +9,7 @@ namespace emu{
       Action(crate, manager),
       buttonLabel(buttonLabel_in),
       textBoxContent("4.5  3.0"),
-      textBoxContent2("0.05"),
+      textBoxContent2("0.1"),
       textBoxContent3("300"),
       label1_("V1 V2"),
       label2_("tol"),

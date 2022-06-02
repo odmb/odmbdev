@@ -152,6 +152,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<SetDCFEBMode>(crate, this);
       addActionByTypename<MasterTest>(crate, this);
       addActionByTypename<LVMBtest>(crate, this);
+      addActionByTypename<LVMB5test>(crate, this);
       addActionByTypename<LVMBcheck>(crate, this);
       addActionByTypename<LVMB904>(crate, this);
       addActionByTypename<DCFEBJTAGcontrol>(crate, this);
@@ -166,6 +167,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<PCPRBSTest>(crate,this);
       addActionByTypename<MCSBackAndForthBPI>(crate, this);     
       addActionByTypename<SPIcheck>(crate, this);     
+      addActionByTypename<ClockChipTest>(crate, this);
       addActionByTypename<HardReset>(crate);
       addActionByTypename<ReprogramDCFEB>(crate);
       addActionByTypename<LVMBtest_dos>(crate, this);

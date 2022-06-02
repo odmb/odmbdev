@@ -439,6 +439,17 @@ namespace emu { namespace odmbdev {
     };
 
     /**************************************************************************
+     * LVMB5test
+     *
+     * A small class to print the results of the low voltage monitoring test for ODMB5
+     **************************************************************************/
+    class LVMB5test : public ThreeTextBoxAction {
+    public:
+      LVMB5test(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
+    };
+
+    /**************************************************************************
      * LVMBcheck
      *
      * Button to directly read out all channels on all ADCs
@@ -513,6 +524,18 @@ namespace emu { namespace odmbdev {
       void SetPipelineDepth(const unsigned dcfeb, const uint_fast16_t depth, const unsigned slot);
       double GetScore(const std::vector<float>& time_bins, const unsigned muons);
     };
+
+
+    /**************************************************************************
+     * ClockChipTest
+     *
+     * A small class to check communication with clock synthesizer chip
+     **************************************************************************/
+    class ClockChipTest : public RepeatTextBoxAction {
+    public:
+      ClockChipTest(Crate * crate, Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out, const string& textBoxContent_in);
+    };  
 
     /**************************************************************************
      * DCFEBPulses
