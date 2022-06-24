@@ -3633,31 +3633,36 @@ namespace emu {
     void ClockChipTest::respond(xgi::Input* in, ostringstream& out, const string& textBoxContent_in) {
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
       ostringstream out_local;      
-      string hdr("********** Clock Synthesizer Communication **********");
-      JustifyHdr(hdr);
+      string hdr("*** Clock Synthesizer Communication ***");
+      JustifyHdr(hdr); //Header can't be > 45 chars
       out_local << hdr;
 
-      cout << "Beginning clock chip test" << endl;
       const unsigned long repeatNumber=atoi(textBoxContent_in.c_str());
       int slot = Manager::getSlotNumber();
       unsigned short int VMEresult;
       bool error = false;
       unsigned long fail_number = 0;
 
+      vme_wrapper_->VMEWrite(0x5000,0x0018,slot,"Reset clock chip and set to SPI mode");  
+      //wait for clock chip to reset
+      usleep(500000);
       for (unsigned long i = 0; i < repeatNumber; i++) {
-        vme_wrapper_->VMEWrite(0x5000,0x0018,slot,"Reset clock chip and set to SPI mode");  
         vme_wrapper_->VMEWrite(0x5004,0x0030,slot,"Set address to ID1");  
+        usleep(1000);
         vme_wrapper_->VMEWrite(0x5008,0x0003,slot,"Send READ command");  
+        usleep(1000);
         VMEresult = vme_wrapper_->VMERead(0x500C,slot,"Read readback register");
         if (VMEresult != 0x1F) {
-          cout << "Loop " << i << " error: expected 31 (0x1F) but received " << VMEresult << endl;
+          cout << "Loop " << i << " error: expected 31 (0x1F) but received " << VMEresult << "\n";
           error = true;
         }
         vme_wrapper_->VMEWrite(0x5004,0x0031,slot,"Set address to ID2");  
+        usleep(1000);
         vme_wrapper_->VMEWrite(0x5008,0x0003,slot,"Send READ command");  
+        usleep(1000);
         VMEresult = vme_wrapper_->VMERead(0x500C,slot,"Read readback register");
         if (VMEresult != 0x92) {
-          cout << "Loop " << i << " error: expected 146 (0x92) but received " << VMEresult << endl;
+          cout << "Loop " << i << " error: expected 146 (0x92) but received " << VMEresult << "\n";
           error = true;
         }
         if (error) {
@@ -3672,6 +3677,7 @@ namespace emu {
         out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
         out_local << "ID code not read back successfully. " << (repeatNumber-fail_number) << "/" << repeatNumber << endl;
       }
+      out << out_local.str();
       UpdateLog(vme_wrapper_, slot, out_local);
     }
     
