@@ -472,6 +472,17 @@ namespace emu { namespace odmbdev {
     };
 
     /**************************************************************************
+     * VoltageCurrentTest
+     *
+     * Button to check voltages and currents on ODMB7/5
+     **************************************************************************/
+    class VoltageCurrentTest : public ButtonAction {
+    public:
+      VoltageCurrentTest(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
+    };
+
+    /**************************************************************************
      * BurnInTest
      *
      * Print unique ID and firmware info -- also do SYSMON                                                                                                                          

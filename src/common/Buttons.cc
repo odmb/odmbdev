@@ -2440,6 +2440,88 @@ namespace emu {
       UpdateLog(vme_wrapper_, slot, out_local);
     }
 
+    VoltageCurrentTest::VoltageCurrentTest(Crate * crate, emu::odmbdev::Manager* manager) 
+      : ButtonAction(crate, manager, "Voltage Current Test") 
+    { 
+      //This constructor intentionally left blank.
+    }
+    
+    void VoltageCurrentTest::respond(xgi::Input * in, ostringstream & out) { // TD
+      ostringstream out_local;
+      ostringstream out_local_local;
+      string hdr("***** Voltage & Current Test *****");
+      JustifyHdr(hdr);
+      unsigned int slot(Manager::getSlotNumber());
+      unsigned short int VMEresult;
+      bool print_results = false; //prints output to web page rather than terminal
+
+      const unsigned int adc_ic_number = 5;
+      const unsigned int adc_ch_number = 8;
+      unsigned short load_chip_cmd[adc_ic_number] = {0x7310, 0x7320, 0x7330, 
+          0x7340, 0x7350};
+      unsigned short read_volt_cmd[adc_ch_number] = {0x7410, 0x7420, 0x7430, 
+          0x7440, 0x7450, 0x7460, 0x7470, 0x7480};
+      float expected_voltage[adc_ic_number][adc_ch_number] = 
+          {{2.5, 2.5, 3.3, 3.3, 3.3, 3.3, 3.3, 3.3}, {3.3, 3.3, -1, -1, 3.3, 3.3, 3.3, 3.3},
+          {-1, -1, 2.5, 2.5, 2.5, 1.2, 1.0, 0.95}, {3.3, 1.8, 1.8, 1.8, 1.8, 1.8, -1, 0.33},
+          {1.8, 1.8, 1.8, 1.8, 1.8, 1.8, -1, 1.0}};
+      float tolerance = 0.1; //V
+      unsigned short read_current_cmd = 0x7000;
+      bool passed = true;
+
+      //loop over all ADCs and channels
+      for (unsigned adc_idx = 0; adc_idx < adc_ic_number; adc_idx++) {
+          vme_wrapper_->VMEWrite(load_chip_cmd[adc_idx], 0x0000, slot, "Select ADC to be read");
+          //actual reading occurs here, so long wait needed
+          usleep(50000);
+          for (unsigned channel = 0; channel < adc_ch_number; channel++) {
+              VMEresult = vme_wrapper_->VMERead(read_volt_cmd[channel], slot, "Read ADC channel" );
+              usleep(1000);
+              float voltage = (float)VMEresult/1000.0;
+              if (print_results) {
+                out_local_local << "Voltage reading for ADC " << adc_idx+1 << ", channel " << channel;
+                out_local_local << ": " << voltage << endl;
+              }
+              else {
+                cout << "Voltage reading for ADC " << adc_idx+1 << ", channel " << channel;
+                cout << ": " << voltage << endl;
+              }
+              if (expected_voltage[adc_idx][channel]>0) {
+                if (abs(voltage-expected_voltage[adc_idx][channel]) > tolerance) {
+                  passed = false;
+                  out_local_local << "Voltage reading for ADC " << adc_idx+1 << ", channel " << channel;
+                  out_local_local << ". Expected: " << expected_voltage[adc_idx][channel] << ", observed: " << voltage << endl;
+                }
+              }
+          }
+      }
+
+      //loop over sysmon channels and print current
+      for (unsigned short channel = 0; channel < 16; channel++) {
+        unsigned short read_channel_current = read_current_cmd | (channel<<4);
+        VMEresult = vme_wrapper_->VMERead(read_channel_current, slot, "Read sysmon current" );
+        usleep(1000);
+        float current = ((float)VMEresult)*5;
+        if (channel == 0 || channel == 9) {
+          current *= 2;
+        }
+        out_local_local << "Current reading for channel " << channel << ": " << current << endl;
+      }
+
+      //print out currents
+
+      out_local << hdr;
+      if (passed) {
+        out_local << "\t\t\t\t\t\tPASSED" << endl;
+        out_local << "All voltages in nominal ranges" << endl;
+      }
+      else
+        out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
+      out_local << out_local_local.str();
+      out << out_local.str();
+      UpdateLog(vme_wrapper_, slot, out_local);
+    }
+
 
     LVMBtest::LVMBtest(Crate * crate, emu::odmbdev::Manager* manager) 
       : ThreeTextBoxAction(crate, manager, "LVMB test") 

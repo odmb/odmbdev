@@ -155,6 +155,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<LVMB5test>(crate, this);
       addActionByTypename<LVMBcheck>(crate, this);
       addActionByTypename<LVMB904>(crate, this);
+      addActionByTypename<VoltageCurrentTest>(crate, this);
       addActionByTypename<DCFEBJTAGcontrol>(crate, this);
       addActionByTypename<DCFEBFiber>(crate, this);
       addActionByTypename<DCFEBPulses>(crate, this);
