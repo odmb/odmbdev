@@ -2457,6 +2457,7 @@ namespace emu {
 
       const unsigned int adc_ic_number = 5;
       const unsigned int adc_ch_number = 8;
+      const unsigned int sysmon_ch_number = 16;
       unsigned short load_chip_cmd[adc_ic_number] = {0x7310, 0x7320, 0x7330, 
           0x7340, 0x7350};
       unsigned short read_volt_cmd[adc_ch_number] = {0x7410, 0x7420, 0x7430, 
@@ -2466,8 +2467,10 @@ namespace emu {
           {-1, -1, 2.5, 2.5, 2.5, 1.2, 1.0, 0.95}, {3.3, 1.8, 1.8, 1.8, 1.8, 1.8, -1, 0.33},
           {1.8, 1.8, 1.8, 1.8, 1.8, 1.8, -1, 1.0}};
       float tolerance = 0.1; //V
-      unsigned short read_current_cmd = 0x7000;
+      unsigned short read_current_cmd = 0x7100;
       bool passed = true;
+      char channel_desc[sysmon_ch_number][16] = {"5V in", "3V3", "3V3 optical", "3V3 clock", "3V6 PPIB", "2V5", "1V2 MGT", "1V0 MGT",
+          "0V95 core", "3V3 in", "1V8", "1V8 VCCAUX", "1V8 MGT", "1V8 VCCO", "1V8 VCCO0_65", "1V8 clock"};
 
       //loop over all ADCs and channels
       for (unsigned adc_idx = 0; adc_idx < adc_ic_number; adc_idx++) {
@@ -2496,19 +2499,23 @@ namespace emu {
           }
       }
 
+      VMEresult = vme_wrapper_->VMERead(0x7000, slot, "Read sysmon temperature" );
+      usleep(10000);
+      float temperature = (((float)VMEresult)/4096.0*501.3743)-273.6777;
+      out_local_local << "FPGA temperature: " << temperature << " C" << endl;
+
       //loop over sysmon channels and print current
-      for (unsigned short channel = 0; channel < 16; channel++) {
+      for (unsigned short channel = 0; channel < sysmon_ch_number; channel++) {
         unsigned short read_channel_current = read_current_cmd | (channel<<4);
         VMEresult = vme_wrapper_->VMERead(read_channel_current, slot, "Read sysmon current" );
-        usleep(1000);
-        float current = ((float)VMEresult)*5;
+        usleep(10000);
+        float current = ((float)VMEresult)/4096.0*5.0;
         if (channel == 0 || channel == 9) {
           current *= 2;
         }
-        out_local_local << "Current reading for channel " << channel << ": " << current << endl;
+        out_local_local << "Current reading for channel " << channel << ": " << current << "A ("
+            << channel_desc[channel] << ")" << endl;
       }
-
-      //print out currents
 
       out_local << hdr;
       if (passed) {
@@ -2517,7 +2524,7 @@ namespace emu {
       }
       else
         out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
-      out_local << out_local_local.str();
+      out_local << out_local_local.str() << endl;
       out << out_local.str();
       UpdateLog(vme_wrapper_, slot, out_local);
     }
