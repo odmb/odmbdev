@@ -82,7 +82,7 @@ namespace odmbdev {
       static void setSlotNumber(int slot) {slot_number = slot;}
       static int getPortNumber() {return port_;}
       static bool get_is_xdcfeb() {return is_xdcfeb;}
-      static void set_is_xdcfeb(bool xdcfeb) {is_xdcfeb = xdcfeb;}
+      static void set_is_xdcfeb(bool xdcfeb) {is_xdcfeb = xdcfeb;};
 		
     protected:
       static int slot_number;
@@ -117,6 +117,7 @@ namespace odmbdev {
       void logActionsCallback(xgi::Input *in, xgi::Output *out);
       static void backToMainPage(xgi::Input * in, xgi::Output * out, const std::string& anchor = "");
       void ProductionTests(xgi::Input *in, xgi::Output *out);
+      void ODMB75ProductionTests(xgi::Input *in, xgi::Output *out);
   };
 
 }}

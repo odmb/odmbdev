@@ -4449,13 +4449,13 @@ namespace emu {
     }
 
     DiscreteLogicTest::DiscreteLogicTest(Crate* crate, Manager* manager) :
-      RepeatTextBoxAction(crate, manager, "Discrete Logic / VME JTAG Test",1000){ 
+      RepeatTextBoxAction(crate, manager, "Basic VME Test",1000){ 
     }
     
     void DiscreteLogicTest::respond(xgi::Input* in, ostringstream& out,
-                                    const string& textBoxContent_in) { // JB-F
+                                    const string& textBoxContent_in) {
       ostringstream out_local;
-      string hdr("********** Discrete Logic Test **********");
+      string hdr("********** Basic VME Test **********");
       JustifyHdr(hdr);
       out_local << hdr;
       RepeatTextBoxAction::respond(in, out, textBoxContent_in);
@@ -4467,8 +4467,22 @@ namespace emu {
       bool is_odmb7 = false;
 
       VMEresult = vme_wrapper_->VMERead(0x4200,slot,"Read FW version");
-      if (VMEresult == 0xD3B7) { //temporary ODMB7 identifier
+      if (VMEresult >= 0x0001 && VMEresult <= 0x0318) {
+        //is legacy ODMB
+        is_odmb7 = false;
+      }
+      else if (VMEresult == 0xD3B7) { //temporary ODMB7/5 identifier
+        //TODO: update this, enforce exact version?
         is_odmb7 = true;
+      }
+      else {
+        //failed to read firmware version
+        out_local << "Error: failed to read firmware version from ODMB through VME." << endl;
+        out_local << "Make sure the board is fully plugged into the crate, the VME slot is correct, and the correct firmware is loaded." << endl << endl;
+        out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
+        out << out_local.str();
+        UpdateLog(vme_wrapper_, slot, out_local);
+        return;
       }
 
       int nReps = atoi(textBoxContent.c_str());
@@ -4574,21 +4588,30 @@ namespace emu {
         v_UserCode.push_back(s_UserCode);
         if (!is_odmb7 && v_UserCode[rep].substr(16,16)!="1101101111011011") nFails++;
         if (is_odmb7 && v_UserCode[rep] != "00010011100000100011000010010011") {
-          out_local << "ERROR, ODMB7 IDCODE was " << v_UserCode[rep] << endl;
-          out << out_local.str();
+          //out_local << "ERROR, ODMB7 IDCODE was " << v_UserCode[rep] << endl;
+          //out << out_local.str();
           nFails++;
         }
       } // nReps
       if (nFails==0) out_local << "\t\t\t\t\t\tPASSED" << endl;
       else out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
-      out_local << "Successfully read UserCode " << nReps-nFails << "/" << nReps 
+      out_local << "Successfully read UserCode through discrete logic " << nReps-nFails << "/" << nReps 
                 << " times (" << FixLength(UserCode,8,true) << ")." << endl;
+      VMEresult = vme_wrapper_->VMERead(0x4100,slot,"Read Unique ID");
+	    out_local << "R   4100         " << setw(4) << FixLength(VMEresult,4,true) << "     Unique ID" << endl;
+	    string fwv(FixLength(vme_wrapper_->VMERead(0x4200,slot,"Read fw version"),3,true));
+	    string mmdd(FixLength(vme_wrapper_->VMERead(0x4400,slot,"Read fw mm/dd modified"),4,true));
+	    string yr(FixLength(vme_wrapper_->VMERead(0x4500,slot,"Read fw year modified"),4,true));
+	    string date(mmdd.substr(0,2)+"/"+mmdd.substr(2,2)+"/"+yr);
+	    out_local << "R   4200         " << setw(4) << fwv << "     FW version. Date " << date << endl;
+	    VMEresult = vme_wrapper_->VMERead(0x4300,slot,"Read fw build");
+	    out_local << "R   4300         " << setw(4) << FixLength(VMEresult,4,true) << "     FW build" <<  endl;
       out_local << endl;
 
       out << out_local.str();
       UpdateLog(vme_wrapper_, slot, out_local);
     }
-        
+
     /**************************************************************************
      * ResetRegisters
      *
@@ -4657,20 +4680,20 @@ namespace emu {
      **************************************************************************/
     SetDCFEBMode::SetDCFEBMode(Crate * crate, emu::odmbdev::Manager* manager) 
       : RadioButtonAction(crate,manager,"DCFEB/xDCFEB Mode Toggle","DCFEB","xDCFEB") 
-    { /* The choices here are really a blank constructor vs duplicating the ExecuteVMEDSL constructor.
-	 I've tried the former -- TD
+    { /* The choices here are really a blank constructor vs duplicating the ExecuteVMEDSL constructor
+         I've tried the former -- TD
       */
     }
     
-    void SetDCFEBMode::respond(xgi::Input * in, ostringstream & out) { // TD
+    void SetDCFEBMode::respond(xgi::Input * in, ostringstream & out) {
       RadioButtonAction::respond(in, out);
       if (default_opt) {
         out << "Entering DCFEB Mode.\n" << endl;
-	Manager::set_is_xdcfeb(false);
+        Manager::set_is_xdcfeb(false);
       }
       else {
         out << "Entering xDCFEB Mode.\n" << endl;
-	Manager::set_is_xdcfeb(true);
+        Manager::set_is_xdcfeb(true);
       }
     }
 
