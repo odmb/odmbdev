@@ -184,7 +184,8 @@ namespace emu { namespace odmbdev {
       //demarcate non-test buttons from test buttons?
       addActionByTypename<HardReset>(crate);
       addActionByTypename<ReprogramDCFEB>(crate);
-      //addActionByTypename<MasterTest>(crate, this); //make new mastertest?
+      addActionByTypename<MasterTest7>(crate, this);
+      addActionByTypename<MasterTest5>(crate, this);
       addActionByTypename<DiscreteLogicTest>(crate, this); //merge ODMB vitals into this
       addActionByTypename<ClockChipTest>(crate, this);
       addActionByTypename<VoltageCurrentTest>(crate, this);

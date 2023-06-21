@@ -410,6 +410,20 @@ namespace emu { namespace odmbdev {
       MasterTest(Crate* crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input* in, ostringstream& out);
     };
+
+    //Does (almost) all the tests for ODMB7
+    class MasterTest7: public TextBoxAction{
+    public:
+      MasterTest7(Crate* crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input* in, ostringstream& out);
+    };
+
+    //Does (almost) all the tests for ODMB5
+    class MasterTest5: public TextBoxAction{
+    public:
+      MasterTest5(Crate* crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input* in, ostringstream& out);
+    };
     
     //Performs PRBS test of PC TX on a V3 ODMB using a V2 ODMB in slot 19
     class PCPRBSTest : public RepeatTextBoxAction {

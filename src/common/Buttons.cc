@@ -3418,6 +3418,22 @@ namespace emu {
 
     }
 
+    MasterTest7::MasterTest7(Crate* crate, emu::odmbdev::Manager* manager):
+      TextBoxAction(crate, manager, "Master Test ODMB7"){
+    }
+
+    void MasterTest7::respond(xgi::Input* in, ostringstream& out){
+      TextBoxAction::respond(in, out);
+    }
+
+    MasterTest5::MasterTest5(Crate* crate, emu::odmbdev::Manager* manager):
+      TextBoxAction(crate, manager, "Master Test ODMB5"){
+    }
+
+    void MasterTest5::respond(xgi::Input* in, ostringstream& out){
+      TextBoxAction::respond(in, out);
+    }
+
     PCPRBSTest::PCPRBSTest(Crate* crate, emu::odmbdev::Manager* manager):
       RepeatTextBoxAction(crate, manager, "PC PRBS Test", 6){
     }
