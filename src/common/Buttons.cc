@@ -3418,245 +3418,261 @@ namespace emu {
 
     }
 
-    MasterTest7::MasterTest7(Crate* crate, emu::odmbdev::Manager* manager):
-      TextBoxAction(crate, manager, "Master Test ODMB7"){
-    }
+    MasterTest7::MasterTest7(Crate *crate, emu::odmbdev::Manager *manager)
+        : TextBoxAction(crate, manager, "Master Test ODMB7") {}
 
-    void MasterTest7::respond(xgi::Input* in, ostringstream& out){
+    void MasterTest7::respond(xgi::Input *in, ostringstream &out) {
       TextBoxAction::respond(in, out);
 
-      t_actionvector* buttons(NULL);
-      if(manager_==NULL) return;
-      buttons=(manager_->currentActionVector_);
-      if(buttons==NULL) return;
+      t_actionvector *buttons(NULL);
+      if (manager_ == NULL)
+        return;
+      buttons = (manager_->currentActionVector_);
+      if (buttons == NULL)
+        return;
       size_t found_cfg = textBoxContent.find("cfg");
-      bool do_cfg = found_cfg!=::string::npos;
-      for(t_actionvector::iterator button(buttons->begin());
-	  button!=buttons->end();
-	  ++button){
-	std::string short_arg(""), long_arg("");
-	bool good_button(false);
-	Action& button_ref(*(button->get()));
-  if(typeid(button_ref)==typeid(DiscreteLogicTest)){
-	  short_arg="1000";
-	  long_arg="10000";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(ClockChipTest)){
-	  short_arg="1";
-	  long_arg="10";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(VoltageCurrentTest)){
-	  short_arg="0"; // irrelevant?
-	  long_arg="0"; // irrelevant?
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(SPIcheck)){
-	  short_arg="1";
-	  long_arg="10";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(CCBReg)){
-	  short_arg="100";
-	  long_arg="5000";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(OTMBPRBSTest)){
-	  short_arg="6";
-	  long_arg="60001";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(LVMBtest)){
-	  short_arg="100";
-	  long_arg="5000";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(DCFEBJTAGcontrol)){
-	  short_arg="0";
-	  long_arg="10";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(DCFEBPulses)){
-	  short_arg="100";
-	  long_arg="4000";
-	  good_button=true;
-	}else{
-	  short_arg="0";
-	  long_arg="0";
-	}
+      bool do_cfg = found_cfg != ::string::npos;
+      for (t_actionvector::iterator button(buttons->begin());
+           button != buttons->end(); ++button) {
+        std::string short_arg(""), long_arg("");
+        bool good_button(false);
+        Action &button_ref(*(button->get()));
+        if (typeid(button_ref) == typeid(DiscreteLogicTest)) {
+          short_arg = "1000";
+          long_arg = "10000";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(ClockChipTest)) {
+          short_arg = "1";
+          long_arg = "10";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(VoltageCurrentTest)) {
+          short_arg = "0"; // irrelevant?
+          long_arg = "0";  // irrelevant?
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(SPIcheck)) {
+          short_arg = "1";
+          long_arg = "10";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(CCBReg)) {
+          short_arg = "100";
+          long_arg = "5000";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(OTMBPRBSTest)) {
+          short_arg = "6";
+          long_arg = "60001";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(LVMBtest)) {
+          short_arg = "100";
+          long_arg = "5000";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(DCFEBJTAGcontrol)) {
+          short_arg = "0";
+          long_arg = "10";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(DCFEBPulses)) {
+          short_arg = "100";
+          long_arg = "4000";
+          good_button = true;
+        } else {
+          short_arg = "0";
+          long_arg = "0";
+        }
 
-	std::cout << typeid(button_ref).name() << std::endl;
-	RepeatTextBoxAction* const rtba_ptr(dynamic_cast<RepeatTextBoxAction*>(button->get()));
-	ThreeTextBoxAction* const ttba_ptr(dynamic_cast<ThreeTextBoxAction*>(button->get()));
-  ButtonAction* const ba_ptr(dynamic_cast<ButtonAction*>(button->get()));
+        std::cout << typeid(button_ref).name() << std::endl;
+        RepeatTextBoxAction *const rtba_ptr(
+            dynamic_cast<RepeatTextBoxAction *>(button->get()));
+        ThreeTextBoxAction *const ttba_ptr(
+            dynamic_cast<ThreeTextBoxAction *>(button->get()));
+        ButtonAction *const ba_ptr(dynamic_cast<ButtonAction *>(button->get()));
 
-	size_t found = textBoxContent.find("h");
-	bool highStat(found!=::string::npos); // true if high stats mode
+        size_t found = textBoxContent.find("h");
+        bool highStat(found != ::string::npos); // true if high stats mode
 
-	found = textBoxContent.find("d");
-	bool dcfeb_only(found!=::string::npos); // true if dcfeb only mode
+        found = textBoxContent.find("d");
+        bool dcfeb_only(found != ::string::npos); // true if dcfeb only mode
 
-	if(good_button && !do_cfg){
-	  if(rtba_ptr!=NULL){
-	    if (dcfeb_only) { // swapping the cables mode -- just do dcfeb tests
-	      if (typeid(button_ref)==typeid(DCFEBJTAGcontrol)){ // add pulses?
-		rtba_ptr->respond(in, out, long_arg);
-	      }
-	    }else { // usual mode -- do all tests
-	      if (highStat){
-		rtba_ptr->respond(in, out, long_arg);
-	      }else{
-		rtba_ptr->respond(in, out, short_arg);
-	      }
-	    }
-	  }else if(ttba_ptr!=NULL&&!dcfeb_only){ // usual mode -- do LVMB test
-	    if (highStat){
-	      ttba_ptr->respond(in, out, long_arg);
-	    }else{
-	      ttba_ptr->respond(in, out, short_arg);
-	    }
-	  }
-    else if(ba_ptr!=NULL&&!dcfeb_only){
-      ba_ptr->respond(in, out);
-    }
-	}
+        if (good_button && !do_cfg) {
+          if (rtba_ptr != NULL) {
+            if (dcfeb_only) { // swapping the cables mode -- just do dcfeb tests
+              if (typeid(button_ref) ==
+                  typeid(DCFEBJTAGcontrol)) { // add pulses?
+                rtba_ptr->respond(in, out, long_arg);
+              }
+            } else { // usual mode -- do all tests
+              if (highStat) {
+                rtba_ptr->respond(in, out, long_arg);
+              } else {
+                rtba_ptr->respond(in, out, short_arg);
+              }
+            }
+          } else if (ttba_ptr != NULL &&
+                     !dcfeb_only) { // usual mode -- do LVMB test
+            if (highStat) {
+              ttba_ptr->respond(in, out, long_arg);
+            } else {
+              ttba_ptr->respond(in, out, short_arg);
+            }
+          } else if (ba_ptr != NULL && !dcfeb_only) {
+            ba_ptr->respond(in, out);
+          }
+        }
       } // Loop over all buttons
 
       // Setting good default values for configuration registers
       size_t found = textBoxContent.find("h");
-      bool highStat(found!=::string::npos);
-      if (highStat || do_cfg){
-	const unsigned int slot(Manager::getSlotNumber());
-	const unsigned int addr_lctl1a_dly(0x4000), addr_otmb_dly(0x4004), addr_alct_dly(0x400C);
-	const unsigned int addr_inj_dly(0x4010), addr_ext_dly(0x4014), addr_callct_dly(0x4018);
-	const unsigned int addr_kill(0x401C), addr_crateid(0x4020), addr_nwords(0x4028);
-	const unsigned int addr_bpi_write(0x6000);
-	vme_wrapper_->VMEWrite(addr_lctl1a_dly, 26,    slot, "Set LCT-L1A delay");
-	vme_wrapper_->VMEWrite(addr_otmb_dly, 	2,     slot, "Set OTMBDAV delay");
-	vme_wrapper_->VMEWrite(addr_alct_dly, 	31,    slot, "Set ALCTDAV delay");
-	vme_wrapper_->VMEWrite(addr_inj_dly, 	0,     slot, "Set INJPLS delay");
-	vme_wrapper_->VMEWrite(addr_ext_dly, 	0,     slot, "Set EXTPLS delay");
-	vme_wrapper_->VMEWrite(addr_callct_dly, 0,     slot, "Set CALLCT delay");
-	vme_wrapper_->VMEWrite(addr_kill, 	0x1FF, slot, "Set KILL");
-	vme_wrapper_->VMEWrite(addr_crateid, 	0,     slot, "Set crate ID");
-	vme_wrapper_->VMEWrite(addr_nwords, 	4,     slot, "Set number of dummy words");
-	vme_wrapper_->VMEWrite(addr_bpi_write, 	0,     slot, "Write to PROM");
-	usleep(1000000);
-	out << "*** Set good default values for cfg registers ****"<<endl<<endl;
+      bool highStat(found != ::string::npos);
+      if (highStat || do_cfg) {
+        const unsigned int slot(Manager::getSlotNumber());
+        const unsigned int addr_lctl1a_dly(0x4000), addr_otmb_dly(0x4004),
+            addr_alct_dly(0x400C);
+        const unsigned int addr_inj_dly(0x4010), addr_ext_dly(0x4014),
+            addr_callct_dly(0x4018);
+        const unsigned int addr_kill(0x401C), addr_crateid(0x4020),
+            addr_nwords(0x4028);
+        const unsigned int addr_bpi_write(0x6000);
+        vme_wrapper_->VMEWrite(addr_lctl1a_dly, 26, slot, "Set LCT-L1A delay");
+        vme_wrapper_->VMEWrite(addr_otmb_dly, 2, slot, "Set OTMBDAV delay");
+        vme_wrapper_->VMEWrite(addr_alct_dly, 31, slot, "Set ALCTDAV delay");
+        vme_wrapper_->VMEWrite(addr_inj_dly, 0, slot, "Set INJPLS delay");
+        vme_wrapper_->VMEWrite(addr_ext_dly, 0, slot, "Set EXTPLS delay");
+        vme_wrapper_->VMEWrite(addr_callct_dly, 0, slot, "Set CALLCT delay");
+        vme_wrapper_->VMEWrite(addr_kill, 0x1FF, slot, "Set KILL");
+        vme_wrapper_->VMEWrite(addr_crateid, 0, slot, "Set crate ID");
+        vme_wrapper_->VMEWrite(addr_nwords, 4, slot,
+                               "Set number of dummy words");
+        vme_wrapper_->VMEWrite(addr_bpi_write, 0, slot, "Write to PROM");
+        usleep(1000000);
+        out << "*** Set good default values for cfg registers ****" << endl
+            << endl;
       }
     }
 
-    MasterTest5::MasterTest5(Crate* crate, emu::odmbdev::Manager* manager):
-      TextBoxAction(crate, manager, "Master Test ODMB5"){
-    }
+    MasterTest5::MasterTest5(Crate *crate, emu::odmbdev::Manager *manager)
+        : TextBoxAction(crate, manager, "Master Test ODMB5") {}
 
-    void MasterTest5::respond(xgi::Input* in, ostringstream& out){
+    void MasterTest5::respond(xgi::Input *in, ostringstream &out) {
       TextBoxAction::respond(in, out);
 
-      t_actionvector* buttons(NULL);
-      if(manager_==NULL) return;
-      buttons=(manager_->currentActionVector_);
-      if(buttons==NULL) return;
+      t_actionvector *buttons(NULL);
+      if (manager_ == NULL)
+        return;
+      buttons = (manager_->currentActionVector_);
+      if (buttons == NULL)
+        return;
       size_t found_cfg = textBoxContent.find("cfg");
-      bool do_cfg = found_cfg!=::string::npos;
-      for(t_actionvector::iterator button(buttons->begin());
-	  button!=buttons->end();
-	  ++button){
-	std::string short_arg(""), long_arg("");
-	bool good_button(false);
-	Action& button_ref(*(button->get()));
-  if(typeid(button_ref)==typeid(DiscreteLogicTest)){
-	  short_arg="1000";
-	  long_arg="10000";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(ClockChipTest)){
-	  short_arg="1";
-	  long_arg="10";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(VoltageCurrentTest)){
-	  short_arg="0"; // irrelevant?
-	  long_arg="0"; // irrelevant?
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(SPIcheck)){
-	  short_arg="1";
-	  long_arg="10";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(CCBReg)){
-	  short_arg="100";
-	  long_arg="5000";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(OTMBPRBSTest)){
-	  short_arg="6";
-	  long_arg="60001";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(LVMB5test)){
-	  short_arg="100";
-	  long_arg="5000";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(DCFEBJTAGcontrol)){
-	  short_arg="0";
-	  long_arg="10";
-	  good_button=true;
-	}else if(typeid(button_ref)==typeid(DCFEBPulses)){
-	  short_arg="100";
-	  long_arg="4000";
-	  good_button=true;
-	}else{
-	  short_arg="0";
-	  long_arg="0";
-	}
+      bool do_cfg = found_cfg != ::string::npos;
+      for (t_actionvector::iterator button(buttons->begin());
+           button != buttons->end(); ++button) {
+        std::string short_arg(""), long_arg("");
+        bool good_button(false);
+        Action &button_ref(*(button->get()));
+        if (typeid(button_ref) == typeid(DiscreteLogicTest)) {
+          short_arg = "1000";
+          long_arg = "10000";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(ClockChipTest)) {
+          short_arg = "1";
+          long_arg = "10";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(VoltageCurrentTest)) {
+          short_arg = "0"; // irrelevant?
+          long_arg = "0";  // irrelevant?
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(SPIcheck)) {
+          short_arg = "1";
+          long_arg = "10";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(CCBReg)) {
+          short_arg = "100";
+          long_arg = "5000";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(OTMBPRBSTest)) {
+          short_arg = "6";
+          long_arg = "60001";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(LVMB5test)) {
+          short_arg = "100";
+          long_arg = "5000";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(DCFEBJTAGcontrol)) {
+          short_arg = "0";
+          long_arg = "10";
+          good_button = true;
+        } else if (typeid(button_ref) == typeid(DCFEBPulses)) {
+          short_arg = "100";
+          long_arg = "4000";
+          good_button = true;
+        } else {
+          short_arg = "0";
+          long_arg = "0";
+        }
 
-	std::cout << typeid(button_ref).name() << std::endl;
-	RepeatTextBoxAction* const rtba_ptr(dynamic_cast<RepeatTextBoxAction*>(button->get()));
-	ThreeTextBoxAction* const ttba_ptr(dynamic_cast<ThreeTextBoxAction*>(button->get()));
-  ButtonAction* const ba_ptr(dynamic_cast<ButtonAction*>(button->get()));
+        std::cout << typeid(button_ref).name() << std::endl;
+        RepeatTextBoxAction *const rtba_ptr(
+            dynamic_cast<RepeatTextBoxAction *>(button->get()));
+        ThreeTextBoxAction *const ttba_ptr(
+            dynamic_cast<ThreeTextBoxAction *>(button->get()));
+        ButtonAction *const ba_ptr(dynamic_cast<ButtonAction *>(button->get()));
 
-	size_t found = textBoxContent.find("h");
-	bool highStat(found!=::string::npos); // true if high stats mode
+        size_t found = textBoxContent.find("h");
+        bool highStat(found != ::string::npos); // true if high stats mode
 
-	found = textBoxContent.find("d");
-	bool dcfeb_only(found!=::string::npos); // true if dcfeb only mode
+        found = textBoxContent.find("d");
+        bool dcfeb_only(found != ::string::npos); // true if dcfeb only mode
 
-	if(good_button && !do_cfg){
-	  if(rtba_ptr!=NULL){
-	    if (dcfeb_only) { // swapping the cables mode -- just do dcfeb tests
-	      if (typeid(button_ref)==typeid(DCFEBJTAGcontrol)){ // add pulses?
-		rtba_ptr->respond(in, out, long_arg);
-	      }
-	    }else { // usual mode -- do all tests
-	      if (highStat){
-		rtba_ptr->respond(in, out, long_arg);
-	      }else{
-		rtba_ptr->respond(in, out, short_arg);
-	      }
-	    }
-	  }else if(ttba_ptr!=NULL&&!dcfeb_only){ // usual mode -- do LVMB test
-	    if (highStat){
-	      ttba_ptr->respond(in, out, long_arg);
-	    }else{
-	      ttba_ptr->respond(in, out, short_arg);
-	    }
-	  }
-    else if(ba_ptr!=NULL&&!dcfeb_only){
-      ba_ptr->respond(in, out);
-    }
-	}
+        if (good_button && !do_cfg) {
+          if (rtba_ptr != NULL) {
+            if (dcfeb_only) { // swapping the cables mode -- just do dcfeb tests
+              if (typeid(button_ref) ==
+                  typeid(DCFEBJTAGcontrol)) { // add pulses?
+                rtba_ptr->respond(in, out, long_arg);
+              }
+            } else { // usual mode -- do all tests
+              if (highStat) {
+                rtba_ptr->respond(in, out, long_arg);
+              } else {
+                rtba_ptr->respond(in, out, short_arg);
+              }
+            }
+          } else if (ttba_ptr != NULL &&
+                     !dcfeb_only) { // usual mode -- do LVMB test
+            if (highStat) {
+              ttba_ptr->respond(in, out, long_arg);
+            } else {
+              ttba_ptr->respond(in, out, short_arg);
+            }
+          } else if (ba_ptr != NULL && !dcfeb_only) {
+            ba_ptr->respond(in, out);
+          }
+        }
       } // Loop over all buttons
 
       // Setting good default values for configuration registers
       size_t found = textBoxContent.find("h");
-      bool highStat(found!=::string::npos);
-      if (highStat || do_cfg){
-	const unsigned int slot(Manager::getSlotNumber());
-	const unsigned int addr_lctl1a_dly(0x4000), addr_otmb_dly(0x4004), addr_alct_dly(0x400C);
-	const unsigned int addr_inj_dly(0x4010), addr_ext_dly(0x4014), addr_callct_dly(0x4018);
-	const unsigned int addr_kill(0x401C), addr_crateid(0x4020), addr_nwords(0x4028);
-	const unsigned int addr_bpi_write(0x6000);
-	vme_wrapper_->VMEWrite(addr_lctl1a_dly, 26,    slot, "Set LCT-L1A delay");
-	vme_wrapper_->VMEWrite(addr_otmb_dly, 	2,     slot, "Set OTMBDAV delay");
-	vme_wrapper_->VMEWrite(addr_alct_dly, 	31,    slot, "Set ALCTDAV delay");
-	vme_wrapper_->VMEWrite(addr_inj_dly, 	0,     slot, "Set INJPLS delay");
-	vme_wrapper_->VMEWrite(addr_ext_dly, 	0,     slot, "Set EXTPLS delay");
-	vme_wrapper_->VMEWrite(addr_callct_dly, 0,     slot, "Set CALLCT delay");
-	vme_wrapper_->VMEWrite(addr_kill, 	0x1FF, slot, "Set KILL");
-	vme_wrapper_->VMEWrite(addr_crateid, 	0,     slot, "Set crate ID");
-	vme_wrapper_->VMEWrite(addr_nwords, 	4,     slot, "Set number of dummy words");
-	vme_wrapper_->VMEWrite(addr_bpi_write, 	0,     slot, "Write to PROM");
-	usleep(1000000);
-	out << "*** Set good default values for cfg registers ****"<<endl<<endl;
+      bool highStat(found != ::string::npos);
+      if (highStat || do_cfg) {
+        const unsigned int slot(Manager::getSlotNumber());
+        const unsigned int addr_lctl1a_dly(0x4000), addr_otmb_dly(0x4004),
+            addr_alct_dly(0x400C);
+        const unsigned int addr_inj_dly(0x4010), addr_ext_dly(0x4014),
+            addr_callct_dly(0x4018);
+        const unsigned int addr_kill(0x401C), addr_crateid(0x4020),
+            addr_nwords(0x4028);
+        const unsigned int addr_bpi_write(0x6000);
+        vme_wrapper_->VMEWrite(addr_lctl1a_dly, 26, slot, "Set LCT-L1A delay");
+        vme_wrapper_->VMEWrite(addr_otmb_dly, 2, slot, "Set OTMBDAV delay");
+        vme_wrapper_->VMEWrite(addr_alct_dly, 31, slot, "Set ALCTDAV delay");
+        vme_wrapper_->VMEWrite(addr_inj_dly, 0, slot, "Set INJPLS delay");
+        vme_wrapper_->VMEWrite(addr_ext_dly, 0, slot, "Set EXTPLS delay");
+        vme_wrapper_->VMEWrite(addr_callct_dly, 0, slot, "Set CALLCT delay");
+        vme_wrapper_->VMEWrite(addr_kill, 0x1FF, slot, "Set KILL");
+        vme_wrapper_->VMEWrite(addr_crateid, 0, slot, "Set crate ID");
+        vme_wrapper_->VMEWrite(addr_nwords, 4, slot,
+                               "Set number of dummy words");
+        vme_wrapper_->VMEWrite(addr_bpi_write, 0, slot, "Write to PROM");
+        usleep(1000000);
+        out << "*** Set good default values for cfg registers ****" << endl
+            << endl;
       }
     }
 
