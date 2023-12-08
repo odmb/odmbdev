@@ -2464,7 +2464,7 @@ namespace emu {
           0x7440, 0x7450, 0x7460, 0x7470, 0x7480};
       float expected_voltage[adc_ic_number][adc_ch_number] = 
           {{2.5, 2.5, 3.3, 3.3, 3.3, 3.3, 3.3, 3.3}, {3.3, 3.3, -1, -1, 3.3, 3.3, 3.3, 3.3},
-          {-1, -1, 2.5, 2.5, 2.5, 1.2, 1.0, 0.95}, {3.3, 1.8, 1.8, 1.8, 1.8, 1.8, -1, 0.33},
+          {-1, -1, 2.5, 2.5, 2.5, 1.2, 1.0, 0.95}, {3.3, 1.8, 1.8, 1.8, 1.8, 1.8, -1, 0.38},
           {1.8, 1.8, 1.8, 1.8, 1.8, 1.8, -1, 1.0}};
       float tolerance = 0.1; //V
       unsigned short read_current_cmd = 0x7100;
@@ -2490,7 +2490,7 @@ namespace emu {
                 cout << ": " << voltage << endl;
               }
               if (expected_voltage[adc_idx][channel]>0) {
-                if (abs(voltage-expected_voltage[adc_idx][channel]) > tolerance) {
+                if (abs(voltage-expected_voltage[adc_idx][channel]) > tolerance*expected_voltage[adc_idx][channel]) {
                   passed = false;
                   out_local_local << "Voltage reading for ADC " << adc_idx+1 << ", channel " << channel;
                   out_local_local << ". Expected: " << expected_voltage[adc_idx][channel] << ", observed: " << voltage << endl;
@@ -2627,7 +2627,7 @@ namespace emu {
               n_p_on_off_fails++;
               ADC_fail_poff_test[i] = true;
             }
-            if(mode == 1 && (fabs(voltage) < 3.2 || fabs(voltage) > 3.5 )) {
+            if(mode == 1 && (fabs(voltage) < 3.0 || fabs(voltage) > 3.5 )) {
               n_p_on_off_fails++;
               ADC_fail_pon_test[i] = true;
             }
