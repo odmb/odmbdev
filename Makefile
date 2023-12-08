@@ -60,8 +60,8 @@ LibraryDirs = $(XDAQ_ROOT)/lib
 UserSourcePath =
 UserCFlags = $(ROOTCFLAGS)
 #UserCCFlags = -g -Wall -pedantic-errors -Wno-long-long
-UserCCFlags = -O0 -g -Wall -Wno-long-long $(ROOTCFLAGS) -std=c++11
-UserDynamicLinkFlags = $(ROOTLIBS)
+UserCCFlags = -O0 -g -Wall -Wno-long-long $(ROOTCFLAGS) -std=c++11 `python3-config --cflags`
+UserDynamicLinkFlags = $(ROOTLIBS) `python3-config --ldflags`
 UserStaticLinkFlags =
 UserExecutableLinkFlags =
 

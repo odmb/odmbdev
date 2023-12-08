@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 #include <math.h>
 #include <fstream>
+#include <Python.h>
 
 extern char *wbuf;
 extern char rbuf[];
@@ -3545,6 +3546,23 @@ namespace emu {
         out << "*** Set good default values for cfg registers ****" << endl
             << endl;
       }
+
+      ofstream log("test_output_logs/output.log");
+      log << manager_->webOutputLog_.str();
+      log.close();
+
+      std::vector<std::wstring> arguments = {L"EMBEDDED PYTHON", L"test_board", L"output.log"};
+      std::vector<wchar_t*> argv;
+      for (const auto& arg : arguments)
+          argv.push_back((wchar_t*)arg.data());
+      argv.push_back(nullptr);
+
+      Py_Initialize();
+      PySys_SetArgv(argv.size() - 1, argv.data());
+      PyRun_SimpleString("import os\nos.chdir('test_output_logs')");
+      FILE* file = fopen("parse_log.py","r");
+      PyRun_SimpleFile(file, "parse_log.py");
+      Py_Finalize();
     }
 
     MasterTest5::MasterTest5(Crate *crate, emu::odmbdev::Manager *manager)
