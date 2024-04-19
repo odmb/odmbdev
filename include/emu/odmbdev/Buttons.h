@@ -338,6 +338,20 @@ namespace emu { namespace odmbdev {
     };
 
     /**************************************************************************
+     * Bench Tests
+     *
+     * A domain-specific-lanaguage for issuing vme commands.
+     *************************************************************************/
+    //class BenchTests : public FourTextBoxAction {
+    class BenchTests : public OneTextBoxAction {
+    public:
+      BenchTests(Crate * crate, emu::odmbdev::Manager* manager);
+      void display(xgi::Output * out);
+      void respond(xgi::Input * in, ostringstream & out);
+    };
+
+
+    /**************************************************************************
      * ExecuteVMEDSL
      *
      * A domain-specific-lanaguage for issuing vme commands.

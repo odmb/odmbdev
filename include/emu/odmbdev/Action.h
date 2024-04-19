@@ -125,6 +125,13 @@ namespace emu {
 				       const std::string& textbox_default_value,
 				       const std::string& button_style=default_button_style,
 				       const std::string& textbox_style=default_textbox_style);
+      static void addButtonWithBenchTestTextBox(xgi::Output *out,
+                                       const string& button_name,
+                                       const string& textbox_name,
+                                       const string& textbox_default_value,
+                                       const string& bench_test_name,
+                                       const string& button_style=default_button_style,
+                                       const string& textbox_style=default_textbox_style);
       static void addButtonWithTextBox(xgi::Output *out,
 				       const std::string& button_name,
 				       const std::string& textbox_name,

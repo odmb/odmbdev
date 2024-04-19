@@ -18,6 +18,16 @@ namespace emu {
 			   "textbox",
 			   "");
     }
+
+    void OneTextBoxAction::display(xgi::Output * out, string bench_test_name)
+    {
+      addButtonWithBenchTestTextBox(out,
+			   this->buttonLabel,
+			   "textbox",
+			   "",
+           	           bench_test_name);
+    }
+
     // remember to call this base method with you override it, otherwise
     // textBoxContents will be empty!
     void OneTextBoxAction::respond(xgi::Input * in, ostringstream & out)

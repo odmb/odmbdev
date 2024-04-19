@@ -151,6 +151,7 @@ namespace emu { namespace odmbdev {
       putButtonsInGroup("Production Tests");
       addLogActionByTypename<CreateTestLog>(crate, this);
       addActionByTypename<ChangeSlotNumber>(crate, this);
+      addActionByTypename<BenchTests>(crate,this); //This is currently a test 12/7/23 - Anders
       addActionByTypename<SetDCFEBMode>(crate, this);
       addActionByTypename<MasterTest>(crate, this);
       addActionByTypename<LVMBtest>(crate, this);
@@ -182,6 +183,7 @@ namespace emu { namespace odmbdev {
       addActionByTypename<ChangeSlotNumber>(crate, this);
       addActionByTypename<SetDCFEBMode>(crate, this); //make xDCFEB default
       //demarcate non-test buttons from test buttons?
+      //addActionByTypename<BenchTests>(crate,this);
       addActionByTypename<HardReset>(crate);
       addActionByTypename<ReprogramDCFEB>(crate);
       addActionByTypename<MasterTest7>(crate, this);

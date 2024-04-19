@@ -12,6 +12,7 @@ namespace emu { namespace odmbdev {
       OneTextBoxAction(Crate * crate, Manager * manager, string buttonLabel);
 
       void display(xgi::Output * out);
+      void display(xgi::Output * out, string bench_test_name);
       void respond(xgi::Input * in, ostringstream & out);
     protected:
       string buttonLabel;

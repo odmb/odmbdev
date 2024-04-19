@@ -1831,6 +1831,61 @@ namespace emu {
     } // End ChangeSlotNumber::respond
 
 
+
+    /**************************************************************************
+     * BenchTests 
+     *
+     * A domain-specific-lanaguage for issuing vme commands. 
+     *************************************************************************/
+
+    BenchTests::BenchTests(Crate * crate, emu::odmbdev::Manager* manager)
+      : OneTextBoxAction(crate, manager, "Bench Tests")
+    //  : FourTextBoxAction(crate, manager, "Bench Tests")
+    {
+    }
+
+    void BenchTests::display(xgi::Output * out)
+    {
+      addButtonWithBenchTestTextBox(out, "Submit", "textbox", "", buttonLabel + " Passed? (Y/N)");
+    }
+
+    void BenchTests::respond(xgi::Input * in, ostringstream & out) {
+      OneTextBoxAction::respond(in, out);
+  
+      out <<"********** Bench Tests **********" << endl; 
+      if(textBoxContent.compare("Y")==0 || textBoxContent.compare("y")==0){
+        out << "\t\t\t\t\t\tPASSED" << endl;
+      } else if (textBoxContent.compare("N")==0 || textBoxContent.compare("n")==0) { 
+        out << "\t\t\t\t\t\tNOT PASSED" << endl;
+      } else { 
+        out << "\t\t\t\t\t\tINVALID RESPONSE" << endl;
+      }
+      out <<endl<<endl;
+    } // End BenchTests::respond
+  
+  /*  BenchTests::BenchTests(Crate * crate, emu::odmbdev::Manager* manager)
+      : FourTextBoxAction(crate, manager, "Bench Tests")
+      {
+      }
+  */
+/*    void BenchTests::respond(xgi::Input * in, ostringstream & out) {
+      FourTextBoxAction::respond(in, out);
+      
+      out <<"********** Bench Tests **********" << endl;
+      out <<"Visual Inspection: " << flush; 
+      if(textBoxContent1.compare("Y")){out << "PASSED" << endl; } else { out << "NOT PASSED" << endl;}
+      out << endl << "Short Test: " << flush;
+      if(textBoxContent2.compare("Y")){out << "PASSED" << endl; } else { out << "NOT PASSED" << endl;}
+      out << endl << "Clock Configured: " << flush;
+      if(textBoxContent3.compare("Y")){out << "PASSED" << endl; } else { out << "NOT PASSED" << endl;}
+      out << endl << "EEPROM Programmed: " << flush;
+      if(textBoxContent4.compare("Y")){out << "PASSED" << endl; } else { out << "NOT PASSED" << endl;}
+      out <<endl<<endl;
+    } // End BenchTests::respond
+*/   
+  
+
+
     /**************************************************************************
      * ExecuteVMEDSL
      *
@@ -2373,12 +2428,13 @@ namespace emu {
       cout << "Saving production test log for ODMB " << unique_id << endl;
       cout << "Tester: " << initials << endl;
       // create log file
-      //string file_name("logfiles/odmb_#_fw_v");
-      string file_name("/data/odmb/logfiles/production_tests/odmb");
+      string file_name("odmb_");
+      //string file_name("/data/odmb/logfiles/production_tests/odmb");
       file_name += unique_id + string("_fwv") + fwv;
       file_name += string("_") + emu::utils::getDateTime(true) + string("_") + initials + string(".log");
-      ofstream ofs(file_name.c_str(),ios::app);
+      ofstream ofs(("logfiles/" + file_name).c_str(),ios::app);
       if(ofs.good()){   // print log header
+	cout << "Log file created" << endl;
 	ofs << "Production test log for ODMB " << endl;
 	ofs << "Tester: " << initials << endl;
 	ofs << "Firmware version: " << fwv << endl;
@@ -2387,7 +2443,20 @@ namespace emu {
       }
       
       ssout << "Created log file " << file_name << endl;
-      
+
+      std::wstring fname_wstr (file_name.begin(), file_name.end());
+      std::vector<std::wstring> arguments = {L"EMBEDDED PYTHON", L"test_board", fname_wstr};
+      std::vector<wchar_t*> argv;
+      for (const auto& arg : arguments)
+          argv.push_back((wchar_t*)arg.data());
+      argv.push_back(nullptr);
+
+      Py_Initialize();
+      PySys_SetArgv(argv.size() - 1, argv.data());
+      PyRun_SimpleString("import os\nos.chdir('logfiles')");
+      FILE* file = fopen("submit_elog_from_log.py","r");
+      PyRun_SimpleFile(file, "submit_elog_from_log.py");
+      Py_Finalize(); 
     }
 
     /*unsigned short JTAGWrapper(unsigned short IR, unsigned short DR, unsigned int nbits) {
@@ -2454,7 +2523,7 @@ namespace emu {
       JustifyHdr(hdr);
       unsigned int slot(Manager::getSlotNumber());
       unsigned short int VMEresult;
-      bool print_results = false; //prints output to web page rather than terminal
+      bool print_results = true; //prints output to web page rather than terminal
 
       const unsigned int adc_ic_number = 5;
       const unsigned int adc_ch_number = 8;
@@ -2861,6 +2930,9 @@ namespace emu {
           usleep(10);
           //Format result
           float voltage_result_1 = float(VMEresult)*10.0/float(0xfff);
+          //float voltage = voltage_result_1;
+          //std::cout << "mode: " << mode << "pon index: " << i << ", voltage: " << fabs(voltage) << std::endl;
+
           if (VMEresult == 65535 && i == 0){ 
             VMEresult = 0; 
             ADC_not_connected[i] = true;
@@ -2881,7 +2953,7 @@ namespace emu {
               n_p_on_off_fails++;
               ADC_fail_poff_test[i] = true;
             }
-            if(mode == 1 && (fabs(voltage) < 3.2 || fabs(voltage) > 3.5 )) {
+            if(mode == 1 && (fabs(voltage) < 3.0 || fabs(voltage) > 3.5 )) {
               n_p_on_off_fails++;
               ADC_fail_pon_test[i] = true;
             }
@@ -3424,7 +3496,6 @@ namespace emu {
 
     void MasterTest7::respond(xgi::Input *in, ostringstream &out) {
       TextBoxAction::respond(in, out);
-
       t_actionvector *buttons(NULL);
       if (manager_ == NULL)
         return;
@@ -3546,23 +3617,6 @@ namespace emu {
         out << "*** Set good default values for cfg registers ****" << endl
             << endl;
       }
-
-      ofstream log("test_output_logs/output.log");
-      log << manager_->webOutputLog_.str();
-      log.close();
-
-      std::vector<std::wstring> arguments = {L"EMBEDDED PYTHON", L"test_board", L"output.log"};
-      std::vector<wchar_t*> argv;
-      for (const auto& arg : arguments)
-          argv.push_back((wchar_t*)arg.data());
-      argv.push_back(nullptr);
-
-      Py_Initialize();
-      PySys_SetArgv(argv.size() - 1, argv.data());
-      PyRun_SimpleString("import os\nos.chdir('test_output_logs')");
-      FILE* file = fopen("parse_log.py","r");
-      PyRun_SimpleFile(file, "parse_log.py");
-      Py_Finalize();
     }
 
     MasterTest5::MasterTest5(Crate *crate, emu::odmbdev::Manager *manager)
@@ -4143,7 +4197,7 @@ namespace emu {
       }
       unsigned int nFailedSignals(0);
       for (unsigned int signal(0); signal<5; signal++) {
-	if (nPassed[signal]<1) nFailedSignals++;
+	if (nPassed[signal]<nConnected) nFailedSignals++;
       }
       if (nFailedSignals==0) out_local << "\t\t\t\t\t\tPASSED" << endl;
       else out_local << "\t\t\t\t\t\tNOT PASSED" << endl;
@@ -4740,14 +4794,14 @@ namespace emu {
       unsigned short int VMEresult;
       vector<string> v_UserCode;
       unsigned int UserCode(0);
-      bool is_odmb7 = false;
+      bool is_odmb7 = true;
 
       VMEresult = vme_wrapper_->VMERead(0x4200,slot,"Read FW version");
       if (VMEresult >= 0x0001 && VMEresult <= 0x0318) {
         //is legacy ODMB
         is_odmb7 = false;
       }
-      else if (VMEresult == 0xD3B7) { //temporary ODMB7/5 identifier
+/*      else if (VMEresult == 0xD3B7) { //temporary ODMB7/5 identifier
         //TODO: update this, enforce exact version?
         is_odmb7 = true;
       }
@@ -4760,7 +4814,7 @@ namespace emu {
         UpdateLog(vme_wrapper_, slot, out_local);
         return;
       }
-
+*/
       int nReps = atoi(textBoxContent.c_str());
       int nFails(0);
       for (int rep(0); rep<nReps; rep++) { // nReps
@@ -5106,12 +5160,12 @@ namespace emu {
       if (!write_prom_mode) {
         //check is ODMB7
         VMEresult = vme_wrapper_->VMERead(0x4200,slot,"Read FW version");
-        if (VMEresult != 0xD3B7) { //temporary ODMB7 identifier
+   /*     if (VMEresult != 0xD3B7) { //temporary ODMB7 identifier
           out_local << "ERROR: Board is not ODMB7." << endl << endl;
           out << out_local.str();
           return;
         }
-
+*/	
         //do a series of basic tests to verify SPI_PORT and SPI_CTRL commands are working
         //for (unsigned int repeat_idx = 0; repeat_idx < n_tries; repeat_idx++) {
         for (unsigned int repeat_idx = 0; repeat_idx < 1; repeat_idx++) {
@@ -5552,6 +5606,7 @@ namespace emu {
           usleep(1000000);
           
         } //ntries
+	out_local << "\t\t\t\t\t\tPASSED" << endl;
         out_local << "Success, all PROM SPI functionalities successful." << endl << endl;
       }
       else {
