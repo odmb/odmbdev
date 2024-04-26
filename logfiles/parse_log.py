@@ -36,11 +36,11 @@ def parse_summaries(filename):
             if line.find("dcfeb 7") != -1:
                 d["odmb7"] = True
             for key in search_keys_normal:
-                if line.find(key.lower()) != -1 and line.find("not passed") == -1:
+                if line.find(key.lower()) != -1 and line.find("not passed") == -1 and line.find("passed") != -1:
                     d[key] = True
     return d
 
-def parse_voltages(filename):
+def parse_currents(filename):
     d = {}
 
     with open(filename, "r") as f:
@@ -50,12 +50,12 @@ def parse_voltages(filename):
             idx = line.find(base_str)
             if (idx != -1):
                 pin = line[idx + len(base_str):line.find(":")].strip()
-                voltage = line[line.find(":") + len(":"):line.find("a", line.find(":"))].strip()
-                d[f"pin{pin}"] = voltage
+                current = line[line.find(":") + len(":"):line.find("a", line.find(":"))].strip()
+                d[f"pin{pin}"] = current
     return d
 
 def parse_log(filename):
-	return map_keys({**parse_summaries(filename), **parse_voltages(filename)})
+	return map_keys({**parse_summaries(filename), **parse_currents(filename)})
 
 def add_to_db(db_path, board_ids, log_dicts):
     con = sqlite3.connect(db_path)

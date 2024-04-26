@@ -2456,6 +2456,7 @@ namespace emu {
       PyRun_SimpleString("import os\nos.chdir('logfiles')");
       FILE* file = fopen("submit_elog_from_log.py","r");
       PyRun_SimpleFile(file, "submit_elog_from_log.py");
+      PyRun_SimpleString("import os\nos.chdir('..')");
       Py_Finalize(); 
     }
 
