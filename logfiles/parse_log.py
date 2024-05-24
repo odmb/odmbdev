@@ -48,14 +48,30 @@ def parse_currents(filename):
             line = line.lower()
             base_str = "Current reading for channel".lower()
             idx = line.find(base_str)
-            if (idx != -1):
+            if idx != -1:
                 pin = line[idx + len(base_str):line.find(":")].strip()
                 current = line[line.find(":") + len(":"):line.find("a", line.find(":"))].strip()
-                d[f"pin{pin}"] = current
+                d[f"pin_current{pin}"] = current
+    return d
+
+def parse_voltages(filename):
+    d = {}
+
+    with open(filename, "r") as f:
+        for line in f:
+            line = line.lower()
+            base_str = "Voltage reading for ADC".lower()
+            idx = line.find(base_str)
+            if idx != -1 and line.find("Expected".lower()) == -1:
+                adc = line[idx + len(base_str):line.find(",")].strip()
+                channel = line[line.find("channel") + len("channel"):line.find(":")].strip()
+                pin = (int(adc) - 1) * 8 + int(channel)
+                voltage = line[line.find(":") + len(":"):].strip()
+                d[f"pin_voltage{pin}"] = voltage
     return d
 
 def parse_log(filename):
-	return map_keys({**parse_summaries(filename), **parse_currents(filename)})
+	return map_keys({**parse_summaries(filename), **parse_currents(filename), **parse_voltages(filename)})
 
 def add_to_db(db_path, board_ids, log_dicts):
     con = sqlite3.connect(db_path)
@@ -90,9 +106,12 @@ def map_keys(d):
     mapped_d["prom test-prom_summary"] = '1' if d["spi check"] else '0'
     # mapped_d["is_odmb7"] = d["odmb7"]
     for (k, v) in d.items():
-        if "pin" in k:
-            _, pin_idx = k.split("pin")
+        if "pin_current" in k:
+            _, pin_idx = k.split("pin_current")
             mapped_d[f"sysmon test-sysmon_current{pin_idx}"] = v
+        if "pin_voltage" in k:
+            _, pin_idx = k.split("pin_voltage")
+            mapped_d[f"sysmon test-sysmon_voltage{pin_idx}"] = v
     return mapped_d
 
 #add_to_db(

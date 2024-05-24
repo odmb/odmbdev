@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.6
 import sys
 import requests
 from parse_log import parse_log
@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
   # Post data
   data = {'csrfmiddlewaretoken':csrftoken,
-          'boardtest-board':"odmb7_rev5#666", 'boardtest-date':'2024-04-26+21:23:51', 'boardtest-location':'1', 'testfilter-prom test': '1', 'testfilter-vme basic test': '1', 'testfilter-fpga clock test': '1', 'testfilter-sysmon test': '1', 'testfilter-ccb test': '1', 'testfilter-otmb test': '1', 'testfilter-lvmb test': '1', 'testfilter-dcfeb jtag test': '1', 'testfilter-dcfeb fast signal test': '1', 'submit_test': 'Submit'
+          'boardtest-board':"odmb7_rev5#3", 'boardtest-date':'2024-04-26+21:23:51', 'boardtest-location':'1', 'testfilter-prom test': '1', 'testfilter-vme basic test': '1', 'testfilter-fpga clock test': '1', 'testfilter-sysmon test': '1', 'testfilter-ccb test': '1', 'testfilter-otmb test': '1', 'testfilter-lvmb test': '1', 'testfilter-dcfeb jtag test': '1', 'testfilter-dcfeb fast signal test': '1', 'submit_test': 'Submit'
          }
   data = {**data, **parse_log(sys.argv[2])}
   print(data)
