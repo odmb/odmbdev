@@ -56,6 +56,7 @@ def parse_currents(filename):
 
 def parse_voltages(filename):
     d = {}
+    pin = 0
 
     with open(filename, "r") as f:
         for line in f:
@@ -65,9 +66,12 @@ def parse_voltages(filename):
             if idx != -1 and line.find("Expected".lower()) == -1:
                 adc = line[idx + len(base_str):line.find(",")].strip()
                 channel = line[line.find("channel") + len("channel"):line.find(":")].strip()
-                pin = (int(adc) - 1) * 8 + int(channel)
+                parsed_pin = (int(adc) - 1) * 8 + int(channel)
+                if parsed_pin in [30, 38]: # skip ADC4 Ch6, ADC5 Ch6
+                    continue
                 voltage = line[line.find(":") + len(":"):].strip()
                 d[f"pin_voltage{pin}"] = voltage
+                pin += 1
     return d
 
 def parse_log(filename):
