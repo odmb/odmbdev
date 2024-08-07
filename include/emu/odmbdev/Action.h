@@ -150,6 +150,15 @@ namespace emu {
 				       const std::string& textbox_default_value,
 				       const std::string& button_style=default_button_style,
 				       const std::string& textbox_style=default_textbox_style);
+      static void addButtonWithNameAndIDBoxes(xgi::Output *out,
+                                      const std::string& button_name,
+                                      const std::string& textbox1_name,
+                                      const std::string& textbox1_default_value,
+                                      const std::string& textbox2_name,
+                                      const std::string& textbox2_default_value,
+                                      const std::string& button_style=default_button_style,
+                                      const std::string& textbox1_style=default_textbox_style,
+                                      const std::string& textbox2_style=default_textbox_style);
       static void addButtonWithRepeatOpt(xgi::Output *out,
 					 const std::string& button_name,
 					 const std::string& textbox_name,

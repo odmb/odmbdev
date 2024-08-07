@@ -177,6 +177,37 @@ namespace emu { namespace odmbdev {
         .set("value",button_name)
            << endl;
     }
+
+    void Action::addButtonWithNameAndIDBoxes(xgi::Output *out,
+                                      const string& button_name,
+                                      const string& textbox1_name,
+                                      const string& textbox1_default_value,
+                                      const string& textbox2_name,
+                                      const string& textbox2_default_value,
+                                      const string& button_style,
+                                      const string& textbox1_style,
+                                      const string& textbox2_style)
+    {
+      *out << 
+        "Enter your intials: " <<
+        cgicc::input()
+        .set("type","text")
+        .set("value1", textbox1_default_value)
+        .set("style1", textbox1_style)
+        .set("name1",  textbox1_name) 
+           << endl
+	<< "Enter board information (e.g odmb7_rev5#4): " << 
+	cgicc::input()
+        .set("value2", textbox2_default_value)
+        .set("style2", textbox2_style)
+        .set("name2",  textbox2_name) 
+	   << endl
+           << cgicc::input()
+        .set("type","submit")
+        .set("style", button_style)
+        .set("value",button_name)
+           << endl;
+    }
     
     void Action::addButtonWithRepeatOpt(xgi::Output *out,
                                         const string& button_name,

@@ -38,6 +38,10 @@ extern unsigned char hw_dest_addr[];
 using namespace std;
 using namespace emu::pc;
 
+//Using a global string value for the odmb board, just to 
+string odmb_rev_and_number = "odmb_test";
+
+
 /******************************************************************************
  * Some classes are declared in the header file because they are short and
  * sweet. Check there first!
@@ -2425,13 +2429,12 @@ namespace emu {
       VMEresult = vme_wrapper_->VMERead(addr_read_unique_id,slot,"Read unique ID");
       string unique_id = FixLength(VMEresult, 4, true); // Format result
 
-      cout << "Saving production test log for ODMB " << unique_id << endl;
-      cout << "Tester: " << initials << endl;
       // create log file
       string file_name("odmb_");
+      string datetime = emu::utils::getDateTime(true);
       //string file_name("/data/odmb/logfiles/production_tests/odmb");
       file_name += unique_id + string("_fwv") + fwv;
-      file_name += string("_") + emu::utils::getDateTime(true) + string("_") + initials + string(".log");
+      file_name += string("_") + datetime + string("_") + initials + string(".log");
       ofstream ofs(("logfiles/" + file_name).c_str(),ios::app);
       if(ofs.good()){   // print log header
 	cout << "Log file created" << endl;
@@ -2443,23 +2446,124 @@ namespace emu {
       }
       
       ssout << "Created log file " << file_name << endl;
+      ssout << "Board number and revision number: " << odmb_rev_and_number << endl;
+      cout << "Saving production test log for ODMB " << unique_id << endl;
+      cout << "Tester: " << initials << endl;
 
       std::wstring fname_wstr (file_name.begin(), file_name.end());
-      std::vector<std::wstring> arguments = {L"EMBEDDED PYTHON", L"test_board", fname_wstr};
+      std::wstring odmb_rev_and_number_wstr (odmb_rev_and_number.begin(), odmb_rev_and_number.end());
+      std::wstring datetime_wstr (datetime.begin(), datetime.end());
+//
+      std::vector<std::wstring> arguments = {L"EMBEDDED PYTHON", odmb_rev_and_number_wstr, fname_wstr, datetime_wstr};
+      //, static_cast<std::wstring>(initials), static_cast<std::wstring>(emu::utils::getDateTime(true))};
       std::vector<wchar_t*> argv;
       for (const auto& arg : arguments)
           argv.push_back((wchar_t*)arg.data());
       argv.push_back(nullptr);
 
       Py_Initialize();
+      cout << Py_GetVersion() << endl;
+
       PySys_SetArgv(argv.size() - 1, argv.data());
-      PyRun_SimpleString("import os\nos.chdir('logfiles')");
+      PyRun_SimpleString("import os\nimport sys\nos.chdir('logfiles')\nprint(sys.path)");
       FILE* file = fopen("submit_elog_from_log.py","r");
       PyRun_SimpleFile(file, "submit_elog_from_log.py");
       PyRun_SimpleString("import os\nos.chdir('..')");
       Py_Finalize(); 
     }
 
+ 
+    SetBoardNumber::SetBoardNumber(Crate * crate, Manager* manager) 
+      : OneTextBoxAction(crate, manager, "Set Test board value")
+    { 
+      // blank constructor
+    }
+    
+    void SetBoardNumber::respond(xgi::Input * in, ostringstream & out){ // JB-F
+      OneTextBoxAction::respond(in, out);
+      
+      odmb_rev_and_number = textBoxContent.c_str();
+
+      cout << "Board information: " << odmb_rev_and_number << endl;
+      out << "Board information: " << odmb_rev_and_number << endl;
+    }
+
+
+    CreateTestLogWithID::CreateTestLogWithID(Crate * crate, Manager* manager) 
+      : SigAndIDTextBoxAction(crate, manager, "Save Test Log") 
+    { 
+      // blank constructor
+    }
+    
+    void CreateTestLogWithID::respond(xgi::Input * in, xgi::Output * out, std::ostringstream & ssout, std::ostringstream & log) { // JB-F
+      SigAndIDTextBoxAction::respond(in, out, ssout);
+      istringstream textSig(SigTextBoxContent);
+      //istringstream textID(IDTextBoxContent);
+
+      string initials;
+      string boardid = "odmb7_rev5#1";
+      getline(textSig,initials,'\n');
+      //getline(textID,boardid,'\n');
+
+      // First obtain ODMB id and firmware version
+      int slot = Manager::getSlotNumber();
+      //addresses
+      unsigned short int VMEresult = 0;
+      int addr_read_fwv(0x004200);
+      int addr_read_unique_id(0x004100);
+
+      // Read firmware version
+      VMEresult = vme_wrapper_->VMERead(addr_read_fwv,slot,"Read firmware version");
+      string fwv = FixLength(VMEresult, 3, true); // Format result
+
+      // Read unique id
+      VMEresult = vme_wrapper_->VMERead(addr_read_unique_id,slot,"Read unique ID");
+      string unique_id = FixLength(VMEresult, 4, true); // Format result
+
+      cout << "Saving production test log for ODMB " << unique_id << endl;
+      cout << "Tester: " << initials << endl;
+
+      // create log file
+      string file_name("odmb_");
+      string datetime = emu::utils::getDateTime(true);
+      //string file_name("/data/odmb/logfiles/production_tests/odmb");
+      file_name += unique_id + string("_fwv") + fwv;
+      file_name += string("_") + datetime + string("_") + initials + string(".log");
+      ofstream ofs(("logfiles/" + file_name).c_str(),ios::app);
+      if(ofs.good()){   // print log header
+	cout << "Log file created" << endl;
+	ofs << "Production test log for ODMB " << endl;
+	ofs << "Tester: " << initials << endl;
+	ofs << "Firmware version: " << fwv << endl;
+	// Now copy the test outputs displayed on the web page into the log
+	ofs << log.str();
+      }
+      
+      ssout << "Created log file: " << file_name << endl;
+      ssout << "Board number and revision number: " << odmb_rev_and_number << endl;
+
+      std::wstring fname_wstr (file_name.begin(), file_name.end());
+      std::wstring boardid_wstr (boardid.begin(), boardid.end());
+      std::wstring datetime_wstr (datetime.begin(), datetime.end());
+
+      std::vector<std::wstring> arguments = {L"EMBEDDED PYTHON", L"test_board", fname_wstr, boardid_wstr, datetime_wstr};
+      //, static_cast<std::wstring>(initials), static_cast<std::wstring>(emu::utils::getDateTime(true))};
+      std::vector<wchar_t*> argv;
+      for (const auto& arg : arguments)
+          argv.push_back((wchar_t*)arg.data());
+      argv.push_back(nullptr);
+      /*
+      Py_Initialize();
+      cout << Py_GetVersion() << endl;
+
+      PySys_SetArgv(argv.size() - 1, argv.data());
+      PyRun_SimpleString("import os\nimport sys\nos.chdir('logfiles')\nprint(sys.path)");
+      FILE* file = fopen("submit_elog_from_log.py","r");
+      PyRun_SimpleFile(file, "submit_elog_from_log.py");
+      PyRun_SimpleString("import os\nos.chdir('..')");
+      Py_Finalize(); 
+      */
+    }
     /*unsigned short JTAGWrapper(unsigned short IR, unsigned short DR, unsigned int nbits) {
       
     }*/
@@ -2526,6 +2630,14 @@ namespace emu {
       unsigned short int VMEresult;
       bool print_results = true; //prints output to web page rather than terminal
 
+      // ERT-J1VR333J Thermistor temp calulator (for ADC 4 (counting from 1), channel 7 (counting from 0))
+      double r_0 = 5110;//resistance in parallel
+      double r_therm = 33000; //thermistor resistance 
+      double v_src = 2.5;
+      long double log_fit_coeff_a = -25.258972714062118; //Coefficients derived from a log fit to the thermistor (ERT-J1VR333J) data points: https://www.mouser.com/datasheet/2/315/AUA0000C8-1131141.pdf
+      long double log_fit_coeff_b = 25.621931062429454;
+      double therm_temp_thresh = 50;
+
       const unsigned int adc_ic_number = 5;
       const unsigned int adc_ch_number = 8;
       const unsigned int sysmon_ch_number = 16;
@@ -2561,7 +2673,19 @@ namespace emu {
                 cout << ": " << voltage << endl;
               }
               if (expected_voltage[adc_idx][channel]>0) {
-                if (abs(voltage-expected_voltage[adc_idx][channel]) > tolerance*expected_voltage[adc_idx][channel]) {
+                //Checking the thermister resistor value
+                if (adc_idx == 3 && channel == 7){
+                  double v_rawtherm = voltage;
+                  long double therm_coeff = (v_src/v_rawtherm - 1)*r_0/r_therm;
+                  long double therm_temp = log_fit_coeff_a*log(therm_coeff) + log_fit_coeff_b;
+                  if (therm_temp >= therm_temp_thresh) {
+                    passed = false;
+                    out_local_local << "Voltage reading for ADC " << adc_idx+1 << ", channel " << channel << ": " << voltage << endl;
+                    out_local_local << "Temperature reading for thermistor at ADC " << adc_idx+1 << ", channel is " << channel << ": ";
+                    out_local_local << therm_temp << endl;
+		    }
+                }
+                else if (abs(voltage-expected_voltage[adc_idx][channel]) > tolerance*expected_voltage[adc_idx][channel]) {
                   passed = false;
                   out_local_local << "Voltage reading for ADC " << adc_idx+1 << ", channel " << channel;
                   out_local_local << ". Expected: " << expected_voltage[adc_idx][channel] << ", observed: " << voltage << endl;
@@ -3543,7 +3667,7 @@ namespace emu {
           long_arg = "10";
           good_button = true;
         } else if (typeid(button_ref) == typeid(DCFEBPulses)) {
-          short_arg = "100";
+          short_arg = "1000";
           long_arg = "4000";
           good_button = true;
         } else {
@@ -3672,7 +3796,7 @@ namespace emu {
           long_arg = "10";
           good_button = true;
         } else if (typeid(button_ref) == typeid(DCFEBPulses)) {
-          short_arg = "100";
+          short_arg = "1000";
           long_arg = "4000";
           good_button = true;
         } else {

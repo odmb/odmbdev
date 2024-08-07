@@ -179,7 +179,6 @@ namespace emu { namespace odmbdev {
       
       //TODO see below comments
       putButtonsInGroup("ODMB75 Production Tests");
-      addLogActionByTypename<CreateTestLog>(crate, this);
       addActionByTypename<ChangeSlotNumber>(crate, this);
       addActionByTypename<SetDCFEBMode>(crate, this); //make xDCFEB default
       //demarcate non-test buttons from test buttons?
@@ -198,6 +197,9 @@ namespace emu { namespace odmbdev {
       addActionByTypename<LVMB5test>(crate, this); //merege these
       addActionByTypename<DCFEBJTAGcontrol>(crate, this);
       addActionByTypename<DCFEBPulses>(crate, this);
+      addActionByTypename<SetBoardNumber>(crate, this);
+      addLogActionByTypename<CreateTestLog>(crate, this);
+
       //optical PRBS would go here
 
       // putButtonsInGroup( "Routine Tests" );

@@ -38,6 +38,7 @@ Sources = \
         ThreeTextBoxAction.cc \
         RepeatTextBoxAction.cc \
         SignatureTextBoxAction.cc \
+        SigAndIDTextBoxAction.cc \
 	TextBoxAction.cc \
         RadioButtonAction.cc \
         VMEWrapper.cc \

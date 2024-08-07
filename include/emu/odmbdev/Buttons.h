@@ -19,6 +19,7 @@
 #include "emu/odmbdev/ThreeTextBoxAction.h"
 #include "emu/odmbdev/RepeatTextBoxAction.h"
 #include "emu/odmbdev/SignatureTextBoxAction.h"
+#include "emu/odmbdev/SigAndIDTextBoxAction.h"
 #include "emu/odmbdev/TextBoxAction.h"
 #include "emu/odmbdev/RadioButtonAction.h"
 
@@ -417,6 +418,30 @@ namespace emu { namespace odmbdev {
       CreateTestLog(Crate * crate, emu::odmbdev::Manager* manager);
       void respond(xgi::Input * in, xgi::Output * out, std::ostringstream & ssout, std::ostringstream & log);
     }; 
+
+    /**************************************************************************
+     * SetBoardNumber
+     *
+     * Very basic class to save the current board rev. number and board number
+     **************************************************************************/
+    class SetBoardNumber : public  OneTextBoxAction {
+    public:
+      SetBoardNumber(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, ostringstream & out);
+    }; 
+
+    /**************************************************************************
+     * CreateTestLogWithID
+     *
+     * A small class to save a log of completed production tests
+     * Saves the board type, revision, board number, firmware version, and tester intials
+     **************************************************************************/
+    class CreateTestLogWithID : public SigAndIDTextBoxAction {
+    public:
+      CreateTestLogWithID(Crate * crate, emu::odmbdev::Manager* manager);
+      void respond(xgi::Input * in, xgi::Output * out, std::ostringstream & ssout, std::ostringstream & log);
+    }; 
+
 
     //Does (almost) all the tests
     class MasterTest: public TextBoxAction{
